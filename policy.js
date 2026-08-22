@@ -23,6 +23,14 @@ const TOP_LEVEL_KEYS = new Set(['schemaVersion', ...POLICY_SECTIONS]);
 const SCOPE_PATTERN = /^[a-z0-9][a-z0-9._-]{0,31}$/;
 const CONTROL_CHARS = /[\0-\x08\x0B\x0C\x0E-\x1F\x7F]/;
 
+function deepFreezeJson(value) {
+  if (Array.isArray(value)) return Object.freeze(value.map(deepFreezeJson));
+  if (value && typeof value === 'object') {
+    return Object.freeze(Object.fromEntries(Object.entries(value).map(([key, item]) => [key, deepFreezeJson(item)])));
+  }
+  return value;
+}
+
 function assertPlainObject(value, name) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${name} must be a JSON object.`);
   return value;
@@ -35,16 +43,12 @@ function assertKnownKeys(value, allowedKeys, name) {
 }
 
 function assertInteger(value, min, max, name) {
-  if (!Number.isInteger(value) || value < min || value > max) {
-    throw new Error(`${name} must be an integer between ${min} and ${max}.`);
-  }
+  if (!Number.isInteger(value) || value < min || value > max) throw new Error(`${name} must be an integer between ${min} and ${max}.`);
   return value;
 }
 
 function assertNumber(value, min, max, name) {
-  if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max) {
-    throw new Error(`${name} must be a number between ${min} and ${max}.`);
-  }
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max) throw new Error(`${name} must be a number between ${min} and ${max}.`);
   return value;
 }
 
@@ -101,7 +105,7 @@ function validateCommitSection(rules) {
   if (rules.styleHistoryLimit !== undefined) assertInteger(rules.styleHistoryLimit, 0, 50, `${name}.styleHistoryLimit`);
   if (rules.extraInstructions !== undefined) assertString(rules.extraInstructions, 4000, `${name}.extraInstructions`);
   if (rules.timeoutSeconds !== undefined) assertInteger(rules.timeoutSeconds, 10, 300, `${name}.timeoutSeconds`);
-  return Object.freeze({ ...rules });
+  return deepFreezeJson(rules);
 }
 
 function validateReviewSection(rules) {
@@ -114,14 +118,17 @@ function validateReviewSection(rules) {
   if (rules.confidenceThreshold !== undefined) assertNumber(rules.confidenceThreshold, 0, 1, `${name}.confidenceThreshold`);
   if (rules.timeoutSeconds !== undefined) assertInteger(rules.timeoutSeconds, 10, 300, `${name}.timeoutSeconds`);
   if (rules.extraInstructions !== undefined) assertString(rules.extraInstructions, 5000, `${name}.extraInstructions`);
-  return Object.freeze({ ...rules });
+  return deepFreezeJson(rules);
 }
 
 function validatePrSection(rules) {
   const name = `${POLICY_FILE}.pr`;
   assertKnownKeys(rules, POLICY_SECTION_KEYS.pr, name);
   if (rules.language !== undefined) assertLanguage(rules.language, `${name}.language`);
-  if (rules.baseBranch !== undefined) assertString(rules.baseBranch, 256, `${name}.baseBranch`);
+  if (rules.baseBranch !== undefined) {
+    assertString(rules.baseBranch, 256, `${name}.baseBranch`);
+    if (rules.baseBranch.startsWith('-')) throw new Error(`${name}.baseBranch must not start with '-'.`);
+  }
   if (rules.maxDiffBytes !== undefined) assertInteger(rules.maxDiffBytes, 4096, 2097152, `${name}.maxDiffBytes`);
   if (rules.maxCommitBytes !== undefined) assertInteger(rules.maxCommitBytes, 4096, 524288, `${name}.maxCommitBytes`);
   if (rules.titleMaxLength !== undefined) assertInteger(rules.titleMaxLength, 40, 160, `${name}.titleMaxLength`);
@@ -129,7 +136,7 @@ function validatePrSection(rules) {
   if (rules.includePullRequestTemplate !== undefined && typeof rules.includePullRequestTemplate !== 'boolean') throw new Error(`${name}.includePullRequestTemplate must be boolean.`);
   if (rules.extraInstructions !== undefined) assertString(rules.extraInstructions, 4000, `${name}.extraInstructions`);
   if (rules.timeoutSeconds !== undefined) assertInteger(rules.timeoutSeconds, 10, 300, `${name}.timeoutSeconds`);
-  return Object.freeze({ ...rules });
+  return deepFreezeJson(rules);
 }
 
 function validatePolicySection(section, value) {
@@ -146,10 +153,8 @@ function validatePolicyDocument(value) {
   if (unknown.length) throw new Error(`${POLICY_FILE} contains unsupported top-level fields: ${unknown.join(', ')}`);
   if (value.schemaVersion !== POLICY_SCHEMA_VERSION) throw new Error(`${POLICY_FILE} schemaVersion must be ${POLICY_SCHEMA_VERSION}.`);
   const normalized = { schemaVersion: POLICY_SCHEMA_VERSION };
-  for (const section of POLICY_SECTIONS) {
-    if (value[section] !== undefined) normalized[section] = validatePolicySection(section, value[section]);
-  }
-  return Object.freeze(normalized);
+  for (const section of POLICY_SECTIONS) if (value[section] !== undefined) normalized[section] = validatePolicySection(section, value[section]);
+  return deepFreezeJson(normalized);
 }
 
 function parsePolicyDocument(text) {
@@ -162,11 +167,11 @@ function parsePolicyDocument(text) {
 async function readPolicySectionAtHead({ git, repoRoot, headOid, section, token, maxBytes = 64 * 1024 }) {
   if (typeof git !== 'function') throw new TypeError('readPolicySectionAtHead requires a git function.');
   if (!POLICY_SECTIONS.includes(section)) throw new Error(`Unknown policy section: ${section}`);
-  if (headOid === '<unborn>') return { rules: Object.freeze({}), source: 'unborn-default', fingerprint: '<none>' };
+  if (headOid === '<unborn>') return Object.freeze({ rules: deepFreezeJson({}), source: 'unborn-default', fingerprint: '<none>' });
 
   const { stdout: listed } = await git(['ls-tree', '-z', headOid, '--', POLICY_FILE], repoRoot, token);
   const entry = listed.split('\0').find(Boolean);
-  if (!entry) return { rules: Object.freeze({}), source: 'head-default', fingerprint: '<none>' };
+  if (!entry) return Object.freeze({ rules: deepFreezeJson({}), source: 'head-default', fingerprint: '<none>' });
   const tab = entry.indexOf('\t');
   const header = tab >= 0 ? entry.slice(0, tab) : '';
   const mode = header.split(/\s+/)[0];
@@ -176,7 +181,7 @@ async function readPolicySectionAtHead({ git, repoRoot, headOid, section, token,
   if (Buffer.byteLength(stdout, 'utf8') > maxBytes) throw new Error(`${POLICY_FILE} in HEAD cannot exceed ${maxBytes} bytes.`);
   const document = parsePolicyDocument(stdout);
   return Object.freeze({
-    rules: document[section] || Object.freeze({}),
+    rules: document[section] || deepFreezeJson({}),
     source: 'head-policy',
     fingerprint: crypto.createHash('sha256').update(stdout, 'utf8').digest('hex'),
     schemaVersion: document.schemaVersion
@@ -189,6 +194,7 @@ module.exports = {
   POLICY_SECTIONS,
   POLICY_SECTION_KEYS,
   SCOPE_PATTERN,
+  deepFreezeJson,
   validatePolicySection,
   validatePolicyDocument,
   parsePolicyDocument,
