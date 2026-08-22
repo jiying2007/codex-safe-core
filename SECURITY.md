@@ -2,113 +2,67 @@
 
 ## Scope
 
-Codex Safe Core is the canonical security/runtime boundary for Codex Review Safe, Codex Commit Safe and Codex PR Safe. A regression here is a product-family regression.
+Codex Safe Core is the canonical security/runtime and protocol boundary for Codex Review Safe, Codex Commit Safe, Codex PR Safe and Codex Review Service. A regression here is a product-family regression.
 
-Current protocol line: **Core/Contract/Policy/Receipt v2**.
+Current protocol line: **Safe Core v3 / Safe Contract v2 / Policy v3 / Review Receipt v3 / Commit Receipt v3**.
 
 ## Trust boundaries
 
-1. **Workspace / repository content** — source, diffs, paths, configuration, history, templates and generated text are untrusted input.
-2. **Codex executable** — the configured executable must expose every capability required by the Safe Core contract. Missing/rejected capabilities fail closed.
-3. **Git executable / repository state** — consumers must use snapshots/fingerprints around operations that depend on stable Git state.
-4. **AI output** — always untrusted structured data; validate syntax, schema, semantics, sizes, paths and domain constraints before use.
-5. **Remote/provider boundary** — GitHub/GitLab/provider adapters belong to product code and must never increase Codex execution authority.
+1. **Repository/provider content** — source, diffs, paths, policy, history, templates, MR metadata and generated text are untrusted input.
+2. **Codex executable** — must expose every capability required by Safe Contract v2; missing/rejected capabilities fail closed.
+3. **Git/provider snapshot identity** — products must bind evidence to the correct immutable local or remote snapshot and recheck before external effects.
+4. **AI output** — always untrusted structured data; validate schema, sizes, paths, changed-line evidence and domain constraints.
+5. **Remote/provider boundary** — GitHub/GitLab adapters stay in product code and never increase Codex authority.
 
-## Non-negotiable Codex invariants
+## Codex invariants
 
-Safe Core constructs the safety-critical argv. Required semantics include:
+Safe Core constructs the safety-critical argv: `--ask-for-approval never`, `exec --json`, ephemeral execution, ignored user/repository Codex rules, read-only sandbox, Structured Output and explicit disabling of web search, shell/unified execution, shell snapshots, apps, multi-agent, remote plugins, hooks, goals, memories and skill dependency installation.
 
-- `--ask-for-approval never`;
-- `exec --json`;
-- ephemeral execution;
-- ignored user Codex configuration and repository rules for the request;
-- read-only sandbox;
-- Structured Output schema;
-- explicit Safe Core configuration overrides.
-
-The request disables unnecessary capabilities including:
-
-- web search;
-- shell tool;
-- unified exec;
-- shell snapshot;
-- apps;
-- multi-agent;
-- remote plugins;
-- hooks;
-- goals;
-- memories;
-- skill MCP dependency installation.
-
-If a required CLI flag or config key is unsupported, Safe Core returns a compatibility/capability failure. **No legacy fallback may remove or weaken a required safety constraint.**
+Unsupported required flags/config fail closed. **There is no legacy fallback.**
 
 ## Process invariants
 
-- Process execution has finite timeout and output limits.
-- Cancellation is supported.
-- Process-tree termination is handled on Windows/POSIX.
-- Native executables do not use an unrestricted shell.
-- Windows script-shim invocation uses explicit quoting.
-- Temporary Codex working directories are isolated from repository roots.
+- finite timeout and output limits;
+- cancellation and process-tree termination on Windows/POSIX;
+- shell-free native execution;
+- explicit Windows shim quoting;
+- isolated temporary Codex directories outside repository roots.
 
-## Git invariants
+## Context and review-evidence invariants
 
-Core provides common primitives for HEAD/index snapshots, staged diffs and fingerprints. Product code remains responsible for choosing the correct stable snapshot for its workflow and rechecking it before accepting model results or producing external effects.
+`buildSemanticContext()` is narrative input for Commit/PR and may fairly reduce source context while keeping generated/lock/binary content metadata-only.
 
-Raw-index fingerprints are derived from raw staged-index bytes, not display-formatted Git output.
+`buildReviewEvidenceChunks()` is review evidence. Changed hunks are never silently middle-truncated: each included hunk must appear in a bounded chunk; any hunk/chunk budget overflow becomes an explicit coverage gap and review products must fail closed.
 
-## Semantic-context invariants
-
-Context reduction must not silently use global first-N-byte truncation.
-
-`buildSemanticContext()` parses unified diff by file and applies:
-
-- source-first evidence;
-- fair source-file budget allocation;
-- generated/lock metadata-only representation;
-- binary metadata-only representation;
-- bounded head/tail context for oversized source files.
-
-The semantic context is model input only. Consumers retain full original diffs independently when full-data fingerprints or provenance are required.
+Provider-specific immutable source windows (for example GitLab `start_sha/head_sha`) remain product-owned evidence acquisition and are treated as untrusted evidence, never instructions.
 
 ## Policy invariants
 
-- Only `.codex-safe.json` is part of Policy v2.
-- `schemaVersion` must be `2`.
-- Top-level unknown fields fail closed.
-- Product sections are `commit`, `review`, `pr`.
-- HEAD-pinned policy reads prevent staged/working-tree policy edits from changing the policy applied to their own change.
-- v1 product-specific policy formats are intentionally unsupported.
+- only `.codex-safe.json`;
+- `schemaVersion` must be `3`;
+- unknown top-level/section/rule fields fail closed;
+- sections: `commit`, `review`, `reviewService`, `pr`;
+- `review.rules` contains cross-product deterministic Review rules;
+- `reviewService` contains server-only context/coverage controls;
+- local consumers read policy from captured HEAD; Review Service reads from immutable target `start_sha`;
+- Policy v2 and product-specific legacy policy formats are intentionally unsupported.
 
 ## Receipt invariants
 
-Review Receipt v2 and Commit Receipt v2 must pass Core validation before product code stores or consumes them.
+Review Receipt v3 uses an explicit subject envelope: `git-index` for staged local review or `gitlab-mr` for server review. Commit Receipt v3 may bind a Review Receipt v3 fingerprint. Every receipt must pass Core closed-schema validation before storage/consumption.
 
-Receipt fingerprints are evidence bindings, not authorization. A receipt must never by itself authorize:
-
-- Git commit;
-- push;
-- source write;
-- remote PR creation/submission;
-- claim of human approval;
-- claim of build/test success.
-
-Receipt v1 is invalid under the v2 contract.
+Receipts are provenance evidence, never authorization, human approval, build evidence or test evidence.
 
 ## Consumer pinning
 
-Consumers use a **commit-pinned Git submodule**. The `160000` gitlink is the Core version lock.
+Consumers use a commit-pinned Git submodule. The gitlink is the Core lock. No branch-following submodule, copied runtime, npm runtime dependency or cross-major compatibility shim is supported.
 
-There is no copied vendored runtime, lock/hash sync layer, branch-following submodule mode or runtime npm package compatibility path in v2.
+A Core update must explicitly move the consumer gitlink and pass that product's complete gate.
 
-A Core update must move the consumer gitlink explicitly and pass that product's complete CI/release gate.
+## Supply chain
 
-## Supply-chain expectations
-
-Consumer packages should stage only required Core runtime files into their production `dist/` boundary. Git/submodule metadata and development files must not enter user-facing artifacts.
-
-Actions used in consumer release workflows should be pinned by full commit SHA. Release artifacts should be checksummed and, where available, receive build-provenance attestations.
+Actions must be full-SHA pinned. Release artifacts should be checksummed and receive build-provenance attestations where supported. Only final release jobs should receive write/id-token permissions.
 
 ## Reporting
 
-Report suspected vulnerabilities privately through GitHub Security Advisories when available. Do not place credentials, secrets, private repository data or exploit details in public issues.
+Report suspected vulnerabilities privately through GitHub Security Advisories when available. Never publish credentials, private repository data or exploit details in public issues.
