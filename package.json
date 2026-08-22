@@ -22,7 +22,7 @@
   ],
   "scripts": {
     "check:syntax": "node --check index.js && node --check safe-contract.js && node --check codex-cli.js && node --check process-runner.js && node --check git-repository.js && node --check context-builder.js && node --check policy.js",
-    "test": "node --test test/*.test.js",
+    "test": "node --test test/safe-contract.test.js test/process-runner.test.js test/git-repository.test.js test/context-policy.test.js test/codex-cli.test.js",
     "check": "npm run check:syntax && npm test"
   },
   "repository": { "type": "git", "url": "https://github.com/jiying2007/codex-safe-core.git" },
