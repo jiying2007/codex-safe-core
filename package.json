@@ -1,6 +1,6 @@
 {
   "name": "@jiying2007/codex-safe-core",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "private": true,
   "description": "Canonical runtime core for the Codex Safe Git workflow family.",
   "license": "MIT",
@@ -14,6 +14,7 @@
     "git-repository.js",
     "context-builder.js",
     "policy.js",
+    "review-rules.js",
     "codex-safe.schema.json",
     "LICENSE",
     "README.md",
@@ -21,8 +22,8 @@
     "ARCHITECTURE.md"
   ],
   "scripts": {
-    "check:syntax": "node --check index.js && node --check safe-contract.js && node --check codex-cli.js && node --check process-runner.js && node --check git-repository.js && node --check context-builder.js && node --check policy.js",
-    "test": "node --test test/safe-contract.test.js test/process-runner.test.js test/git-repository.test.js test/context-policy.test.js test/codex-cli.test.js",
+    "check:syntax": "node --check index.js && node --check safe-contract.js && node --check codex-cli.js && node --check process-runner.js && node --check git-repository.js && node --check context-builder.js && node --check policy.js && node --check review-rules.js",
+    "test": "node --test test/safe-contract.test.js test/process-runner.test.js test/git-repository.test.js test/context-policy.test.js test/review-rules.test.js test/codex-cli.test.js",
     "check": "npm run check:syntax && npm test",
     "ci": "npm run check && npm pack --dry-run --ignore-scripts"
   },
