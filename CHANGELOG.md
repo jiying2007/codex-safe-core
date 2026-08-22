@@ -4,6 +4,19 @@ All notable changes to Codex Safe Core are documented here.
 
 ## Unreleased
 
+## 4.0.0
+
+### Changed
+
+- Hard-switched Review Receipt and Commit Receipt to closed schema v4; schema v3 receipts are intentionally rejected.
+- Added canonical Receipt provenance for Safe Core, Safe Contract, Policy Schema, Prompt Contract, requested/resolved model identity and Codex CLI version.
+- Added independent Review, Commit and PR Prompt Contract version identities without changing Safe Contract v2 or Policy Schema v3.
+- Added a recurring cross-repository Family Compatibility matrix across Linux, Windows and macOS.
+- Added a daily latest-Codex CLI capability canary across Linux, Windows and macOS.
+- Added a SHA-pinned OpenSSF Scorecard workflow.
+- Hardened releases to immutable assets with SHA-256 checksums, deterministic SPDX 2.3 SBOM and GitHub build-provenance attestation.
+- Documented deterministic versus model-nondeterministic boundaries as a permanent family architecture rule.
+
 ## 3.0.1
 
 ### Changed
