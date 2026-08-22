@@ -25,9 +25,9 @@ function startsWithAny(filePath, prefixes) {
 
 function evaluateReviewRules(changedPaths, rules = {}) {
   const paths = [...new Set((changedPaths || []).map(normalizeGitPath).filter(Boolean))];
-  const codePathPrefixes = normalizePrefixes(rules.codePathPrefixes || ['src/']);
-  const testPathPrefixes = normalizePrefixes(rules.testPathPrefixes || ['test/', 'tests/']);
-  const forbiddenPathPrefixes = normalizePrefixes(rules.forbiddenPathPrefixes || []);
+  const codePathPrefixes = normalizePrefixes(rules.codePathPrefixes === undefined ? ['src/'] : rules.codePathPrefixes);
+  const testPathPrefixes = normalizePrefixes(rules.testPathPrefixes === undefined ? ['test/', 'tests/'] : rules.testPathPrefixes);
+  const forbiddenPathPrefixes = normalizePrefixes(rules.forbiddenPathPrefixes === undefined ? [] : rules.forbiddenPathPrefixes);
   const violations = [];
 
   for (const path of paths) {
