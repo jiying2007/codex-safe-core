@@ -32,6 +32,16 @@ const SAFE_CODEX_CONFIG_OVERRIDES = Object.freeze([
   'features.skill_mcp_dependency_install=false'
 ]);
 
+const REVIEW_RECEIPT_KEYS = Object.freeze([
+  'schemaVersion', 'kind', 'headOid', 'indexFingerprint', 'diffFingerprint', 'policyFingerprint',
+  'stagedFileCount', 'qualityVerdict', 'readinessVerdict', 'mechanicalGate', 'model', 'codexVersion', 'createdAt'
+]);
+const COMMIT_RECEIPT_KEYS = Object.freeze([
+  'schemaVersion', 'kind', 'headOid', 'indexFingerprint', 'diffFingerprint', 'messageFingerprint',
+  'policyFingerprint', 'reviewReceiptFingerprint', 'model', 'codexVersion', 'createdAt', 'commitOid'
+]);
+const ISO_UTC_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+
 function buildSafeCodexArgs(schemaPath, model = '') {
   const args = [
     '--ask-for-approval', 'never',
@@ -91,9 +101,24 @@ function validHash(value, allowNone = false) {
 function validMetadataString(value) {
   return value === undefined || (typeof value === 'string' && value.length <= 256 && !/[\r\n\0]/.test(value));
 }
+function validTimestamp(value) {
+  if (typeof value !== 'string' || !ISO_UTC_TIMESTAMP.test(value)) return false;
+  const time = Date.parse(value);
+  return Number.isFinite(time) && new Date(time).toISOString() === value;
+}
+function hasOnlyKeys(value, allowedKeys) {
+  const allowed = new Set(allowedKeys);
+  return Object.keys(value).every(key => allowed.has(key));
+}
+function copyAllowed(value, allowedKeys) {
+  return Object.freeze(Object.fromEntries(
+    allowedKeys.filter(key => Object.prototype.hasOwnProperty.call(value, key)).map(key => [key, value[key]])
+  ));
+}
 
 function validateReviewReceipt(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  if (!hasOnlyKeys(value, REVIEW_RECEIPT_KEYS)) return null;
   if (value.schemaVersion !== REVIEW_RECEIPT_SCHEMA_VERSION || value.kind !== 'codex-review-safe') return null;
   for (const key of ['headOid', 'indexFingerprint', 'diffFingerprint', 'policyFingerprint', 'qualityVerdict', 'readinessVerdict', 'mechanicalGate', 'createdAt']) {
     if (typeof value[key] !== 'string' || !value[key]) return null;
@@ -105,13 +130,14 @@ function validateReviewReceipt(value) {
   if (!['needs_evidence', 'blocked', 'ready'].includes(value.readinessVerdict)) return null;
   if (!['not_run', 'pass', 'fail'].includes(value.mechanicalGate)) return null;
   if (!Number.isInteger(value.stagedFileCount) || value.stagedFileCount < 0 || value.stagedFileCount > 5000) return null;
-  if (!Number.isFinite(Date.parse(value.createdAt))) return null;
+  if (!validTimestamp(value.createdAt)) return null;
   if (!validMetadataString(value.model) || !validMetadataString(value.codexVersion)) return null;
-  return Object.freeze({ ...value });
+  return copyAllowed(value, REVIEW_RECEIPT_KEYS);
 }
 
 function validateCommitReceipt(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  if (!hasOnlyKeys(value, COMMIT_RECEIPT_KEYS)) return null;
   if (value.schemaVersion !== COMMIT_RECEIPT_SCHEMA_VERSION || value.kind !== 'codex-commit-safe') return null;
   for (const key of ['headOid', 'indexFingerprint', 'diffFingerprint', 'messageFingerprint', 'policyFingerprint', 'reviewReceiptFingerprint', 'createdAt']) {
     if (typeof value[key] !== 'string' || !value[key]) return null;
@@ -120,9 +146,9 @@ function validateCommitReceipt(value) {
   if (!validHash(value.indexFingerprint) || !validHash(value.diffFingerprint) || !validHash(value.messageFingerprint)) return null;
   if (!validHash(value.policyFingerprint, true) || !validHash(value.reviewReceiptFingerprint, true)) return null;
   if (value.commitOid !== undefined && value.commitOid !== '<pending>' && !/^[0-9a-f]{40,64}$/i.test(value.commitOid)) return null;
-  if (!Number.isFinite(Date.parse(value.createdAt))) return null;
+  if (!validTimestamp(value.createdAt)) return null;
   if (!validMetadataString(value.model) || !validMetadataString(value.codexVersion)) return null;
-  return Object.freeze({ ...value });
+  return copyAllowed(value, COMMIT_RECEIPT_KEYS);
 }
 
 module.exports = {
@@ -133,6 +159,8 @@ module.exports = {
   REQUIRED_CODEX_TOP_LEVEL_FLAGS,
   REQUIRED_CODEX_EXEC_FLAGS,
   SAFE_CODEX_CONFIG_OVERRIDES,
+  REVIEW_RECEIPT_KEYS,
+  COMMIT_RECEIPT_KEYS,
   buildSafeCodexArgs,
   missingHelpFlags,
   isCliCompatibilityError,
