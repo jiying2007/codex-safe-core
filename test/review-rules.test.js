@@ -52,3 +52,14 @@ test('default code/test prefixes match product-family convention', () => {
   const withTest = evaluateReviewRules(['src/a.js', 'tests/a.test.js'], { requireTestsForCodeChanges: true });
   assert.deepEqual(withTest.violations, []);
 });
+
+test('explicit empty prefix arrays remain empty instead of restoring defaults', () => {
+  const result = evaluateReviewRules(['src/a.js'], {
+    requireTestsForCodeChanges: true,
+    codePathPrefixes: [],
+    testPathPrefixes: []
+  });
+  assert.deepEqual(result.codePathPrefixes, []);
+  assert.deepEqual(result.testPathPrefixes, []);
+  assert.deepEqual(result.violations, []);
+});
