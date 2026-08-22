@@ -50,11 +50,22 @@ test('semantic context truncates per source file instead of global prefix slicin
   assert.match(context.text, /src\/b\.js/);
 });
 
-test('policy document is closed at the top level and requires schema v2', () => {
+test('policy document and sections are canonical closed contracts', () => {
   assert.equal(core.POLICY_FILE, '.codex-safe.json');
-  assert.equal(core.validatePolicyDocument({ schemaVersion: 2, commit: {}, review: {}, pr: {} }).schemaVersion, 2);
+  const document = core.validatePolicyDocument({
+    schemaVersion: 2,
+    commit: { language: 'en', scopes: ['core'], scopeHints: { core: ['runtime'] }, extraInstructions: 'concise' },
+    review: { confidenceThreshold: 0.8, severityThreshold: 'medium' },
+    pr: { baseBranch: 'origin/main', titleMaxLength: 90 }
+  });
+  assert.equal(document.schemaVersion, 2);
   assert.throws(() => core.validatePolicyDocument({ schemaVersion: 1 }), /schemaVersion/);
   assert.throws(() => core.validatePolicyDocument({ schemaVersion: 2, legacy: {} }), /unsupported top-level/);
+  assert.throws(() => core.validatePolicySection('commit', { unknown: true }), /unsupported fields/);
+  assert.throws(() => core.validatePolicySection('commit', { extraInstructions: 'x'.repeat(4001) }), /4000/);
+  assert.throws(() => core.validatePolicySection('commit', { scopes: ['core', 'core'] }), /duplicate/);
+  assert.throws(() => core.validatePolicySection('review', { confidenceThreshold: 1.1 }), /between 0 and 1/);
+  assert.throws(() => core.validatePolicySection('pr', { baseBranch: 'x'.repeat(257) }), /256/);
 });
 
 test('HEAD policy reader ignores working tree by consuming Git objects only', async () => {
