@@ -13,13 +13,15 @@
     "process-runner.js",
     "git-repository.js",
     "context-builder.js",
+    "policy.js",
+    "codex-safe.schema.json",
     "LICENSE",
     "README.md",
     "SECURITY.md",
     "ARCHITECTURE.md"
   ],
   "scripts": {
-    "check": "node --check index.js && node --check safe-contract.js && node --check codex-cli.js && node --check process-runner.js && node --check git-repository.js && node --check context-builder.js && node test.js",
+    "check": "node --check index.js && node --check safe-contract.js && node --check codex-cli.js && node --check process-runner.js && node --check git-repository.js && node --check context-builder.js && node --check policy.js && node test.js",
     "test": "node test.js"
   },
   "repository": { "type": "git", "url": "https://github.com/jiying2007/codex-safe-core.git" },
