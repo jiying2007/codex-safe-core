@@ -12,7 +12,8 @@ Core owns:
 - canonical fingerprints and Receipt validation;
 - `.codex-safe.json` Policy Schema v3;
 - narrative Semantic Context budgeting;
-- coverage-preserving Review Evidence Chunking.
+- coverage-preserving Review Evidence Chunking;
+- provenance fields shared by Review/Commit Receipt contracts.
 
 Products own domain behavior:
 
@@ -31,13 +32,35 @@ Provider-specific context acquisition stays outside Core. For example, Review Se
 
 ## Protocol boundary
 
-- Safe Core implementation: v3
+- Safe Core implementation: v4
 - Safe Contract: v2
 - Policy Schema: v3
-- Review Receipt: v3
-- Commit Receipt: v3
+- Review Receipt: v4
+- Commit Receipt: v4
+- Review Prompt Contract: v1
+- Commit Prompt Contract: v1
+- PR Prompt Contract: v1
 
-Protocol versions are independent. A number changes only when that protocol changes.
+Protocol versions are independent. A number changes only when that protocol changes. Receipt v4 records Core, Safe Contract, Policy Schema, Prompt Contract, requested/resolved model identity and Codex CLI version so historical decisions remain attributable.
+
+## Deterministic boundary
+
+The following are deterministic and must be independently testable without a model:
+
+- Git evidence identity and fingerprints;
+- Policy parsing/evaluation;
+- Receipt validation;
+- coverage/readiness/mechanical gate logic;
+- severity/confidence filtering and deterministic review rules;
+- publication idempotency and stale-snapshot rejection.
+
+Model-generated wording and findings are non-deterministic inputs. They cannot bypass schema validation, evidence binding or deterministic gates.
+
+## Family governance
+
+`codex-safe-core` is the family trust root. Every consumer pins one exact Core commit. The recurring Family Compatibility workflow verifies all four consumers pin the current Core and runs every consumer CI on Linux, Windows and macOS. The Codex CLI Canary separately probes the latest upstream CLI on all three operating systems so an upstream flag/capability change is detected without relying on product users to find it first.
+
+Release artifacts are immutable and include SHA-256 checksums, SPDX SBOM and GitHub build-provenance attestation. OpenSSF Scorecard is a recurring security-regression signal, not a substitute for repository policy.
 
 ## Compatibility policy
 

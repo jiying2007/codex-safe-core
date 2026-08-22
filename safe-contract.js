@@ -2,10 +2,14 @@
 
 const crypto = require('crypto');
 
-const SAFE_CORE_VERSION = 3;
+const SAFE_CORE_VERSION = 4;
 const SAFE_CONTRACT_VERSION = 2;
-const REVIEW_RECEIPT_SCHEMA_VERSION = 3;
-const COMMIT_RECEIPT_SCHEMA_VERSION = 3;
+const REVIEW_RECEIPT_SCHEMA_VERSION = 4;
+const COMMIT_RECEIPT_SCHEMA_VERSION = 4;
+const REVIEW_PROMPT_CONTRACT_VERSION = 1;
+const COMMIT_PROMPT_CONTRACT_VERSION = 1;
+const PR_PROMPT_CONTRACT_VERSION = 1;
+const CURRENT_POLICY_SCHEMA_VERSION = 3;
 
 const REQUIRED_CODEX_TOP_LEVEL_FLAGS = Object.freeze(['--ask-for-approval']);
 const REQUIRED_CODEX_EXEC_FLAGS = Object.freeze([
@@ -19,12 +23,16 @@ const SAFE_CODEX_CONFIG_OVERRIDES = Object.freeze([
 
 const REVIEW_RECEIPT_KEYS = Object.freeze([
   'schemaVersion','kind','subject','diffFingerprint','policyFingerprint','qualityVerdict','readinessVerdict',
-  'mechanicalGate','coverageVerdict','model','codexVersion','createdAt'
+  'mechanicalGate','coverageVerdict','safeCoreVersion','safeContractVersion','policySchemaVersion','promptContractVersion',
+  'model','requestedModel','resolvedModel','codexVersion','createdAt'
 ]);
 const COMMIT_RECEIPT_KEYS = Object.freeze([
   'schemaVersion','kind','headOid','indexFingerprint','diffFingerprint','messageFingerprint','policyFingerprint',
-  'reviewReceiptFingerprint','model','codexVersion','createdAt','commitOid'
+  'reviewReceiptFingerprint','safeCoreVersion','safeContractVersion','policySchemaVersion','promptContractVersion',
+  'model','requestedModel','resolvedModel','codexVersion','createdAt','commitOid'
 ]);
+const REVIEW_RECEIPT_INPUT_KEYS = Object.freeze(REVIEW_RECEIPT_KEYS);
+const COMMIT_RECEIPT_INPUT_KEYS = Object.freeze(COMMIT_RECEIPT_KEYS);
 const ISO_UTC_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 
 function buildSafeCodexArgs(schemaPath, model = '') {
@@ -52,8 +60,27 @@ function validHash(value, allowNone = false) { return (allowNone && value === '<
 function validMetadataString(value) { return value === undefined || (typeof value === 'string' && value.length <= 256 && !/[\r\n\0]/.test(value)); }
 function validTimestamp(value) { if (typeof value !== 'string' || !ISO_UTC_TIMESTAMP.test(value)) return false; const time = Date.parse(value); return Number.isFinite(time) && new Date(time).toISOString() === value; }
 function hasOnlyKeys(value, allowedKeys) { const allowed = new Set(allowedKeys); return Object.keys(value).every(key => allowed.has(key)); }
-function copyAllowed(value, allowedKeys) { return Object.freeze(Object.fromEntries(allowedKeys.filter(key => Object.prototype.hasOwnProperty.call(value, key)).map(key => [key, value[key]]))); }
+function copyAllowed(value, allowedKeys) { return Object.fromEntries(allowedKeys.filter(key => Object.prototype.hasOwnProperty.call(value, key)).map(key => [key, value[key]])); }
 function deepFreezeCopy(value) { if (Array.isArray(value)) return Object.freeze(value.map(deepFreezeCopy)); if (value && typeof value === 'object') return Object.freeze(Object.fromEntries(Object.entries(value).map(([k,v]) => [k, deepFreezeCopy(v)]))); return value; }
+function matchesOptionalVersion(value, key, expected) { return value[key] === undefined || value[key] === expected; }
+function canonicalProvenance(value, promptVersion) {
+  if (!matchesOptionalVersion(value,'safeCoreVersion',SAFE_CORE_VERSION) || !matchesOptionalVersion(value,'safeContractVersion',SAFE_CONTRACT_VERSION) || !matchesOptionalVersion(value,'policySchemaVersion',CURRENT_POLICY_SCHEMA_VERSION) || !matchesOptionalVersion(value,'promptContractVersion',promptVersion)) return null;
+  if (![value.model,value.requestedModel,value.resolvedModel,value.codexVersion].every(validMetadataString)) return null;
+  const model = typeof value.model === 'string' && value.model ? value.model : 'cli-default';
+  const requestedModel = typeof value.requestedModel === 'string' ? value.requestedModel : (model === 'cli-default' ? '' : model);
+  const resolvedModel = typeof value.resolvedModel === 'string' && value.resolvedModel ? value.resolvedModel : model;
+  const codexVersion = typeof value.codexVersion === 'string' && value.codexVersion ? value.codexVersion : 'unknown';
+  return Object.freeze({
+    safeCoreVersion: SAFE_CORE_VERSION,
+    safeContractVersion: SAFE_CONTRACT_VERSION,
+    policySchemaVersion: CURRENT_POLICY_SCHEMA_VERSION,
+    promptContractVersion: promptVersion,
+    model,
+    requestedModel,
+    resolvedModel,
+    codexVersion
+  });
+}
 
 function validateReviewSubject(subject) {
   if (!subject || typeof subject !== 'object' || Array.isArray(subject) || typeof subject.type !== 'string') return null;
@@ -73,7 +100,7 @@ function validateReviewSubject(subject) {
   return null;
 }
 function validateReviewReceipt(value) {
-  if (!value || typeof value !== 'object' || Array.isArray(value) || !hasOnlyKeys(value, REVIEW_RECEIPT_KEYS)) return null;
+  if (!value || typeof value !== 'object' || Array.isArray(value) || !hasOnlyKeys(value, REVIEW_RECEIPT_INPUT_KEYS)) return null;
   if (value.schemaVersion !== REVIEW_RECEIPT_SCHEMA_VERSION || value.kind !== 'codex-review') return null;
   const subject = validateReviewSubject(value.subject); if (!subject) return null;
   if (!validHash(value.diffFingerprint) || !validHash(value.policyFingerprint, true)) return null;
@@ -81,22 +108,25 @@ function validateReviewReceipt(value) {
   if (!['needs_evidence','blocked','ready'].includes(value.readinessVerdict)) return null;
   if (!['not_run','pass','fail'].includes(value.mechanicalGate)) return null;
   if (!['complete','incomplete'].includes(value.coverageVerdict)) return null;
-  if (!validTimestamp(value.createdAt) || !validMetadataString(value.model) || !validMetadataString(value.codexVersion)) return null;
-  return Object.freeze({...copyAllowed(value, REVIEW_RECEIPT_KEYS), subject});
+  const provenance = canonicalProvenance(value, REVIEW_PROMPT_CONTRACT_VERSION); if (!provenance) return null;
+  if (!validTimestamp(value.createdAt)) return null;
+  return deepFreezeCopy({...copyAllowed(value, REVIEW_RECEIPT_KEYS), ...provenance, subject});
 }
 function validateCommitReceipt(value) {
-  if (!value || typeof value !== 'object' || Array.isArray(value) || !hasOnlyKeys(value, COMMIT_RECEIPT_KEYS)) return null;
+  if (!value || typeof value !== 'object' || Array.isArray(value) || !hasOnlyKeys(value, COMMIT_RECEIPT_INPUT_KEYS)) return null;
   if (value.schemaVersion !== COMMIT_RECEIPT_SCHEMA_VERSION || value.kind !== 'codex-commit-safe') return null;
   for (const key of ['headOid','indexFingerprint','diffFingerprint','messageFingerprint','policyFingerprint','reviewReceiptFingerprint','createdAt']) if (typeof value[key] !== 'string' || !value[key]) return null;
   if (!validOid(value.headOid) || !validHash(value.indexFingerprint) || !validHash(value.diffFingerprint) || !validHash(value.messageFingerprint)) return null;
   if (!validHash(value.policyFingerprint, true) || !validHash(value.reviewReceiptFingerprint, true)) return null;
   if (value.commitOid !== undefined && value.commitOid !== '<pending>' && !validCommitOid(value.commitOid)) return null;
-  if (!validTimestamp(value.createdAt) || !validMetadataString(value.model) || !validMetadataString(value.codexVersion)) return null;
-  return copyAllowed(value, COMMIT_RECEIPT_KEYS);
+  const provenance = canonicalProvenance(value, COMMIT_PROMPT_CONTRACT_VERSION); if (!provenance) return null;
+  if (!validTimestamp(value.createdAt)) return null;
+  return deepFreezeCopy({...copyAllowed(value, COMMIT_RECEIPT_KEYS), ...provenance});
 }
 
 module.exports = {
   SAFE_CORE_VERSION,SAFE_CONTRACT_VERSION,REVIEW_RECEIPT_SCHEMA_VERSION,COMMIT_RECEIPT_SCHEMA_VERSION,
+  REVIEW_PROMPT_CONTRACT_VERSION,COMMIT_PROMPT_CONTRACT_VERSION,PR_PROMPT_CONTRACT_VERSION,
   REQUIRED_CODEX_TOP_LEVEL_FLAGS,REQUIRED_CODEX_EXEC_FLAGS,SAFE_CODEX_CONFIG_OVERRIDES,
   REVIEW_RECEIPT_KEYS,COMMIT_RECEIPT_KEYS,buildSafeCodexArgs,missingHelpFlags,isCliCompatibilityError,
   fingerprint,fingerprintPolicy,validateReviewSubject,validateReviewReceipt,validateCommitReceipt

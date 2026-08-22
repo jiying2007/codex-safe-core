@@ -1,0 +1,61 @@
+name: Family Compatibility
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '43 3 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: family-compat-main
+  cancel-in-progress: true
+
+jobs:
+  family:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+      - name: Validate Core
+        run: npm run ci
+      - name: Clone consumer repositories
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir family
+          for repo in codex-commit codex-review codex-pr codex-review-service; do
+            git clone --quiet --recurse-submodules "https://github.com/jiying2007/${repo}.git" "family/${repo}"
+          done
+      - name: Verify all consumers pin this Core
+        shell: bash
+        run: |
+          set -euo pipefail
+          core_sha="$(git rev-parse HEAD)"
+          for repo in codex-commit codex-review codex-pr codex-review-service; do
+            pinned="$(git -C "family/${repo}" ls-files --stage src/codex-safe-core | awk '{print $2}')"
+            test -n "$pinned"
+            test "$pinned" = "$core_sha" || {
+              echo "${repo} pins ${pinned}, expected ${core_sha}" >&2
+              exit 1
+            }
+          done
+      - name: Validate consumers
+        shell: bash
+        run: |
+          set -euo pipefail
+          for repo in codex-commit codex-review codex-pr codex-review-service; do
+            echo "::group::${repo}"
+            (cd "family/${repo}" && npm run ci)
+            echo "::endgroup::"
+          done
