@@ -2,35 +2,20 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-Codex Safe Core 是 **Codex Safe Git Workflow** 产品族的唯一共享安全/运行时内核：
+Codex Safe Core 是 Codex Safe 产品族唯一的**安全运行时与协议核心**：
 
 - [Codex Review Safe](https://github.com/jiying2007/codex-review)
 - [Codex Commit Safe](https://github.com/jiying2007/codex-commit)
 - [Codex PR Safe](https://github.com/jiying2007/codex-pr)
+- [Codex Review Service](https://github.com/jiying2007/codex-review-service)
 
-当前协议线：**Safe Core v2 / Safe Contract v2 / Policy Schema v2 / Receipt Schema v2**。
+当前协议线：**Safe Core v3 / Safe Contract v2 / Policy Schema v3 / Review Receipt v3 / Commit Receipt v3**。
 
-## 消费方式
+## 使用模型
 
-三个插件以**固定 commit 的 Git submodule**方式使用本仓库，路径统一为 `src/codex-safe-core`。
+Consumer 通过 Git submodule 固定到明确的 Core commit。gitlink 本身就是版本锁；不复制 vendored runtime、不跟随分支、不通过 npm 运行时依赖、不保留兼容代理。
 
-```text
-codex-safe-core commit
-        ↓ 160000 gitlink
-Review / Commit / PR 源码
-        ↓ 产品 build
-production dist/
-        ↓
-VSIX
-```
-
-不再存在 copied vendoring、`safe-core.lock.json`、逐字节 sync/upstream workflow、runtime npm dependency 或跟踪 `main` 的 submodule 配置。
-
-**gitlink 本身就是版本锁。** 升级 Core 必须显式移动 submodule commit，并重新跑完整产品门禁。
-
-## 公开 Runtime API
-
-仓库根目录就是 v2 的公开运行时边界：
+## 公共运行时边界
 
 - `index.js`
 - `safe-contract.js`
@@ -41,151 +26,80 @@ VSIX
 - `policy.js`
 - `codex-safe.schema.json`
 
-v2 不提供 `src/` 兼容代理。
+## 职责边界
 
-## 所有权边界
+Core 负责跨产品公共能力：Codex capability probe/可执行文件解析/Safe argv/Structured Output/JSONL，进程启动/取消/超时/进程树终止/输出边界，本地 Git 通用原语，Commit/PR 的 Semantic Context Budget，Review 产品的 coverage-preserving Review Evidence Chunking，`.codex-safe.json` Policy Schema v3，以及 Review/Commit Receipt v3 的校验与指纹。
 
-Core 只拥有跨产品基础设施。
+产品只负责领域逻辑：
 
-### Codex Runtime
+- **Review Safe：** staged snapshot、finding 校验与本地展示；
+- **Commit Safe：** Conventional Commit、scope/style intelligence、Commit Receipt 持久化与绑定；
+- **PR Safe：** Base/Fork 语义、PR narrative、Preview 与 provenance 展示；
+- **Review Service：** GitLab Webhook/Provider、Projects/Groups Scope、immutable MR evidence 获取、SQLite Queue/Outbox、Merge Gate 与 Publication。
 
-- CLI capability probe；
-- executable resolution；
-- fail-closed 安全 argv；
-- 临时目录执行；
-- JSONL / Structured Output 处理。
+产品仓库不得再自行维护 Core 已拥有的 Codex/Process/Policy/Receipt/Review Chunk 实现。
 
-### Process Runtime
+## Safe Contract v2
 
-- 原生进程启动；
-- Windows script 处理；
-- cancellation；
-- timeout；
-- process-tree termination；
-- stdout/stderr 限制。
+Codex 安全执行协议本身没有变化，因此继续保持 v2：要求 `--ask-for-approval never`、`exec --json`、ephemeral、忽略用户/仓库 Codex 规则、read-only sandbox、Structured Output，并显式关闭 shell/unified exec、web search、apps、multi-agent、plugins、hooks、goals、memories 与 dependency install。缺少能力直接 fail closed，不提供 legacy fallback。
 
-### Git Primitives
+## Policy v3
 
-- 通用 Git 命令；
-- HEAD/index snapshot；
-- raw-index fingerprint；
-- staged diff / changed paths；
-- 通用仓库原语。
-
-### Semantic Context
-
-- 按文件解析 unified diff；
-- source/generated/binary 分类；
-- generated/lock/binary metadata-only；
-- source 文件公平预算；
-- 大文件受控上下文。
-
-### Policy Protocol
-
-- 唯一策略文件 `.codex-safe.json`；
-- `schemaVersion: 2`；
-- `commit` / `review` / `pr` 三个 section；
-- 只读 HEAD；
-- 顶层 closed schema；
-- 稳定 fingerprint。
-
-### Receipt Contract
-
-- Review Receipt v2 校验；
-- Commit Receipt v2 校验；
-- canonical fingerprint helper。
-
-产品仓库只保留领域逻辑：
-
-- **Review：** finding、confidence/severity、diagnostics、report、review workflow；
-- **Commit：** Conventional Commit policy、scope intelligence、repository style、rendering、Receipt persistence/range binding；
-- **PR：** Base/Fork 语义、PR narrative、provider、preview、provenance 展示。
-
-产品仓库不得再独立实现 Core 已拥有的 Process、Codex runtime、Semantic Context 或 Policy contract。
-
-## 不可妥协的安全契约
-
-Safe Codex execution 要求 CLI 具备：
-
-- `--ask-for-approval never`
-- `exec --json`
-- `--ephemeral`
-- `--skip-git-repo-check`
-- `--ignore-user-config`
-- `--ignore-rules`
-- `--sandbox read-only`
-- `--output-schema`
-- 明确的 Safe Core `--config` overrides
-
-Safe Core 会关闭 shell/unified exec、shell snapshot、web search、apps、multi-agent、remote plugin、hooks、goals、memories、skill dependency install 等能力。
-
-必要 flag/config capability 缺失或被 CLI 拒绝时直接 fail closed。**不存在 v1/legacy fallback。**
-
-## Semantic Context Budget
-
-`buildSemanticContext()` 不使用全局 `diff.slice(0, N)`。
-
-它按文件处理 unified diff：
-
-```text
-unified diff
-    ↓ per-file blocks
-分类
-    ├ source → 公平预算 → 受控 block context
-    ├ generated/lock → 仅元数据
-    └ binary → 仅元数据
-```
-
-消费产品会另外保留完整原始 diff，用于 fingerprint/provenance；Context Budget 只影响模型输入。
-
-## Policy v2
-
-唯一仓库策略示例：
+仓库策略文件只有 `.codex-safe.json`：
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/jiying2007/codex-safe-core/d49dc356824b984166e81e42bb5f9d7abfb90099/codex-safe.schema.json",
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "commit": {},
-  "review": {},
+  "review": {
+    "confidenceThreshold": 0.7,
+    "rules": {
+      "requireTestsForCodeChanges": true,
+      "codePathPrefixes": ["src/"],
+      "testPathPrefixes": ["test/", "tests/"],
+      "forbiddenPathPrefixes": []
+    }
+  },
+  "reviewService": {
+    "maxContextBytes": 262144,
+    "maxContextFiles": 12,
+    "contextLines": 20,
+    "skipGeneratedFiles": true,
+    "blockUnreviewableFiles": false
+  },
   "pr": {}
 }
 ```
 
-旧产品专属 v1 策略文件故意不兼容。
+v3 下不兼容 Policy Schema v2。
 
-## Receipt v2
+## Context 语义
 
-Review Receipt v2 将 Review evidence 绑定到 HEAD/index/diff/policy fingerprint。
+`buildSemanticContext()` 用于 Commit/PR narrative，可以按公平预算缩减 source context，并把 generated/binary 内容降级为 metadata。
 
-Commit Receipt v2 将生成 evidence 绑定到 parent HEAD/index/完整 diff/最终 Commit Message/policy，以及可选 Review Receipt fingerprint。Receipt 的持久化由产品层负责，但 shape 与 fingerprint semantics 由 Core 统一校验。
+`buildReviewEvidenceChunks()` 用于 Review Safe/Review Service。changed hunk 不允许静默截断：要么进入有界 Review chunk，要么形成明确 coverage gap，让审核 fail closed。
 
-Receipt v1 在 v2 下直接无效。
+## Receipt v3
+
+Review Receipt v3 使用 subject envelope：本地审核为 `type=git-index`，绑定 HEAD/index；服务端审核为 `type=gitlab-mr`，绑定 Project/MR/start SHA/head SHA。
+
+Commit Receipt v3 绑定提交生成证据及可选的 Review Receipt v3 fingerprint。Receipt 只是 AI Workflow provenance，不是人工批准或测试证据。
 
 ## 开发
 
 ```bash
-npm test
-npm run check
+npm run ci
 ```
 
 要求 Node.js 22+。
 
-产品仓构建前需初始化 submodule：
+## 版本治理
 
-```bash
-git submodule update --init --recursive
-```
+Core Major 是协议边界。Policy/Receipt/Core 的 breaking change 必须通过 Major 硬切换所有 Consumer，不维护永久兼容层。Safe Contract 拥有独立协议版本，只有 Codex 执行安全协议本身变化时才升级。
 
-## 版本策略
+## 安全
 
-Safe Core major version 就是协议边界。安全、Policy、Receipt 的 breaking change 必须提升 major，并由消费者硬切换。不同 major 之间不维护永久 compatibility shim。
-
-## 安全原则
-
-详见 [SECURITY.md](SECURITY.md) 和 [ARCHITECTURE.md](ARCHITECTURE.md)。
-
-核心原则：**AI 输出始终是不可信数据，不得获得修改 Git、执行任意命令、绕过必要安全能力或制造远端副作用的权限。**
+见 [SECURITY.md](SECURITY.md) 与 [ARCHITECTURE.md](ARCHITECTURE.md)。核心原则：**AI 输出永远是不可信数据，不能获得修改 Git、执行任意命令、绕过安全能力或直接产生 Provider 副作用的权限。**
 
 ## License
 
