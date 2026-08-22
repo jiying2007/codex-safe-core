@@ -15,12 +15,27 @@
         "maxDiffBytes": { "type": "integer", "minimum": 4096, "maximum": 2097152 },
         "subjectMaxLength": { "type": "integer", "minimum": 30, "maximum": 120 },
         "maxBodyChars": { "type": "integer", "minimum": 200, "maximum": 10000 },
-        "scopes": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
-        "scopeHints": { "type": "object", "additionalProperties": { "type": "array", "items": { "type": "string" }, "maxItems": 32 } },
+        "scopes": {
+          "type": "array",
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,31}$" }
+        },
+        "scopeHints": {
+          "type": "object",
+          "maxProperties": 64,
+          "propertyNames": { "pattern": "^[a-z0-9][a-z0-9._-]{0,31}$" },
+          "additionalProperties": {
+            "type": "array",
+            "maxItems": 32,
+            "uniqueItems": true,
+            "items": { "type": "string", "minLength": 1, "maxLength": 64 }
+          }
+        },
         "scopePolicy": { "enum": ["flexible", "strict"] },
         "autoInferScope": { "type": "boolean" },
         "styleHistoryLimit": { "type": "integer", "minimum": 0, "maximum": 50 },
-        "extraInstructions": { "type": "string", "maxLength": 5000 },
+        "extraInstructions": { "type": "string", "maxLength": 4000 },
         "timeoutSeconds": { "type": "integer", "minimum": 10, "maximum": 300 }
       }
     },
