@@ -32,9 +32,9 @@ test('text and buffer execution share successful semantics', async () => {
   assert.equal(buffer.stderr.length, 0);
 });
 
-test('shell execution is forbidden', () => {
-  assert.throws(
-    () => runner.runProcess(process.execPath, ['-e', '0'], { shell: true }),
+test('shell execution is forbidden', async () => {
+  await assert.rejects(
+    runner.runProcess(process.execPath, ['-e', '0'], { shell: true }),
     error => error?.code === 'ESHELLFORBIDDEN'
   );
 });
