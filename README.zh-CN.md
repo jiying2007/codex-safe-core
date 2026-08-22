@@ -9,81 +9,45 @@ Codex Safe Core 是 Codex Safe 产品族唯一的**安全运行时与协议核�
 - [Codex PR Safe](https://github.com/jiying2007/codex-pr)
 - [Codex Review Service](https://github.com/jiying2007/codex-review-service)
 
-当前协议线：**Safe Core v3 / Safe Contract v2 / Policy Schema v3 / Review Receipt v3 / Commit Receipt v3**。
+当前协议线：**Safe Core v4 / Safe Contract v2 / Policy Schema v3 / Review Receipt v4 / Commit Receipt v4 / Prompt Contract v1**。
 
 ## 使用模型
 
-Consumer 通过 Git submodule 固定到明确的 Core commit。gitlink 本身就是版本锁；不复制 vendored runtime、不跟随分支、不通过 npm 运行时依赖、不保留兼容代理。
-
-## 公共运行时边界
-
-- `index.js`
-- `safe-contract.js`
-- `codex-cli.js`
-- `process-runner.js`
-- `git-repository.js`
-- `context-builder.js`
-- `policy.js`
-- `codex-safe.schema.json`
+Consumer 通过 Git submodule 固定到明确的 Core commit。gitlink 就是版本锁；不复制 runtime、不跟随分支、不通过 npm 运行时依赖，也不保留兼容代理。
 
 ## 职责边界
 
-Core 负责跨产品公共能力：Codex capability probe/可执行文件解析/Safe argv/Structured Output/JSONL，进程启动/取消/超时/进程树终止/输出边界，本地 Git 通用原语，Commit/PR 的 Semantic Context Budget，Review 产品的 coverage-preserving Review Evidence Chunking，`.codex-safe.json` Policy Schema v3，以及 Review/Commit Receipt v3 的校验与指纹。
-
-产品只负责领域逻辑：
-
-- **Review Safe：** staged snapshot、finding 校验与本地展示；
-- **Commit Safe：** Conventional Commit、scope/style intelligence、Commit Receipt 持久化与绑定；
-- **PR Safe：** Base/Fork 语义、PR narrative、Preview 与 provenance 展示；
-- **Review Service：** GitLab Webhook/Provider、Projects/Groups Scope、immutable MR evidence 获取、SQLite Queue/Outbox、Merge Gate 与 Publication。
-
-产品仓库不得再自行维护 Core 已拥有的 Codex/Process/Policy/Receipt/Review Chunk 实现。
+Core 负责 Codex capability probe/调用、进程生命周期、本地 Git 通用原语、Semantic Context、coverage-preserving Review Evidence Chunking、Policy Schema v3、确定性 Review Rules、指纹以及 Receipt 校验与 provenance。产品仓库只负责 Commit、Review、PR 或 GitLab Service 的领域行为，不得自行维护 Core 已拥有的实现。
 
 ## Safe Contract v2
 
-Codex 安全执行协议本身没有变化，因此继续保持 v2：要求 `--ask-for-approval never`、`exec --json`、ephemeral、忽略用户/仓库 Codex 规则、read-only sandbox、Structured Output，并显式关闭 shell/unified exec、web search、apps、multi-agent、plugins、hooks、goals、memories 与 dependency install。缺少能力直接 fail closed，不提供 legacy fallback。
+安全执行协议继续保持 v2：要求 `--ask-for-approval never`、`exec --json`、ephemeral、忽略用户/仓库 Codex 规则、read-only sandbox、Structured Output，并显式关闭 shell/unified exec、web search、apps、multi-agent、plugins、hooks、goals、memories 与 dependency install。缺少能力直接 fail closed，不提供 legacy fallback。
 
-## Policy v3
+## Policy Schema v3
 
-仓库策略文件只有 `.codex-safe.json`：
+仓库策略文件只有 `.codex-safe.json`。旧 Policy Schema 明确拒绝。Commit、Review、Review Service 和 PR 使用同一个闭合 Schema 的不同 section。
 
-```json
-{
-  "schemaVersion": 3,
-  "commit": {},
-  "review": {
-    "confidenceThreshold": 0.7,
-    "rules": {
-      "requireTestsForCodeChanges": true,
-      "codePathPrefixes": ["src/"],
-      "testPathPrefixes": ["test/", "tests/"],
-      "forbiddenPathPrefixes": []
-    }
-  },
-  "reviewService": {
-    "maxContextBytes": 262144,
-    "maxContextFiles": 12,
-    "contextLines": 20,
-    "skipGeneratedFiles": true,
-    "blockUnreviewableFiles": false
-  },
-  "pr": {}
-}
-```
+## Receipt v4 provenance
 
-v3 下不兼容 Policy Schema v2。
+Review/Commit Receipt 是闭合的 v4 Contract。Core 统一规范并记录：
 
-## Context 语义
+- Safe Core / Safe Contract / Policy Schema / Prompt Contract 版本；
+- requested/resolved model identity；
+- Codex CLI version；
+- immutable Git subject/evidence fingerprint 与 verdict metadata。
 
-`buildSemanticContext()` 用于 Commit/PR narrative，可以按公平预算缩减 source context，并把 generated/binary 内容降级为 metadata。
+Receipt v3 明确不兼容。Receipt 只是 AI Workflow provenance，不是人工批准、构建或测试证据。
 
-`buildReviewEvidenceChunks()` 用于 Review Safe/Review Service。changed hunk 不允许静默截断：要么进入有界 Review chunk，要么形成明确 coverage gap，让审核 fail closed。
+## 确定性边界
 
-## Receipt v3
+Git evidence identity、Policy evaluation、Receipt validation、coverage/readiness/mechanical gate、severity/confidence filtering 与 stale publication rejection 都是确定性逻辑。模型生成 wording/findings 属于非确定性输入，不能绕过 schema validation、evidence binding 或 deterministic gate。
 
-Review Receipt v3 使用 subject envelope：本地审核为 `type=git-index`，绑定 HEAD/index；服务端审核为 `type=gitlab-mr`，绑定 Project/MR/start SHA/head SHA。
+## Family 治理
 
-Commit Receipt v3 绑定提交生成证据及可选的 Review Receipt v3 fingerprint。Receipt 只是 AI Workflow provenance，不是人工批准或测试证据。
+- **Family Compatibility：** 每周/手动在 Linux、Windows、macOS 验证 Commit、Review、PR、Review Service 都固定当前 Core 并通过各自 CI。
+- **Codex CLI Canary：** 每天/手动使用最新上游 Codex CLI，在三平台检查 Safe Contract 必需能力。
+- **OpenSSF Scorecard：** 作为持续安全回归信号。
+- **Release Supply Chain：** immutable tag/assets、SHA-256、确定性 SPDX 2.3 SBOM 和 GitHub build provenance attestation。
 
 ## 开发
 
@@ -95,7 +59,7 @@ npm run ci
 
 ## 版本治理
 
-Core Major 是协议边界。Policy/Receipt/Core 的 breaking change 必须通过 Major 硬切换所有 Consumer，不维护永久兼容层。Safe Contract 拥有独立协议版本，只有 Codex 执行安全协议本身变化时才升级。
+Core Major 是实现/产品族协议边界；各协议版本独立，只在自身语义变化时升级。Receipt/Core breaking change 必须硬切所有 Consumer，不维护永久兼容层。
 
 ## 安全
 
