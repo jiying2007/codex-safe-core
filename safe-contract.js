@@ -46,7 +46,8 @@ function canonicalize(value) {
 }
 function fingerprint(value) { return crypto.createHash('sha256').update(JSON.stringify(canonicalize(value)), 'utf8').digest('hex'); }
 const fingerprintPolicy = fingerprint;
-function validOid(value) { return value === '<unborn>' || /^[0-9a-f]{40,64}$/i.test(String(value || '')); }
+function validCommitOid(value) { return /^[0-9a-f]{40,64}$/i.test(String(value || '')); }
+function validOid(value) { return value === '<unborn>' || validCommitOid(value); }
 function validHash(value, allowNone = false) { return (allowNone && value === '<none>') || /^[0-9a-f]{64}$/i.test(String(value || '')); }
 function validMetadataString(value) { return value === undefined || (typeof value === 'string' && value.length <= 256 && !/[\r\n\0]/.test(value)); }
 function validTimestamp(value) { if (typeof value !== 'string' || !ISO_UTC_TIMESTAMP.test(value)) return false; const time = Date.parse(value); return Number.isFinite(time) && new Date(time).toISOString() === value; }
@@ -66,7 +67,7 @@ function validateReviewSubject(subject) {
     const keys = ['type','projectId','mrIid','startSha','headSha'];
     if (!hasOnlyKeys(subject, keys)) return null;
     if (!Number.isInteger(subject.projectId) || subject.projectId <= 0 || !Number.isInteger(subject.mrIid) || subject.mrIid <= 0) return null;
-    if (!validOid(subject.startSha) || !validOid(subject.headSha)) return null;
+    if (!validCommitOid(subject.startSha) || !validCommitOid(subject.headSha)) return null;
     return deepFreezeCopy(subject);
   }
   return null;
@@ -89,7 +90,7 @@ function validateCommitReceipt(value) {
   for (const key of ['headOid','indexFingerprint','diffFingerprint','messageFingerprint','policyFingerprint','reviewReceiptFingerprint','createdAt']) if (typeof value[key] !== 'string' || !value[key]) return null;
   if (!validOid(value.headOid) || !validHash(value.indexFingerprint) || !validHash(value.diffFingerprint) || !validHash(value.messageFingerprint)) return null;
   if (!validHash(value.policyFingerprint, true) || !validHash(value.reviewReceiptFingerprint, true)) return null;
-  if (value.commitOid !== undefined && value.commitOid !== '<pending>' && !/^[0-9a-f]{40,64}$/i.test(value.commitOid)) return null;
+  if (value.commitOid !== undefined && value.commitOid !== '<pending>' && !validCommitOid(value.commitOid)) return null;
   if (!validTimestamp(value.createdAt) || !validMetadataString(value.model) || !validMetadataString(value.codexVersion)) return null;
   return copyAllowed(value, COMMIT_RECEIPT_KEYS);
 }
