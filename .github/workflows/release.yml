@@ -54,7 +54,7 @@ jobs:
         with: { persist-credentials: false }
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with: { node-version: '22' }
-      - name: Package and checksum
+      - name: Package, SBOM and checksums
         id: package
         shell: bash
         run: |
@@ -63,13 +63,17 @@ jobs:
           npm pack --ignore-scripts --json > /tmp/pack.json
           artifact=$(node -e "const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/pack.json','utf8'));process.stdout.write(x[0].filename)")
           test -s "$artifact"
-          sha256sum "$artifact" > SHA256SUMS
+          node scripts/generate-sbom.js SBOM.spdx.json
+          test -s SBOM.spdx.json
+          sha256sum "$artifact" SBOM.spdx.json > SHA256SUMS
+          sha256sum --check SHA256SUMS
           echo "artifact=$artifact" >> "$GITHUB_OUTPUT"
-      - name: Attest package provenance
+      - name: Attest release provenance
         uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
         with:
           subject-path: |
             ${{ steps.package.outputs.artifact }}
+            SBOM.spdx.json
             SHA256SUMS
       - name: Ensure immutable release tag
         env:
@@ -84,7 +88,7 @@ jobs:
           else
             gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" -f ref="refs/tags/${RELEASE_TAG}" -f sha="$GITHUB_SHA" >/dev/null
           fi
-      - name: Publish GitHub Release
+      - name: Publish immutable GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ needs.validate.outputs.tag }}
@@ -93,7 +97,7 @@ jobs:
         run: |
           set -euo pipefail
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release upload "$RELEASE_TAG" "$ARTIFACT" SHA256SUMS --clobber
-          else
-            gh release create "$RELEASE_TAG" "$ARTIFACT" SHA256SUMS --title "Codex Safe Core ${{ needs.validate.outputs.version }}" --generate-notes --verify-tag
+            echo "Release ${RELEASE_TAG} already exists; immutable assets will not be overwritten." >&2
+            exit 1
           fi
+          gh release create "$RELEASE_TAG" "$ARTIFACT" SBOM.spdx.json SHA256SUMS --title "Codex Safe Core ${{ needs.validate.outputs.version }}" --generate-notes --verify-tag
