@@ -3,6 +3,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
+const fs = require('node:fs');
+const path = require('node:path');
 const core = require('..');
 
 const semanticDiff = [
@@ -66,6 +68,23 @@ test('policy document and sections are canonical closed contracts', () => {
   assert.throws(() => core.validatePolicySection('commit', { scopes: ['core', 'core'] }), /duplicate/);
   assert.throws(() => core.validatePolicySection('review', { confidenceThreshold: 1.1 }), /between 0 and 1/);
   assert.throws(() => core.validatePolicySection('pr', { baseBranch: 'x'.repeat(257) }), /256/);
+});
+
+test('JSON Schema property keys and critical limits stay aligned with runtime policy', () => {
+  const schema = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'codex-safe.schema.json'), 'utf8'));
+  for (const section of core.POLICY_SECTIONS) {
+    assert.deepEqual(
+      Object.keys(schema.properties[section].properties).sort(),
+      [...core.POLICY_SECTION_KEYS[section]].sort(),
+      `${section} schema keys drifted from runtime`
+    );
+    assert.equal(schema.properties[section].additionalProperties, false);
+  }
+  assert.equal(schema.properties.commit.properties.extraInstructions.maxLength, 4000);
+  assert.equal(schema.properties.review.properties.extraInstructions.maxLength, 5000);
+  assert.equal(schema.properties.pr.properties.extraInstructions.maxLength, 4000);
+  assert.equal(schema.properties.commit.properties.scopes.maxItems, 64);
+  assert.equal(schema.properties.commit.properties.scopeHints.maxProperties, 64);
 });
 
 test('HEAD policy reader ignores working tree by consuming Git objects only', async () => {
