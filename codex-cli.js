@@ -24,11 +24,8 @@ function parseCodexJsonl(stdout) {
   const errors = [];
   for (const line of String(stdout || '').split(/\r?\n/).filter(Boolean)) {
     let event;
-    try {
-      event = JSON.parse(line);
-    } catch {
-      throw createError('ECODEXOUTPUT', 'Codex --json returned invalid JSONL.');
-    }
+    try { event = JSON.parse(line); }
+    catch { throw createError('ECODEXOUTPUT', 'Codex --json returned invalid JSONL.'); }
     if (event?.type === 'item.completed' && event?.item?.type === 'agent_message' && typeof event.item.text === 'string') {
       lastAgentMessage = event.item.text;
     }
@@ -40,21 +37,40 @@ function parseCodexJsonl(stdout) {
   return lastAgentMessage.trim();
 }
 
-function createCodexCli({
-  runPreparedProcess,
-  tempPrefix = 'codex-safe-',
-  capabilityCache = new Map()
-} = {}) {
+function assertSafeTempPrefix(value) {
+  if (typeof value !== 'string' || !value || value.length > 80 || /[\\/\r\n\0]/.test(value) || value.includes('..')) {
+    throw new TypeError('tempPrefix must be a simple filename prefix.');
+  }
+  return value;
+}
+
+function assertSafeSchemaFileName(value) {
+  if (typeof value !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,79}\.json$/.test(value) || value.includes('..')) {
+    throw new TypeError('schemaFileName must be a simple .json filename.');
+  }
+  return value;
+}
+
+function assertSchema(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new TypeError('schema must be a JSON object.');
+  }
+  return value;
+}
+
+function createCodexCli({ runPreparedProcess, tempPrefix = 'codex-safe-', capabilityCache = new Map() } = {}) {
   if (typeof runPreparedProcess !== 'function') {
     throw new TypeError('createCodexCli requires runPreparedProcess(command, args, options, stdinText, token).');
   }
+  assertSafeTempPrefix(tempPrefix);
+  if (!(capabilityCache instanceof Map)) throw new TypeError('capabilityCache must be a Map.');
 
   async function findWindowsCodexCandidates(codexPath) {
     if (process.platform !== 'win32' || codexPath !== 'codex') return [codexPath];
     const candidates = [];
     try {
       const { stdout } = await runPreparedProcess('where.exe', ['codex'], { timeoutMs: 5000 });
-      for (const line of String(stdout || '').split(/\r?\n/).map(x => x.trim()).filter(Boolean)) {
+      for (const line of String(stdout || '').split(/\r?\n/).map(value => value.trim()).filter(Boolean)) {
         if (!candidates.includes(line)) candidates.push(line);
       }
     } catch {}
@@ -69,6 +85,9 @@ function createCodexCli({
   }
 
   async function resolveCodexExecutable(codexPath) {
+    if (typeof codexPath !== 'string' || !codexPath.trim() || /[\r\n\0]/.test(codexPath) || codexPath.length > 1024) {
+      throw createError('ECODEXNOTFOUND', 'Codex CLI path is invalid.');
+    }
     const candidates = await findWindowsCodexCandidates(codexPath);
     const windowsDefaultLookup = process.platform === 'win32' && codexPath === 'codex';
     let lastError;
@@ -111,16 +130,8 @@ function createCodexCli({
     let execHelp;
     try {
       const [top, exec] = await Promise.all([
-        runPreparedProcess(executable, ['--help'], {
-          timeoutMs: 10000,
-          maxStdoutBytes: 1024 * 1024,
-          maxStderrBytes: 256 * 1024
-        }),
-        runPreparedProcess(executable, ['exec', '--help'], {
-          timeoutMs: 10000,
-          maxStdoutBytes: 1024 * 1024,
-          maxStderrBytes: 256 * 1024
-        })
+        runPreparedProcess(executable, ['--help'], { timeoutMs: 10000, maxStdoutBytes: 1024 * 1024, maxStderrBytes: 256 * 1024 }),
+        runPreparedProcess(executable, ['exec', '--help'], { timeoutMs: 10000, maxStdoutBytes: 1024 * 1024, maxStderrBytes: 256 * 1024 })
       ]);
       topHelp = `${top.stdout || ''}\n${top.stderr || ''}`;
       execHelp = `${exec.stdout || ''}\n${exec.stderr || ''}`;
@@ -146,11 +157,7 @@ function createCodexCli({
       );
     }
 
-    const result = {
-      executable,
-      version: version || '',
-      capabilitiesVerified: true
-    };
+    const result = Object.freeze({ executable, version: version || '', capabilitiesVerified: true });
     capabilityCache.set(cacheKey, result);
     return result;
   }
@@ -160,12 +167,10 @@ function createCodexCli({
   }
 
   async function withTemporaryDirectory(fn) {
+    if (typeof fn !== 'function') throw new TypeError('withTemporaryDirectory requires a function.');
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), tempPrefix));
-    try {
-      return await fn(tempDir);
-    } finally {
-      try { fs.rmSync(tempDir, { recursive: true, force: true }); } catch {}
-    }
+    try { return await fn(tempDir); }
+    finally { try { fs.rmSync(tempDir, { recursive: true, force: true }); } catch {} }
   }
 
   async function runStructuredCodex({
@@ -179,7 +184,14 @@ function createCodexCli({
     maxStdoutBytes = 4 * 1024 * 1024,
     maxStderrBytes = 1024 * 1024,
     processOptions = {}
-  }) {
+  } = {}) {
+    assertSchema(schema);
+    assertSafeSchemaFileName(schemaFileName);
+    if (typeof input !== 'string') throw new TypeError('input must be a string.');
+    if (!processOptions || typeof processOptions !== 'object' || Array.isArray(processOptions)) {
+      throw new TypeError('processOptions must be an object.');
+    }
+
     const resolved = await resolveCodexExecutable(codexPath);
     await probeCodexCapabilities(resolved, model);
     return withTemporaryDirectory(async tempDir => {
@@ -190,13 +202,7 @@ function createCodexCli({
         processResult = await runPreparedProcess(
           resolved.executable,
           buildCodexArgs(schemaPath, model),
-          {
-            ...processOptions,
-            cwd: tempDir,
-            timeoutMs,
-            maxStdoutBytes,
-            maxStderrBytes
-          },
+          { ...processOptions, cwd: tempDir, timeoutMs, maxStdoutBytes, maxStderrBytes },
           input,
           token
         );
@@ -213,11 +219,8 @@ function createCodexCli({
 
       const agentText = parseCodexJsonl(processResult.stdout);
       let parsed;
-      try {
-        parsed = JSON.parse(agentText);
-      } catch {
-        throw createError('ECODEXOUTPUT', 'The final Codex agent_message is not JSON matching the output schema.');
-      }
+      try { parsed = JSON.parse(agentText); }
+      catch { throw createError('ECODEXOUTPUT', 'The final Codex agent_message is not JSON matching the output schema.'); }
       return { parsed, resolved, processResult };
     });
   }
@@ -235,6 +238,9 @@ function createCodexCli({
 }
 
 module.exports = {
+  assertSafeTempPrefix,
+  assertSafeSchemaFileName,
+  assertSchema,
   createCodexCli,
   parseCodexJsonl
 };
