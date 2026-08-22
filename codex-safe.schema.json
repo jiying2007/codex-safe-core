@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/jiying2007/codex-safe-core/codex-safe.schema.json",
+  "title": "Codex Safe repository policy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion"],
+  "properties": {
+    "schemaVersion": { "const": 2 },
+    "commit": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "language": { "enum": ["zh-CN", "en"] },
+        "maxDiffBytes": { "type": "integer", "minimum": 4096, "maximum": 2097152 },
+        "subjectMaxLength": { "type": "integer", "minimum": 30, "maximum": 120 },
+        "maxBodyChars": { "type": "integer", "minimum": 200, "maximum": 10000 },
+        "scopes": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "scopeHints": { "type": "object", "additionalProperties": { "type": "array", "items": { "type": "string" }, "maxItems": 32 } },
+        "scopePolicy": { "enum": ["flexible", "strict"] },
+        "autoInferScope": { "type": "boolean" },
+        "styleHistoryLimit": { "type": "integer", "minimum": 0, "maximum": 50 },
+        "extraInstructions": { "type": "string", "maxLength": 5000 },
+        "timeoutSeconds": { "type": "integer", "minimum": 10, "maximum": 300 }
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "language": { "enum": ["zh-CN", "en"] },
+        "maxDiffBytes": { "type": "integer", "minimum": 4096, "maximum": 2097152 },
+        "maxFindings": { "type": "integer", "minimum": 1, "maximum": 100 },
+        "severityThreshold": { "enum": ["critical", "high", "medium", "low", "info"] },
+        "confidenceThreshold": { "type": "number", "minimum": 0, "maximum": 1 },
+        "timeoutSeconds": { "type": "integer", "minimum": 10, "maximum": 300 },
+        "extraInstructions": { "type": "string", "maxLength": 5000 }
+      }
+    },
+    "pr": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "language": { "enum": ["zh-CN", "en"] },
+        "baseBranch": { "type": "string", "maxLength": 256 },
+        "maxDiffBytes": { "type": "integer", "minimum": 4096, "maximum": 2097152 },
+        "maxCommitBytes": { "type": "integer", "minimum": 4096, "maximum": 524288 },
+        "titleMaxLength": { "type": "integer", "minimum": 40, "maximum": 160 },
+        "maxBodyChars": { "type": "integer", "minimum": 1000, "maximum": 20000 },
+        "includePullRequestTemplate": { "type": "boolean" },
+        "extraInstructions": { "type": "string", "maxLength": 4000 },
+        "timeoutSeconds": { "type": "integer", "minimum": 10, "maximum": 300 }
+      }
+    }
+  }
+}
