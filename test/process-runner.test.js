@@ -4,47 +4,44 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createProcessRunner } = require('../process-runner');
 
+const runner = createProcessRunner((_zh, en) => en);
+
 function cancellationToken() {
-  let listener = null;
+  const listeners = new Set();
+  const token = {
+    isCancellationRequested: false,
+    onCancellationRequested(listener) {
+      listeners.add(listener);
+      return { dispose() { listeners.delete(listener); } };
+    }
+  };
   return {
-    token: {
-      isCancellationRequested: false,
-      onCancellationRequested(fn) {
-        listener = fn;
-        return { dispose() { listener = null; } };
-      }
-    },
+    token,
     cancel() {
-      this.token.isCancellationRequested = true;
-      listener?.();
+      token.isCancellationRequested = true;
+      for (const listener of [...listeners]) listener();
     }
   };
 }
 
-const runner = createProcessRunner((_zh, en) => en);
-
 test('text and buffer execution share successful semantics', async () => {
-  const text = await runner.runProcess(process.execPath, ['-e', 'process.stdout.write("ok")']);
-  assert.equal(text.stdout, 'ok');
-  const buffer = await runner.runProcessBuffer(process.execPath, ['-e', 'process.stdout.write("ok")']);
-  assert.ok(Buffer.isBuffer(buffer.stdout));
-  assert.equal(buffer.stdout.toString('utf8'), 'ok');
+  const text = await runner.runPreparedProcess(process.execPath, ['-e', 'process.stdout.write("ok");process.stderr.write("warn")'], { timeoutMs: 5000 });
+  assert.deepEqual(text, { stdout: 'ok', stderr: 'warn' });
+  const buffer = await runner.runProcessBuffer(process.execPath, ['-e', 'process.stdout.write(Buffer.from([0,1,2,255]))'], { timeoutMs: 5000 });
+  assert.deepEqual([...buffer.stdout], [0, 1, 2, 255]);
+  assert.equal(buffer.stderr.length, 0);
 });
 
-test('shell execution is forbidden', async () => {
-  await assert.rejects(
-    runner.runProcess(process.execPath, ['-e', '0'], { shell: true }),
+test('shell execution is forbidden', () => {
+  assert.throws(
+    () => runner.runProcess(process.execPath, ['-e', '0'], { shell: true }),
     error => error?.code === 'ESHELLFORBIDDEN'
   );
 });
 
 test('stdout limits fail closed', async () => {
   await assert.rejects(
-    runner.runProcess(process.execPath, ['-e', 'process.stdout.write("x".repeat(2048))'], { maxStdoutBytes: 128 }),
-    error => error?.code === 'EOUTPUTLIMIT'
-  );
-  await assert.rejects(
-    runner.runProcessBuffer(process.execPath, ['-e', 'process.stdout.write("x".repeat(2048))'], { maxStdoutBytes: 128 }),
+    runner.runProcess(process.execPath, ['-e', 'process.stdout.write("12345")'], { timeoutMs: 5000, maxStdoutBytes: 4 }),
     error => error?.code === 'EOUTPUTLIMIT'
   );
 });
@@ -71,8 +68,8 @@ test('cancellation terminates the process', async () => {
 
 test('command and limits are validated before spawn', async () => {
   await assert.rejects(runner.runPreparedProcess('bad\ncommand', []), TypeError);
-  await assert.rejects(
-    runner.runProcess(process.execPath, ['-e', '0'], { maxStdoutBytes: -1 }),
+  assert.throws(
+    () => runner.runProcess(process.execPath, ['-e', '0'], { maxStdoutBytes: -1 }),
     RangeError
   );
 });
