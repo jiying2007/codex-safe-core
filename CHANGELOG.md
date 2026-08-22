@@ -4,6 +4,13 @@ All notable changes to Codex Safe Core are documented here.
 
 ## Unreleased
 
+## 3.0.1
+
+### Changed
+
+- Added the canonical deterministic Review rule evaluator used by Review Safe and Review Service.
+- Centralized path-prefix normalization and the `requireTestsForCodeChanges` / forbidden-path semantics so consumers cannot drift while mapping violations to their own UI or provider finding models.
+
 ## 3.0.0
 
 ### Changed
