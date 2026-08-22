@@ -5,54 +5,35 @@ const path = require('path');
 
 /** @typedef {(zh: string, en: string) => string} Translate */
 /** @typedef {{dispose: () => void}} DisposableLike */
-/**
- * @typedef {Object} CancellationTokenLike
- * @property {boolean} isCancellationRequested
- * @property {(listener: () => void) => DisposableLike} onCancellationRequested
- */
-/**
- * @typedef {Object} ProcessOptions
- * @property {string} [cwd]
- * @property {NodeJS.ProcessEnv} [env]
- * @property {boolean} [shell]
- * @property {boolean} [windowsVerbatimArguments]
- * @property {number} [timeoutMs]
- * @property {number} [maxStdoutBytes]
- * @property {number} [maxStderrBytes]
- */
-/** @typedef {{stdout: string, stderr: string}} TextProcessResult */
-/** @typedef {{stdout: Buffer, stderr: Buffer}} BufferProcessResult */
+/** @typedef {{isCancellationRequested: boolean, onCancellationRequested: (listener: () => void) => DisposableLike}} CancellationTokenLike */
+/** @typedef {{cwd?: string, env?: NodeJS.ProcessEnv, shell?: boolean, windowsVerbatimArguments?: boolean, timeoutMs?: number, maxStdoutBytes?: number, maxStderrBytes?: number}} ProcessOptions */
 /** @typedef {Error & {code?: string|number, stdout?: string|Buffer, stderr?: string|Buffer}} ProcessError */
 
-/**
- * @param {Translate} ui
- */
-function createProcessRunner(ui) {
-  /**
-   * @param {string} command
-   * @returns {boolean}
-   */
+const DEFAULT_TEXT_STDOUT_LIMIT = 4 * 1024 * 1024;
+const DEFAULT_TEXT_STDERR_LIMIT = 1 * 1024 * 1024;
+const DEFAULT_BUFFER_STDOUT_LIMIT = 16 * 1024 * 1024;
+const DEFAULT_BUFFER_STDERR_LIMIT = 256 * 1024;
+const FORCE_KILL_DELAY_MS = 1500;
+
+function createProcessRunner(ui = (_zh, en) => en) {
+  if (typeof ui !== 'function') throw new TypeError('createProcessRunner requires a translation function.');
+
   function isWindowsScript(command) {
-    return process.platform === 'win32' && /\.(cmd|bat)$/i.test(command);
+    return process.platform === 'win32' && /\.(cmd|bat)$/i.test(String(command || ''));
   }
 
-  /**
-   * @param {unknown} value
-   * @returns {string}
-   */
   function quoteWindowsCmdArg(value) {
     return `"${String(value).replace(/"/g, '""')}"`;
   }
 
-  /**
-   * @param {string} command
-   * @param {string[]} args
-   * @returns {{command: string, args: string[], shell: false, windowsVerbatimArguments?: true}}
-   */
   function prepareCommand(command, args) {
-    if (!isWindowsScript(command)) {
-      return { command, args, shell: false };
+    if (typeof command !== 'string' || !command || /[\r\n\0]/.test(command)) {
+      throw new TypeError('command must be a non-empty string without control characters.');
     }
+    if (!Array.isArray(args) || args.some(arg => typeof arg !== 'string' || /\0/.test(arg))) {
+      throw new TypeError('args must be an array of strings without NUL characters.');
+    }
+    if (!isWindowsScript(command)) return { command, args: [...args], shell: false };
     const commandLine = '"' + [quoteWindowsCmdArg(command), ...args.map(quoteWindowsCmdArg)].join(' ') + '"';
     return {
       command: process.env.ComSpec || 'cmd.exe',
@@ -62,51 +43,60 @@ function createProcessRunner(ui) {
     };
   }
 
-  /**
-   * @param {string} command
-   * @param {string[]} args
-   * @param {ProcessOptions} [options]
-   * @param {string} [stdinText]
-   * @param {CancellationTokenLike} [cancellationToken]
-   * @returns {Promise<TextProcessResult>}
-   */
-  function runPreparedProcess(command, args, options = {}, stdinText = '', cancellationToken) {
-    const prepared = prepareCommand(command, args);
-    return runProcess(
-      prepared.command,
-      prepared.args,
-      {
-        ...options,
-        shell: false,
-        windowsVerbatimArguments: prepared.windowsVerbatimArguments === true
-      },
-      stdinText,
-      cancellationToken
-    );
+  function normalizeLimit(value, fallback, name) {
+    if (value === undefined) return fallback;
+    if (!Number.isFinite(value) || value < 0 || value > 256 * 1024 * 1024) {
+      throw new RangeError(`${name} must be a finite value between 0 and 268435456 bytes.`);
+    }
+    return Math.floor(value);
   }
 
-  /**
-   * @param {string} command
-   * @param {string[]} args
-   * @param {ProcessOptions} [options]
-   * @param {string} [stdinText]
-   * @param {CancellationTokenLike} [cancellationToken]
-   * @returns {Promise<TextProcessResult>}
-   */
-  function runProcess(command, args, options = {}, stdinText = '', cancellationToken) {
+  function normalizeTimeout(value) {
+    if (value === undefined) return 0;
+    if (!Number.isFinite(value) || value < 0 || value > 30 * 60 * 1000) {
+      throw new RangeError('timeoutMs must be between 0 and 1800000.');
+    }
+    return Math.floor(value);
+  }
+
+  function createTerminationError(code, zh, en) {
+    const error = /** @type {ProcessError} */ (new Error(ui(zh, en)));
+    error.code = code;
+    return error;
+  }
+
+  function execute(command, args, options = {}, stdinText = '', cancellationToken, mode = 'text') {
+    if (options.shell === true) {
+      const error = new Error('Shell execution is forbidden by Codex Safe Core.');
+      error.code = 'ESHELLFORBIDDEN';
+      return Promise.reject(error);
+    }
+
+    const timeoutMs = normalizeTimeout(options.timeoutMs);
+    const textMode = mode === 'text';
+    const maxStdoutBytes = normalizeLimit(
+      options.maxStdoutBytes,
+      textMode ? DEFAULT_TEXT_STDOUT_LIMIT : DEFAULT_BUFFER_STDOUT_LIMIT,
+      'maxStdoutBytes'
+    );
+    const maxStderrBytes = normalizeLimit(
+      options.maxStderrBytes,
+      textMode ? DEFAULT_TEXT_STDERR_LIMIT : DEFAULT_BUFFER_STDERR_LIMIT,
+      'maxStderrBytes'
+    );
+
     return new Promise((resolve, reject) => {
-      /** @type {import('child_process').ChildProcessWithoutNullStreams | undefined} */
       let child;
       let settled = false;
-      /** @type {NodeJS.Timeout | undefined} */
-      let timeoutHandle;
-      /** @type {NodeJS.Timeout | undefined} */
-      let forceKillHandle;
-      /** @type {DisposableLike | undefined} */
-      let cancellationDisposable;
-      /** @type {ProcessError | undefined} */
-      let terminationError;
       let terminating = false;
+      let timeoutHandle;
+      let forceKillHandle;
+      let cancellationDisposable;
+      let terminationError;
+      const stdoutChunks = [];
+      const stderrChunks = [];
+      let stdoutBytes = 0;
+      let stderrBytes = 0;
 
       const cleanup = () => {
         if (timeoutHandle) clearTimeout(timeoutHandle);
@@ -114,7 +104,6 @@ function createProcessRunner(ui) {
         cancellationDisposable?.dispose();
       };
 
-      /** @param {(value: any) => void} fn @param {any} value */
       const settle = (fn, value) => {
         if (settled) return;
         settled = true;
@@ -122,45 +111,54 @@ function createProcessRunner(ui) {
         fn(value);
       };
 
-      /** @param {ProcessError} error */
-      const terminate = (error) => {
-        if (terminating) return;
+      const killTree = () => {
+        if (!child || child.killed || !child.pid) return Promise.resolve();
+        if (process.platform === 'win32') {
+          return new Promise(resolve => {
+            const killer = spawn('taskkill', ['/PID', String(child.pid), '/T', '/F'], {
+              windowsHide: true,
+              shell: false,
+              stdio: 'ignore'
+            });
+            killer.once('close', resolve);
+            killer.once('error', () => {
+              try { child.kill(); } catch {}
+              resolve();
+            });
+          });
+        }
+        try { process.kill(-child.pid, 'SIGTERM'); }
+        catch { try { child.kill('SIGTERM'); } catch {} }
+        return Promise.resolve();
+      };
+
+      const forceKillTree = () => {
+        if (!child || !child.pid) return;
+        if (process.platform === 'win32') {
+          try {
+            spawn('taskkill', ['/PID', String(child.pid), '/T', '/F'], {
+              windowsHide: true,
+              shell: false,
+              stdio: 'ignore'
+            });
+          } catch {}
+          return;
+        }
+        try { process.kill(-child.pid, 'SIGKILL'); }
+        catch { try { child.kill('SIGKILL'); } catch {} }
+      };
+
+      const terminate = error => {
+        if (terminating || settled) return;
         terminating = true;
         terminationError = error;
-        if (!child || child.killed) {
-          settle(reject, error);
-          return;
-        }
-
-        if (process.platform === 'win32' && child.pid) {
-          const killer = spawn('taskkill', ['/PID', String(child.pid), '/T', '/F'], {
-            windowsHide: true,
-            shell: false,
-            stdio: 'ignore'
-          });
-          killer.once('close', () => settle(reject, error));
-          killer.once('error', () => {
-            try { child?.kill(); } catch {}
+        void killTree().finally(() => {
+          if (settled) return;
+          forceKillHandle = setTimeout(() => {
+            forceKillTree();
             settle(reject, error);
-          });
-          return;
-        }
-
-        try {
-          if (child.pid) process.kill(-child.pid, 'SIGTERM');
-          else child.kill('SIGTERM');
-        } catch {
-          try { child.kill('SIGTERM'); } catch {}
-        }
-        forceKillHandle = setTimeout(() => {
-          try {
-            if (child?.pid) process.kill(-child.pid, 'SIGKILL');
-            else child?.kill('SIGKILL');
-          } catch {
-            try { child?.kill('SIGKILL'); } catch {}
-          }
-          settle(reject, error);
-        }, 1500);
+          }, FORCE_KILL_DELAY_MS);
+        });
       };
 
       try {
@@ -168,97 +166,93 @@ function createProcessRunner(ui) {
           cwd: options.cwd,
           env: options.env || process.env,
           windowsHide: true,
-          shell: options.shell === true,
+          shell: false,
           windowsVerbatimArguments: options.windowsVerbatimArguments === true,
           detached: process.platform !== 'win32'
         });
-      } catch (rawError) {
-        settle(reject, rawError);
+      } catch (error) {
+        settle(reject, error);
         return;
       }
 
-      let stdout = '';
-      let stderr = '';
-      let stdoutBytes = 0;
-      let stderrBytes = 0;
-      const maxStdoutBytes = options.maxStdoutBytes ?? (4 * 1024 * 1024);
-      const maxStderrBytes = options.maxStderrBytes ?? (1 * 1024 * 1024);
-
-      child.stdout.setEncoding('utf8');
-      child.stderr.setEncoding('utf8');
-      child.stdout.on('data', (chunk) => {
-        const text = String(chunk);
-        stdoutBytes += Buffer.byteLength(text, 'utf8');
+      child.stdout.on('data', chunk => {
+        const buffer = Buffer.from(chunk);
+        stdoutBytes += buffer.length;
         if (stdoutBytes > maxStdoutBytes) {
-          const error = /** @type {ProcessError} */ (new Error(ui(
+          terminate(createTerminationError(
+            'EOUTPUTLIMIT',
             `子进程 stdout 超过限制（${maxStdoutBytes} bytes）`,
             `Child process stdout exceeded the limit (${maxStdoutBytes} bytes)`
-          )));
-          error.code = 'EOUTPUTLIMIT';
-          terminate(error);
+          ));
           return;
         }
-        stdout += text;
-      });
-      child.stderr.on('data', (chunk) => {
-        const text = String(chunk);
-        stderrBytes += Buffer.byteLength(text, 'utf8');
-        if (stderrBytes > maxStderrBytes) {
-          const error = /** @type {ProcessError} */ (new Error(ui(
-            `子进程 stderr 超过限制（${maxStderrBytes} bytes）`,
-            `Child process stderr exceeded the limit (${maxStderrBytes} bytes)`
-          )));
-          error.code = 'EOUTPUTLIMIT';
-          terminate(error);
-          return;
-        }
-        stderr += text;
+        stdoutChunks.push(buffer);
       });
 
+      child.stderr.on('data', chunk => {
+        const buffer = Buffer.from(chunk);
+        stderrBytes += buffer.length;
+        if (stderrBytes > maxStderrBytes) {
+          terminate(createTerminationError(
+            'EOUTPUTLIMIT',
+            `子进程 stderr 超过限制（${maxStderrBytes} bytes）`,
+            `Child process stderr exceeded the limit (${maxStderrBytes} bytes)`
+          ));
+          return;
+        }
+        stderrChunks.push(buffer);
+      });
+
+      child.stdin.on('error', error => {
+        if (error?.code !== 'EPIPE' && !terminating) settle(reject, error);
+      });
       child.once('error', error => settle(reject, error));
       child.once('close', code => {
         if (settled) return;
         if (terminationError) {
-          if (process.platform === 'win32') settle(reject, terminationError);
+          settle(reject, terminationError);
           return;
         }
+        const stdoutBuffer = Buffer.concat(stdoutChunks);
+        const stderrBuffer = Buffer.concat(stderrChunks);
         if (code === 0) {
-          settle(resolve, { stdout, stderr });
-        } else {
-          const error = /** @type {ProcessError} */ (new Error(
-            `${path.basename(command)} exited with code ${code}\n${stderr || stdout}`.trim()
-          ));
-          error.code = code ?? -1;
-          error.stdout = stdout;
-          error.stderr = stderr;
-          settle(reject, error);
+          settle(resolve, textMode
+            ? { stdout: stdoutBuffer.toString('utf8'), stderr: stderrBuffer.toString('utf8') }
+            : { stdout: stdoutBuffer, stderr: stderrBuffer });
+          return;
         }
+        const stdout = textMode ? stdoutBuffer.toString('utf8') : stdoutBuffer;
+        const stderr = textMode ? stderrBuffer.toString('utf8') : stderrBuffer;
+        const detail = textMode
+          ? (stderr || stdout)
+          : (stderrBuffer.toString('utf8') || stdoutBuffer.toString('utf8'));
+        const error = /** @type {ProcessError} */ (new Error(
+          `${path.basename(command)} exited with code ${code}\n${detail}`.trim()
+        ));
+        error.code = code ?? -1;
+        error.stdout = stdout;
+        error.stderr = stderr;
+        settle(reject, error);
       });
 
-      if ((options.timeoutMs || 0) > 0) {
+      if (timeoutMs > 0) {
         timeoutHandle = setTimeout(() => {
-          const seconds = Math.round((options.timeoutMs || 0) / 1000);
-          const error = /** @type {ProcessError} */ (new Error(ui(
+          const seconds = Math.round(timeoutMs / 1000);
+          terminate(createTerminationError(
+            'ETIMEDOUT',
             `进程执行超时（${seconds} 秒）`,
             `Process timed out after ${seconds} seconds`
-          )));
-          error.code = 'ETIMEDOUT';
-          terminate(error);
-        }, options.timeoutMs);
+          ));
+        }, timeoutMs);
       }
 
       if (cancellationToken) {
+        const cancel = () => terminate(createTerminationError('ECANCELLED', '操作已取消。', 'Operation cancelled.'));
         if (cancellationToken.isCancellationRequested) {
-          const error = /** @type {ProcessError} */ (new Error(ui('操作已取消。', 'Operation cancelled.')));
-          error.code = 'ECANCELLED';
-          terminate(error);
+          cancel();
           return;
         }
-        cancellationDisposable = cancellationToken.onCancellationRequested(() => {
-          const error = /** @type {ProcessError} */ (new Error(ui('操作已取消。', 'Operation cancelled.')));
-          error.code = 'ECANCELLED';
-          terminate(error);
-        });
+        cancellationDisposable = cancellationToken.onCancellationRequested(cancel);
       }
 
       if (stdinText) child.stdin.write(stdinText, 'utf8');
@@ -266,145 +260,43 @@ function createProcessRunner(ui) {
     });
   }
 
-  /**
-   * @param {string} command
-   * @param {string[]} args
-   * @param {ProcessOptions} [options]
-   * @param {CancellationTokenLike} [cancellationToken]
-   * @returns {Promise<BufferProcessResult>}
-   */
-  function runProcessBuffer(command, args, options = {}, cancellationToken) {
-    return new Promise((resolve, reject) => {
-      /** @type {import('child_process').ChildProcessWithoutNullStreams | undefined} */
-      let child;
-      let settled = false;
-      /** @type {NodeJS.Timeout | undefined} */
-      let timeoutHandle;
-      /** @type {DisposableLike | undefined} */
-      let cancellationDisposable;
-      /** @type {Buffer[]} */
-      const stdout = [];
-      /** @type {Buffer[]} */
-      const stderr = [];
-      let stdoutBytes = 0;
-      let stderrBytes = 0;
-      const maxStdoutBytes = options.maxStdoutBytes ?? (16 * 1024 * 1024);
-      const maxStderrBytes = options.maxStderrBytes ?? (256 * 1024);
-
-      const cleanup = () => {
-        if (timeoutHandle) clearTimeout(timeoutHandle);
-        cancellationDisposable?.dispose();
-      };
-      /** @param {(value: any) => void} fn @param {any} value */
-      const settle = (fn, value) => {
-        if (settled) return;
-        settled = true;
-        cleanup();
-        fn(value);
-      };
-      /** @param {ProcessError} error */
-      const terminate = (error) => {
-        try { child?.kill('SIGKILL'); } catch {}
-        settle(reject, error);
-      };
-
-      try {
-        child = spawn(command, args, {
-          cwd: options.cwd,
-          env: options.env || process.env,
-          windowsHide: true,
-          shell: false
-        });
-      } catch (rawError) {
-        settle(reject, rawError);
-        return;
-      }
-
-      child.stdout.on('data', (chunk) => {
-        const buffer = Buffer.from(chunk);
-        stdoutBytes += buffer.length;
-        if (stdoutBytes > maxStdoutBytes) {
-          const error = /** @type {ProcessError} */ (new Error(ui(
-            `子进程 stdout 超过限制（${maxStdoutBytes} bytes）`,
-            `Child process stdout exceeded the limit (${maxStdoutBytes} bytes)`
-          )));
-          error.code = 'EOUTPUTLIMIT';
-          terminate(error);
-          return;
-        }
-        stdout.push(buffer);
-      });
-      child.stderr.on('data', (chunk) => {
-        const buffer = Buffer.from(chunk);
-        stderrBytes += buffer.length;
-        if (stderrBytes > maxStderrBytes) {
-          const error = /** @type {ProcessError} */ (new Error(ui(
-            `子进程 stderr 超过限制（${maxStderrBytes} bytes）`,
-            `Child process stderr exceeded the limit (${maxStderrBytes} bytes)`
-          )));
-          error.code = 'EOUTPUTLIMIT';
-          terminate(error);
-          return;
-        }
-        stderr.push(buffer);
-      });
-
-      child.once('error', error => settle(reject, error));
-      child.once('close', code => {
-        if (settled) return;
-        const out = Buffer.concat(stdout);
-        const err = Buffer.concat(stderr);
-        if (code === 0) {
-          settle(resolve, { stdout: out, stderr: err });
-        } else {
-          const error = /** @type {ProcessError} */ (new Error(
-            `${path.basename(command)} exited with code ${code}\n${err.toString('utf8') || out.toString('utf8')}`.trim()
-          ));
-          error.code = code ?? -1;
-          error.stdout = out;
-          error.stderr = err;
-          settle(reject, error);
-        }
-      });
-
-      if ((options.timeoutMs || 0) > 0) {
-        timeoutHandle = setTimeout(() => {
-          const seconds = Math.round((options.timeoutMs || 0) / 1000);
-          const error = /** @type {ProcessError} */ (new Error(ui(
-            `进程执行超时（${seconds} 秒）`,
-            `Process timed out after ${seconds} seconds`
-          )));
-          error.code = 'ETIMEDOUT';
-          terminate(error);
-        }, options.timeoutMs);
-      }
-
-      if (cancellationToken) {
-        if (cancellationToken.isCancellationRequested) {
-          const error = /** @type {ProcessError} */ (new Error(ui('操作已取消。', 'Operation cancelled.')));
-          error.code = 'ECANCELLED';
-          terminate(error);
-          return;
-        }
-        cancellationDisposable = cancellationToken.onCancellationRequested(() => {
-          const error = /** @type {ProcessError} */ (new Error(ui('操作已取消。', 'Operation cancelled.')));
-          error.code = 'ECANCELLED';
-          terminate(error);
-        });
-      }
-    });
+  function runProcess(command, args, options = {}, stdinText = '', cancellationToken) {
+    return execute(command, args, options, stdinText, cancellationToken, 'text');
   }
 
-  return {
+  function runPreparedProcess(command, args, options = {}, stdinText = '', cancellationToken) {
+    let prepared;
+    try { prepared = prepareCommand(command, args); }
+    catch (error) { return Promise.reject(error); }
+    return execute(
+      prepared.command,
+      prepared.args,
+      { ...options, shell: false, windowsVerbatimArguments: prepared.windowsVerbatimArguments === true },
+      stdinText,
+      cancellationToken,
+      'text'
+    );
+  }
+
+  function runProcessBuffer(command, args, options = {}, cancellationToken) {
+    return execute(command, args, options, '', cancellationToken, 'buffer');
+  }
+
+  return Object.freeze({
     isWindowsScript,
     quoteWindowsCmdArg,
     prepareCommand,
     runPreparedProcess,
     runProcess,
     runProcessBuffer
-  };
+  });
 }
 
 module.exports = {
+  DEFAULT_TEXT_STDOUT_LIMIT,
+  DEFAULT_TEXT_STDERR_LIMIT,
+  DEFAULT_BUFFER_STDOUT_LIMIT,
+  DEFAULT_BUFFER_STDERR_LIMIT,
+  FORCE_KILL_DELAY_MS,
   createProcessRunner
 };
