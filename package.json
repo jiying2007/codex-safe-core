@@ -1,31 +1,28 @@
 {
   "name": "@jiying2007/codex-safe-core",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "Auditable shared safety core for the Codex Safe Git workflow family.",
+  "description": "Canonical runtime core for the Codex Safe Git workflow family.",
   "license": "MIT",
-  "main": "src/index.js",
-  "engines": {
-    "node": ">=22"
-  },
+  "main": "index.js",
+  "engines": { "node": ">=22" },
   "files": [
-    "src/",
-    "manifest.json",
+    "index.js",
+    "safe-contract.js",
+    "codex-cli.js",
+    "process-runner.js",
+    "git-repository.js",
+    "context-builder.js",
     "LICENSE",
     "README.md",
-    "SECURITY.md"
+    "SECURITY.md",
+    "ARCHITECTURE.md"
   ],
   "scripts": {
-    "check": "node --check src/index.js && node --check src/safe-contract.js && node --check src/codex-cli.js && node --check src/process-runner.js && node --check src/git-repository.js && node --check src/context-builder.js && node scripts/verify-manifest.js && node test.js",
-    "test": "node test.js",
-    "verify:manifest": "node scripts/verify-manifest.js"
+    "check": "node --check index.js && node --check safe-contract.js && node --check codex-cli.js && node --check process-runner.js && node --check git-repository.js && node --check context-builder.js && node test.js",
+    "test": "node test.js"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/jiying2007/codex-safe-core.git"
-  },
-  "bugs": {
-    "url": "https://github.com/jiying2007/codex-safe-core/issues"
-  },
+  "repository": { "type": "git", "url": "https://github.com/jiying2007/codex-safe-core.git" },
+  "bugs": { "url": "https://github.com/jiying2007/codex-safe-core/issues" },
   "homepage": "https://github.com/jiying2007/codex-safe-core#readme"
 }
