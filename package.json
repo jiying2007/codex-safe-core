@@ -1,6 +1,6 @@
 {
   "name": "@jiying2007/codex-safe-core",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "description": "Canonical runtime core for the Codex Safe Git workflow family.",
   "license": "MIT",
@@ -21,8 +21,9 @@
     "ARCHITECTURE.md"
   ],
   "scripts": {
-    "check": "node --check index.js && node --check safe-contract.js && node --check codex-cli.js && node --check process-runner.js && node --check git-repository.js && node --check context-builder.js && node --check policy.js && node test.js",
-    "test": "node test.js"
+    "check:syntax": "node --check index.js && node --check safe-contract.js && node --check codex-cli.js && node --check process-runner.js && node --check git-repository.js && node --check context-builder.js && node --check policy.js",
+    "test": "node --test test/*.test.js",
+    "check": "npm run check:syntax && npm test"
   },
   "repository": { "type": "git", "url": "https://github.com/jiying2007/codex-safe-core.git" },
   "bugs": { "url": "https://github.com/jiying2007/codex-safe-core/issues" },
