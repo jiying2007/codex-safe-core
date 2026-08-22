@@ -2,9 +2,10 @@
 
 const crypto = require('crypto');
 
-const SAFE_CORE_VERSION = 1;
-const SAFE_CONTRACT_VERSION = 1;
-const REVIEW_RECEIPT_SCHEMA_VERSION = 1;
+const SAFE_CORE_VERSION = 2;
+const SAFE_CONTRACT_VERSION = 2;
+const REVIEW_RECEIPT_SCHEMA_VERSION = 2;
+const COMMIT_RECEIPT_SCHEMA_VERSION = 2;
 
 const REQUIRED_CODEX_TOP_LEVEL_FLAGS = Object.freeze(['--ask-for-approval']);
 const REQUIRED_CODEX_EXEC_FLAGS = Object.freeze([
@@ -75,8 +76,20 @@ function canonicalize(value) {
   return value;
 }
 
-function fingerprintPolicy(value) {
+function fingerprint(value) {
   return crypto.createHash('sha256').update(JSON.stringify(canonicalize(value)), 'utf8').digest('hex');
+}
+
+const fingerprintPolicy = fingerprint;
+
+function validOid(value) {
+  return value === '<unborn>' || /^[0-9a-f]{40,64}$/i.test(String(value || ''));
+}
+function validHash(value, allowNone = false) {
+  return (allowNone && value === '<none>') || /^[0-9a-f]{64}$/i.test(String(value || ''));
+}
+function validMetadataString(value) {
+  return value === undefined || (typeof value === 'string' && value.length <= 256 && !/[\r\n\0]/.test(value));
 }
 
 function validateReviewReceipt(value) {
@@ -85,17 +98,30 @@ function validateReviewReceipt(value) {
   for (const key of ['headOid', 'indexFingerprint', 'diffFingerprint', 'policyFingerprint', 'qualityVerdict', 'readinessVerdict', 'mechanicalGate', 'createdAt']) {
     if (typeof value[key] !== 'string' || !value[key]) return null;
   }
-  if (value.headOid !== '<unborn>' && !/^[0-9a-f]{40,64}$/i.test(value.headOid)) return null;
-  if (!/^[0-9a-f]{64}$/i.test(value.indexFingerprint) || !/^[0-9a-f]{64}$/i.test(value.diffFingerprint)) return null;
-  if (value.policyFingerprint !== '<none>' && !/^[0-9a-f]{64}$/i.test(value.policyFingerprint)) return null;
+  if (!validOid(value.headOid)) return null;
+  if (!validHash(value.indexFingerprint) || !validHash(value.diffFingerprint)) return null;
+  if (!validHash(value.policyFingerprint, true)) return null;
   if (!['no_findings', 'findings_open', 'blocked'].includes(value.qualityVerdict)) return null;
   if (!['needs_evidence', 'blocked', 'ready'].includes(value.readinessVerdict)) return null;
   if (!['not_run', 'pass', 'fail'].includes(value.mechanicalGate)) return null;
   if (!Number.isInteger(value.stagedFileCount) || value.stagedFileCount < 0 || value.stagedFileCount > 5000) return null;
   if (!Number.isFinite(Date.parse(value.createdAt))) return null;
-  for (const key of ['model', 'codexVersion']) {
-    if (value[key] !== undefined && (typeof value[key] !== 'string' || value[key].length > 256 || /[\r\n\0]/.test(value[key]))) return null;
+  if (!validMetadataString(value.model) || !validMetadataString(value.codexVersion)) return null;
+  return Object.freeze({ ...value });
+}
+
+function validateCommitReceipt(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  if (value.schemaVersion !== COMMIT_RECEIPT_SCHEMA_VERSION || value.kind !== 'codex-commit-safe') return null;
+  for (const key of ['headOid', 'indexFingerprint', 'diffFingerprint', 'messageFingerprint', 'policyFingerprint', 'reviewReceiptFingerprint', 'createdAt']) {
+    if (typeof value[key] !== 'string' || !value[key]) return null;
   }
+  if (!validOid(value.headOid)) return null;
+  if (!validHash(value.indexFingerprint) || !validHash(value.diffFingerprint) || !validHash(value.messageFingerprint)) return null;
+  if (!validHash(value.policyFingerprint, true) || !validHash(value.reviewReceiptFingerprint, true)) return null;
+  if (value.commitOid !== undefined && value.commitOid !== '<pending>' && !/^[0-9a-f]{40,64}$/i.test(value.commitOid)) return null;
+  if (!Number.isFinite(Date.parse(value.createdAt))) return null;
+  if (!validMetadataString(value.model) || !validMetadataString(value.codexVersion)) return null;
   return Object.freeze({ ...value });
 }
 
@@ -103,12 +129,15 @@ module.exports = {
   SAFE_CORE_VERSION,
   SAFE_CONTRACT_VERSION,
   REVIEW_RECEIPT_SCHEMA_VERSION,
+  COMMIT_RECEIPT_SCHEMA_VERSION,
   REQUIRED_CODEX_TOP_LEVEL_FLAGS,
   REQUIRED_CODEX_EXEC_FLAGS,
   SAFE_CODEX_CONFIG_OVERRIDES,
   buildSafeCodexArgs,
   missingHelpFlags,
   isCliCompatibilityError,
+  fingerprint,
   fingerprintPolicy,
-  validateReviewReceipt
+  validateReviewReceipt,
+  validateCommitReceipt
 };
