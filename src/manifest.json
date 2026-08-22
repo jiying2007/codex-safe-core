@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 2,
+  "safeCoreVersion": 1,
+  "hashAlgorithm": "git-blob-sha1",
+  "source": {
+    "repository": "jiying2007/codex-safe-core",
+    "ref": "main",
+    "path": "src"
+  },
+  "files": {
+    "index.js": "f7999278a9dbce21b5defac021156e1d0daaab3e",
+    "safe-contract.js": "c30d090995e19c75503121c9a32d6eb81b62fa70",
+    "codex-cli.js": "e0bc0f1e531f3b1e118a2086ddd800afdfda223a",
+    "process-runner.js": "149728484e0b610d91ab20fba44f5cd75ba2afc9",
+    "git-repository.js": "8fbba461eaaa33c299404e601027a8f734a0e80f",
+    "context-builder.js": "f4a74c1d5dcf17240e28e315c9f1972852c5f1bf"
+  }
+}
