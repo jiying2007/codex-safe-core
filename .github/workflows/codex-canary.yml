@@ -28,6 +28,6 @@ jobs:
         with:
           node-version: '22'
       - name: Install latest Codex CLI
-        run: npm install --global @openai/codex@latest --ignore-scripts
+        run: npm install --global @openai/codex@latest
       - name: Verify Safe Contract capabilities
         run: node scripts/codex-canary.js
