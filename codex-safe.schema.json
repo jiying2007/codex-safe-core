@@ -6,10 +6,9 @@
   "additionalProperties": false,
   "required": ["schemaVersion"],
   "properties": {
-    "schemaVersion": { "const": 2 },
+    "schemaVersion": { "const": 3 },
     "commit": {
-      "type": "object",
-      "additionalProperties": false,
+      "type": "object", "additionalProperties": false,
       "properties": {
         "language": { "enum": ["zh-CN", "en"] },
         "maxDiffBytes": { "type": "integer", "minimum": 4096, "maximum": 2097152 },
@@ -25,8 +24,7 @@
       }
     },
     "review": {
-      "type": "object",
-      "additionalProperties": false,
+      "type": "object", "additionalProperties": false,
       "properties": {
         "language": { "enum": ["zh-CN", "en"] },
         "maxDiffBytes": { "type": "integer", "minimum": 4096, "maximum": 2097152 },
@@ -34,12 +32,30 @@
         "severityThreshold": { "enum": ["critical", "high", "medium", "low", "info"] },
         "confidenceThreshold": { "type": "number", "minimum": 0, "maximum": 1 },
         "timeoutSeconds": { "type": "integer", "minimum": 10, "maximum": 300 },
-        "extraInstructions": { "type": "string", "maxLength": 5000 }
+        "extraInstructions": { "type": "string", "maxLength": 5000 },
+        "rules": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "requireTestsForCodeChanges": { "type": "boolean" },
+            "codePathPrefixes": { "$ref": "#/$defs/pathPrefixes" },
+            "testPathPrefixes": { "$ref": "#/$defs/pathPrefixes" },
+            "forbiddenPathPrefixes": { "$ref": "#/$defs/pathPrefixes" }
+          }
+        }
+      }
+    },
+    "reviewService": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "maxContextBytes": { "type": "integer", "minimum": 0, "maximum": 2097152 },
+        "maxContextFiles": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "contextLines": { "type": "integer", "minimum": 0, "maximum": 200 },
+        "skipGeneratedFiles": { "type": "boolean" },
+        "blockUnreviewableFiles": { "type": "boolean" }
       }
     },
     "pr": {
-      "type": "object",
-      "additionalProperties": false,
+      "type": "object", "additionalProperties": false,
       "properties": {
         "language": { "enum": ["zh-CN", "en"] },
         "baseBranch": { "type": "string", "maxLength": 256, "pattern": "^(?!-)[^\\u0000-\\u001F\\u007F]*$" },
@@ -51,6 +67,12 @@
         "extraInstructions": { "type": "string", "maxLength": 4000 },
         "timeoutSeconds": { "type": "integer", "minimum": 10, "maximum": 300 }
       }
+    }
+  },
+  "$defs": {
+    "pathPrefixes": {
+      "type": "array", "maxItems": 100, "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "^(?!/)(?!.*[\\u0000-\\u001F\\u007F]).+$" }
     }
   }
 }
