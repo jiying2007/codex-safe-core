@@ -4,6 +4,19 @@ All notable changes to Codex Safe Core are documented here.
 
 ## Unreleased
 
+## 3.0.0
+
+### Changed
+
+- Raised the implementation line to Safe Core v3 while keeping Safe Contract v2 unchanged.
+- Replaced Policy Schema v2 with closed Policy Schema v3; v2 documents are intentionally rejected.
+- Added shared Review deterministic rules under `.codex-safe.json.review.rules` and a separate `reviewService` section for server-only context/coverage controls.
+- Replaced Review Receipt v2 with Review Receipt v3 using an explicit subject envelope for local Git-index review and GitLab MR review.
+- Raised Commit Receipt to schema v3 so Commit provenance can bind Review Receipt v3 without compatibility shims.
+- Added coverage-preserving Review Evidence Chunking: changed hunks are either included in bounded review chunks or reported as explicit coverage gaps; review input is never silently middle-truncated.
+- Kept Semantic Context budgeting as the narrative-oriented Commit/PR path, separate from review evidence coverage semantics.
+- Continued fail-closed Codex capability negotiation, read-only execution and immutable public runtime boundaries.
+
 ## 2.1.0
 
 ### Changed
