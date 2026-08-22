@@ -2,35 +2,20 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-Codex Safe Core is the **single canonical safety/runtime core** for the Codex Safe Git Workflow family:
+Codex Safe Core is the **single canonical safety/runtime and protocol core** for the Codex Safe family:
 
 - [Codex Review Safe](https://github.com/jiying2007/codex-review)
 - [Codex Commit Safe](https://github.com/jiying2007/codex-commit)
 - [Codex PR Safe](https://github.com/jiying2007/codex-pr)
+- [Codex Review Service](https://github.com/jiying2007/codex-review-service)
 
-Current protocol line: **Safe Core v2 / Safe Contract v2 / Policy Schema v2 / Receipt Schema v2**.
+Current protocol line: **Safe Core v3 / Safe Contract v2 / Policy Schema v3 / Review Receipt v3 / Commit Receipt v3**.
 
 ## Consumption model
 
-Consumers use this repository as a **commit-pinned Git submodule** at `src/codex-safe-core`.
+Consumers pin this repository as a Git submodule. The gitlink is the version lock; there is no copied runtime, branch-following mode, npm runtime dependency or compatibility proxy.
 
-```text
-codex-safe-core commit
-        ↓ gitlink (160000)
-Review / Commit / PR source tree
-        ↓ product build
-production dist/
-        ↓
-VSIX
-```
-
-There is no copied-vendored runtime, `safe-core.lock.json`, byte-sync workflow, runtime npm dependency, or branch-following submodule mode.
-
-The gitlink itself is the version lock. Consumers update Core by explicitly moving the submodule commit and running their complete product gate.
-
-## Public runtime surface
-
-The repository root is the public runtime boundary:
+## Public runtime boundary
 
 - `index.js`
 - `safe-contract.js`
@@ -41,151 +26,93 @@ The repository root is the public runtime boundary:
 - `policy.js`
 - `codex-safe.schema.json`
 
-No `src/` compatibility proxy is part of the v2 contract.
+## Ownership
 
-## Ownership boundary
+Core owns cross-product primitives:
 
-Core owns cross-product infrastructure only:
+- Codex capability probing, executable resolution, Safe argv, Structured Output and JSONL parsing;
+- process launch, cancellation, timeout, tree termination and output bounds;
+- generic local Git primitives used by desktop consumers;
+- Semantic Context budgeting for narrative generation;
+- coverage-preserving Review Evidence Chunking for review products;
+- `.codex-safe.json` Policy Schema v3 validation/fingerprints;
+- Review Receipt v3 and Commit Receipt v3 validation/fingerprints.
 
-### Codex runtime
+Products own domain behavior:
 
-- capability probing;
-- executable resolution;
-- fail-closed safe argv construction;
-- temporary-directory execution;
-- JSONL / Structured Output handling.
+- **Review Safe:** staged snapshot, finding validation/presentation and local diagnostics.
+- **Commit Safe:** Conventional Commit policy, scope/style intelligence and Commit Receipt persistence/binding.
+- **PR Safe:** base/fork semantics, PR narrative, preview and provenance presentation.
+- **Review Service:** GitLab webhook/provider semantics, Project/Group scope, immutable MR evidence acquisition, SQLite queue/outbox, merge gate and publication.
 
-### Process runtime
+A product must not carry an independent implementation of Core-owned Codex/process/policy/receipt/review-chunk primitives.
 
-- native process launch;
-- Windows script handling;
-- cancellation;
-- timeout;
-- process-tree termination;
-- stdout/stderr bounds.
+## Safe Contract v2
 
-### Git primitives
+The safety contract intentionally remains v2. Required capabilities include `--ask-for-approval never`, `exec --json`, ephemeral execution, ignored user/repository Codex rules, read-only sandbox, Structured Output and explicit disabling of shell/unified execution, web search, apps, multi-agent, plugins, hooks, goals, memories and dependency installation. Missing capabilities fail closed; there is no legacy CLI fallback.
 
-- repository commands;
-- HEAD/index snapshots;
-- raw-index fingerprints;
-- staged diff / changed paths;
-- common repository primitives.
+## Policy v3
 
-### Semantic context
-
-- unified-diff per-file parsing;
-- source/generated/binary classification;
-- generated/lock/binary metadata-only policy;
-- fair source-file budget allocation;
-- bounded large-file context.
-
-### Policy protocol
-
-- only `.codex-safe.json`;
-- `schemaVersion: 2`;
-- `commit`, `review`, `pr` sections;
-- HEAD-pinned policy read;
-- closed top-level document;
-- stable fingerprint.
-
-### Receipt contract
-
-- Review Receipt v2 validation;
-- Commit Receipt v2 validation;
-- canonical fingerprint helpers.
-
-Product repositories own only domain behavior:
-
-- **Review:** finding model, confidence/severity policy, diagnostics, reports, workflow.
-- **Commit:** Conventional Commit policy, scope intelligence, repository-style intelligence, rendering, receipt persistence/range binding.
-- **PR:** Base/fork semantics, PR narrative, provider integration, preview and provenance presentation.
-
-A product repository must not carry an independent implementation of Core-owned Process/Codex/context/policy-contract primitives.
-
-## Non-negotiable safety contract
-
-Safe Codex execution requires the capabilities needed for:
-
-- `--ask-for-approval never`
-- `exec --json`
-- `--ephemeral`
-- `--skip-git-repo-check`
-- `--ignore-user-config`
-- `--ignore-rules`
-- `--sandbox read-only`
-- `--output-schema`
-- explicit Safe Core `--config` overrides
-
-Safe Core disables shell/unified execution, shell snapshots, web search, apps, multi-agent, remote plugins, hooks, goals, memories and skill dependency installation for the request.
-
-If a required flag/config capability is missing or rejected, execution fails closed. **There is no v1/legacy fallback.**
-
-## Semantic Context Budget
-
-`buildSemanticContext()` never relies on global `diff.slice(0, N)` truncation.
-
-It parses diff blocks by file and prioritizes source evidence:
-
-```text
-unified diff
-    ↓ per-file blocks
-classify
-    ├ source → fair budget → bounded block context
-    ├ generated/lock → metadata only
-    └ binary → metadata only
-```
-
-Consumers keep the original complete diff separately for fingerprints/provenance. Context reduction affects model input only.
-
-## Policy v2
-
-Canonical repository configuration:
+The only repository policy is `.codex-safe.json`:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/jiying2007/codex-safe-core/d49dc356824b984166e81e42bb5f9d7abfb90099/codex-safe.schema.json",
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "commit": {},
-  "review": {},
+  "review": {
+    "confidenceThreshold": 0.7,
+    "rules": {
+      "requireTestsForCodeChanges": true,
+      "codePathPrefixes": ["src/"],
+      "testPathPrefixes": ["test/", "tests/"],
+      "forbiddenPathPrefixes": []
+    }
+  },
+  "reviewService": {
+    "maxContextBytes": 262144,
+    "maxContextFiles": 12,
+    "contextLines": 20,
+    "skipGeneratedFiles": true,
+    "blockUnreviewableFiles": false
+  },
   "pr": {}
 }
 ```
 
-v1 product-specific policy files are intentionally unsupported.
+Schema v2 is intentionally unsupported under v3.
 
-## Receipt v2
+## Context semantics
 
-Review Receipt v2 binds review evidence to HEAD/index/diff/policy fingerprints.
+`buildSemanticContext()` is for Commit/PR narrative input and may fairly reduce source context while demoting generated/binary content to metadata.
 
-Commit Receipt v2 binds generation evidence to parent HEAD/index/full diff/final message/policy and optional Review Receipt fingerprint. Product code may persist receipts, but Core is the authority that validates their shape and fingerprint semantics.
+`buildReviewEvidenceChunks()` is for Review Safe/Review Service. It never silently truncates changed hunks: evidence is either included in bounded chunks or returned as an explicit coverage gap so the review can fail closed.
 
-Receipt v1 is intentionally invalid under v2.
+## Receipt v3
+
+Review Receipt v3 uses a subject envelope:
+
+- local review: `type=git-index` with HEAD/index identity;
+- server review: `type=gitlab-mr` with Project/MR/start SHA/head SHA identity.
+
+Commit Receipt v3 binds generated commit evidence and an optional Review Receipt v3 fingerprint. Receipts remain AI workflow provenance, never human approval or test evidence.
 
 ## Development
 
 ```bash
-npm test
-npm run check
+npm run ci
 ```
 
 Node.js 22 or newer is required.
 
-Consumers must initialize the submodule before building:
+## Versioning
 
-```bash
-git submodule update --init --recursive
-```
-
-## Versioning policy
-
-A Safe Core major version is a protocol boundary. Breaking safety/policy/receipt changes require a major version and consumer hard switch. The project does not maintain permanent compatibility shims across major protocol lines.
+Core major versions are protocol boundaries. Breaking Policy/Receipt/Core changes require a hard major switch across consumers; permanent compatibility shims are forbidden. Safe Contract has its own protocol version and changes only when the Codex execution safety contract itself changes.
 
 ## Security
 
 See [SECURITY.md](SECURITY.md) and [ARCHITECTURE.md](ARCHITECTURE.md).
 
-The core rule is: **AI output is untrusted data and never gains authority to mutate Git, execute arbitrary commands, bypass required safety capabilities, or create remote side effects.**
+The invariant is: **AI output is untrusted data and never gains authority to mutate Git, execute arbitrary commands, bypass safety capabilities, or create provider side effects.**
 
 ## License
 
