@@ -5,5 +5,6 @@ module.exports = Object.freeze({
   ...require('./process-runner'),
   ...require('./codex-cli'),
   ...require('./git-repository'),
-  ...require('./context-builder')
+  ...require('./context-builder'),
+  ...require('./policy')
 });
