@@ -23,7 +23,7 @@
   ],
   "scripts": {
     "check:syntax": "node --check index.js && node --check safe-contract.js && node --check codex-cli.js && node --check process-runner.js && node --check git-repository.js && node --check context-builder.js && node --check policy.js && node --check review-rules.js && node --check scripts/codex-canary.js && node --check scripts/generate-sbom.js",
-    "test": "node --test test/safe-contract.test.js test/process-runner.test.js test/git-repository.test.js test/context-policy.test.js test/review-rules.test.js test/codex-cli.test.js test/release-workflow.test.js test/maintenance-governance.test.js",
+    "test": "node --test test/safe-contract.test.js test/process-runner.test.js test/git-repository.test.js test/context-policy.test.js test/review-rules.test.js test/codex-cli.test.js test/release-workflow.test.js test/maintenance-governance.test.js test/supply-chain-canary.test.js",
     "check": "npm run check:syntax && npm test",
     "ci": "npm run check && npm pack --dry-run --ignore-scripts"
   },
