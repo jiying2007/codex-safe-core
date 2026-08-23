@@ -1,0 +1,43 @@
+{
+  "reviewRules": [
+    {
+      "name": "code-change-requires-test",
+      "changedPaths": ["src/a.js"],
+      "rules": {"requireTestsForCodeChanges": true},
+      "expectedRules": ["requireTestsForCodeChanges"]
+    },
+    {
+      "name": "code-and-test-pass",
+      "changedPaths": ["src/a.js", "test/a.test.js"],
+      "rules": {"requireTestsForCodeChanges": true},
+      "expectedRules": []
+    },
+    {
+      "name": "forbidden-path-blocks",
+      "changedPaths": ["src/a.js", "secrets/key.txt"],
+      "rules": {"forbiddenPathPrefixes": ["secrets/"]},
+      "expectedRules": ["forbiddenPathPrefix"]
+    },
+    {
+      "name": "paths-normalize-deterministically",
+      "changedPaths": ["./src/a.js", "src/a.js", "bad\npath"],
+      "rules": {},
+      "expectedChangedPaths": ["src/a.js"],
+      "expectedRules": []
+    }
+  ],
+  "evidence": [
+    {
+      "name": "source-generated-binary-classification",
+      "diff": "diff --git a/src/a.js b/src/a.js\n--- a/src/a.js\n+++ b/src/a.js\n@@ -1 +1 @@\n-old\n+new\ndiff --git a/package-lock.json b/package-lock.json\n--- a/package-lock.json\n+++ b/package-lock.json\n@@ -1 +1 @@\n-{}\n+{\\\"x\\\":1}\ndiff --git a/image.png b/image.png\nBinary files a/image.png and b/image.png differ\n",
+      "maxBytes": 65536,
+      "maxChunks": 4,
+      "expectedChunkPaths": ["src/a.js"],
+      "expectedExcluded": [
+        {"path": "package-lock.json", "kind": "generated"},
+        {"path": "image.png", "kind": "binary"}
+      ],
+      "expectedComplete": true
+    }
+  ]
+}
