@@ -18,7 +18,6 @@ test('maintenance flow is coordinated across all four consumers', () => {
 
 test('obsolete copied-runtime synchronization instructions cannot return', () => {
   assert.doesNotMatch(contributing, /scripts\/safe-core\.js\s+sync/);
-  assert.doesNotMatch(contributing, /branch tracking/i);
   assert.match(contributing, /Branch tracking and copied-runtime synchronization are forbidden\./);
 });
 
