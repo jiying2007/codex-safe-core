@@ -4,6 +4,14 @@ All notable changes to Codex Safe Core are documented here.
 
 ## Unreleased
 
+## 4.0.1
+
+### Changed
+
+- Harden release recovery so an unchanged version is skipped only when its immutable tag already exists; failed pre-tag releases can be retried safely.
+- Update `actions/attest-build-provenance` to the SHA-pinned v4.2.2 release.
+- Add a regression test that locks release recovery and provenance-action pinning semantics.
+
 ## 4.0.0
 
 ### Changed
