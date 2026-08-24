@@ -50,6 +50,8 @@ jobs:
               exit 1
             }
           done
+      - name: Replay Family golden corpus through every consumer Core
+        run: node scripts/family-golden.js family/codex-commit/src/codex-safe-core family/codex-review/src/codex-safe-core family/codex-pr/src/codex-safe-core family/codex-review-service/src/codex-safe-core
       - name: Validate consumers
         shell: bash
         run: |
