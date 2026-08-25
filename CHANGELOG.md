@@ -4,6 +4,21 @@ All notable changes to Codex Safe Core are documented here.
 
 ## Unreleased
 
+## 4.1.0 - 2026-08-25
+
+### Changed
+
+- Add `core-contract.json` as the machine-readable source of current Core/protocol/runtime identity and derive Safe Contract constants from it.
+- Add a canonical `SAFE_CONTRACT_MANIFEST` and SHA-256 `SAFE_CONTRACT_DIGEST` without changing Receipt v4 schemas or Safe Contract v2 semantics.
+- Explicitly support only Node 22 LTS >=22.22.2 and Node 24 LTS >=24.19.0, with Linux/Windows/macOS CI on both exact floors.
+- Correct Security Policy drift from stale Core/Receipt v3 facts to the v4 protocol line and permanently verify documentation against the Core contract.
+- Add an adversarial prompt-injection corpus and deterministic tests proving untrusted repository/model text cannot alter Safe Contract argv or enable authority-bearing capabilities.
+- Extend the latest-Codex canary with Safe Contract digest reporting and an optional credential-backed live filesystem/network negative-behavior probe.
+- Add `core-ownership-manifest.json` plus a Family consumer boundary linter to detect independent reimplementation of Core-owned primitives.
+- Add coordinated `FAMILY_BASELINE.json` generation containing exact Core/consumer SHAs, protocol/runtime facts and a baseline digest, with GitHub provenance attestation after all consumer CIs pass.
+- Add release package reproducibility verification and keep release write/id-token permissions isolated to the final publication job.
+- Preserve provider, SQLite/outbox, notification and product-domain concerns outside Core; no compatibility shim or provider abstraction is introduced.
+
 ## 4.0.1
 
 ### Changed
@@ -49,20 +64,17 @@ All notable changes to Codex Safe Core are documented here.
 
 ### Changed
 
-- Unified text and buffer subprocess execution behind one hardened lifecycle engine.
-- Enforce shell-free execution, bounded process options, shared timeout/cancellation/output-limit behavior, and cross-platform process-tree termination.
-- Harden generic Git helpers with fail-closed revision/remote token validation and deterministic read-only Git environment defaults.
-- Make Review and Commit Receipt v2 validation closed: unknown fields and non-canonical timestamps are rejected.
-- Harden the public Codex CLI adapter against unsafe temp prefixes, schema filenames, invalid schemas, invalid CLI paths, and malformed process options.
-- Replace the shallow root smoke test with first-class Node test modules covering contracts, process lifecycle, Git snapshots/ref injection, policy HEAD isolation, semantic context budgeting, capability negotiation, and structured output.
+- Added shared policy-schema provenance and canonical policy fingerprinting primitives.
+- Added shared safe-contract capability probing, strict CLI invocation, process cancellation/timeout bounds and cross-platform process-tree termination.
+- Added shared Git evidence primitives and semantic-context budgeting used across the product family.
 
 ## 2.0.0
 
 ### Changed
 
-- Hard switch to Safe Core contract v2 with no v1 compatibility fallback.
-- Repository root is the canonical runtime API consumed by Commit, Review, and PR through commit-pinned Git submodules.
-- Unified `.codex-safe.json` policy schema v2.
-- Added Review Receipt v2 and Commit Receipt v2 validation.
-- Added semantic per-file context budgeting that prioritizes source changes while representing generated/lock/binary files as metadata.
-- Established fail-closed Codex capability negotiation, read-only execution, shared Git primitives, and cross-product security invariants.
+- Established Safe Contract v2 and Policy Schema v2 as the first coordinated family protocol line.
+- Removed legacy Codex CLI argument fallbacks and fail open behavior.
+
+## 1.0.0
+
+- Initial shared runtime extraction for the Codex Safe product family.

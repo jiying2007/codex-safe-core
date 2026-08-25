@@ -19,14 +19,14 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 35
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@e51e5fe84fc33b4c73ebe40526b2694712b5b858 # post-v7.0.0 GHSA-3jxr-9vmj-r5cp fix
+      - uses: actions/setup-node@e51e5fe84fc33b4c73ebe40526b2694712b5b858
         with:
-          node-version: '22'
+          node-version: '22.22.2'
       - name: Validate Core
         run: npm run ci
       - name: Clone consumer repositories
@@ -45,11 +45,10 @@ jobs:
           for repo in codex-commit codex-review codex-pr codex-review-service; do
             pinned="$(git -C "family/${repo}" ls-files --stage src/codex-safe-core | awk '{print $2}')"
             test -n "$pinned"
-            test "$pinned" = "$core_sha" || {
-              echo "${repo} pins ${pinned}, expected ${core_sha}" >&2
-              exit 1
-            }
+            test "$pinned" = "$core_sha" || { echo "${repo} pins ${pinned}, expected ${core_sha}" >&2; exit 1; }
           done
+      - name: Verify consumers do not reimplement Core-owned primitives
+        run: node scripts/verify-consumer-boundaries.js family
       - name: Replay Family golden corpus through every consumer Core
         run: node scripts/family-golden.js family/codex-commit/src/codex-safe-core family/codex-review/src/codex-safe-core family/codex-pr/src/codex-safe-core family/codex-review-service/src/codex-safe-core
       - name: Validate consumers
@@ -61,3 +60,39 @@ jobs:
             (cd "family/${repo}" && npm run ci)
             echo "::endgroup::"
           done
+
+  baseline:
+    needs: family
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@e51e5fe84fc33b4c73ebe40526b2694712b5b858
+        with:
+          node-version: '22.22.2'
+      - name: Clone exact consumer heads
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir family
+          for repo in codex-commit codex-review codex-pr codex-review-service; do
+            git clone --quiet --recurse-submodules "https://github.com/jiying2007/${repo}.git" "family/${repo}"
+          done
+      - name: Generate immutable Family baseline
+        run: node scripts/generate-family-baseline.js family FAMILY_BASELINE.json
+      - name: Attest Family baseline
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: FAMILY_BASELINE.json
+      - name: Upload Family baseline
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0
+        with:
+          name: codex-safe-family-baseline
+          path: FAMILY_BASELINE.json
+          if-no-files-found: error

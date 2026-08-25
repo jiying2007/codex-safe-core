@@ -1,15 +1,16 @@
 'use strict';
 
 const crypto = require('crypto');
+const CORE_CONTRACT = Object.freeze(require('./core-contract.json'));
 
-const SAFE_CORE_VERSION = 4;
-const SAFE_CONTRACT_VERSION = 2;
-const REVIEW_RECEIPT_SCHEMA_VERSION = 4;
-const COMMIT_RECEIPT_SCHEMA_VERSION = 4;
-const REVIEW_PROMPT_CONTRACT_VERSION = 1;
-const COMMIT_PROMPT_CONTRACT_VERSION = 1;
-const PR_PROMPT_CONTRACT_VERSION = 1;
-const CURRENT_POLICY_SCHEMA_VERSION = 3;
+const SAFE_CORE_VERSION = Number(CORE_CONTRACT.safeCoreMajorVersion);
+const SAFE_CONTRACT_VERSION = Number(CORE_CONTRACT.safeContractVersion);
+const REVIEW_RECEIPT_SCHEMA_VERSION = Number(CORE_CONTRACT.reviewReceiptVersion);
+const COMMIT_RECEIPT_SCHEMA_VERSION = Number(CORE_CONTRACT.commitReceiptVersion);
+const REVIEW_PROMPT_CONTRACT_VERSION = Number(CORE_CONTRACT.reviewPromptContractVersion);
+const COMMIT_PROMPT_CONTRACT_VERSION = Number(CORE_CONTRACT.commitPromptContractVersion);
+const PR_PROMPT_CONTRACT_VERSION = Number(CORE_CONTRACT.prPromptContractVersion);
+const CURRENT_POLICY_SCHEMA_VERSION = Number(CORE_CONTRACT.policySchemaVersion);
 
 const REQUIRED_CODEX_TOP_LEVEL_FLAGS = Object.freeze(['--ask-for-approval']);
 const REQUIRED_CODEX_EXEC_FLAGS = Object.freeze([
@@ -20,6 +21,21 @@ const SAFE_CODEX_CONFIG_OVERRIDES = Object.freeze([
   'features.apps=false','features.multi_agent=false','features.remote_plugin=false','features.hooks=false',
   'features.goals=false','features.memories=false','features.skill_mcp_dependency_install=false'
 ]);
+
+const SAFE_CONTRACT_MANIFEST = Object.freeze({
+  safeContractVersion: SAFE_CONTRACT_VERSION,
+  approval: 'never',
+  execution: 'ephemeral',
+  sandbox: 'read-only',
+  structuredOutput: true,
+  ignoreUserConfig: true,
+  ignoreRepositoryRules: true,
+  skipGitRepoCheck: true,
+  disabledCapabilities: Object.freeze([
+    'web_search','shell_tool','unified_exec','shell_snapshot','apps','multi_agent','remote_plugin','hooks','goals','memories','skill_mcp_dependency_install'
+  ])
+});
+const SAFE_CONTRACT_DIGEST = crypto.createHash('sha256').update(JSON.stringify(SAFE_CONTRACT_MANIFEST),'utf8').digest('hex');
 
 const REVIEW_RECEIPT_KEYS = Object.freeze([
   'schemaVersion','kind','subject','diffFingerprint','policyFingerprint','qualityVerdict','readinessVerdict',
@@ -70,16 +86,7 @@ function canonicalProvenance(value, promptVersion) {
   const requestedModel = typeof value.requestedModel === 'string' ? value.requestedModel : (model === 'cli-default' ? '' : model);
   const resolvedModel = typeof value.resolvedModel === 'string' && value.resolvedModel ? value.resolvedModel : model;
   const codexVersion = typeof value.codexVersion === 'string' && value.codexVersion ? value.codexVersion : 'unknown';
-  return Object.freeze({
-    safeCoreVersion: SAFE_CORE_VERSION,
-    safeContractVersion: SAFE_CONTRACT_VERSION,
-    policySchemaVersion: CURRENT_POLICY_SCHEMA_VERSION,
-    promptContractVersion: promptVersion,
-    model,
-    requestedModel,
-    resolvedModel,
-    codexVersion
-  });
+  return Object.freeze({safeCoreVersion:SAFE_CORE_VERSION,safeContractVersion:SAFE_CONTRACT_VERSION,policySchemaVersion:CURRENT_POLICY_SCHEMA_VERSION,promptContractVersion:promptVersion,model,requestedModel,resolvedModel,codexVersion});
 }
 
 function validateReviewSubject(subject) {
@@ -125,9 +132,9 @@ function validateCommitReceipt(value) {
 }
 
 module.exports = {
-  SAFE_CORE_VERSION,SAFE_CONTRACT_VERSION,REVIEW_RECEIPT_SCHEMA_VERSION,COMMIT_RECEIPT_SCHEMA_VERSION,
-  REVIEW_PROMPT_CONTRACT_VERSION,COMMIT_PROMPT_CONTRACT_VERSION,PR_PROMPT_CONTRACT_VERSION,
-  REQUIRED_CODEX_TOP_LEVEL_FLAGS,REQUIRED_CODEX_EXEC_FLAGS,SAFE_CODEX_CONFIG_OVERRIDES,
+  CORE_CONTRACT,SAFE_CORE_VERSION,SAFE_CONTRACT_VERSION,REVIEW_RECEIPT_SCHEMA_VERSION,COMMIT_RECEIPT_SCHEMA_VERSION,
+  REVIEW_PROMPT_CONTRACT_VERSION,COMMIT_PROMPT_CONTRACT_VERSION,PR_PROMPT_CONTRACT_VERSION,CURRENT_POLICY_SCHEMA_VERSION,
+  REQUIRED_CODEX_TOP_LEVEL_FLAGS,REQUIRED_CODEX_EXEC_FLAGS,SAFE_CODEX_CONFIG_OVERRIDES,SAFE_CONTRACT_MANIFEST,SAFE_CONTRACT_DIGEST,
   REVIEW_RECEIPT_KEYS,COMMIT_RECEIPT_KEYS,buildSafeCodexArgs,missingHelpFlags,isCliCompatibilityError,
   fingerprint,fingerprintPolicy,validateReviewSubject,validateReviewReceipt,validateCommitReceipt
 };

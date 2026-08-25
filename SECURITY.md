@@ -4,7 +4,7 @@
 
 Codex Safe Core is the canonical security/runtime and protocol boundary for Codex Review Safe, Codex Commit Safe, Codex PR Safe and Codex Review Service. A regression here is a product-family regression.
 
-Current protocol line: **Safe Core v3 / Safe Contract v2 / Policy v3 / Review Receipt v3 / Commit Receipt v3**.
+Current protocol line: **Safe Core v4 / Safe Contract v2 / Policy Schema v3 / Review Receipt v4 / Commit Receipt v4 / Prompt Contracts v1**. `core-contract.json` is the machine-checked source of these current protocol/runtime facts.
 
 ## Trust boundaries
 
@@ -18,7 +18,9 @@ Current protocol line: **Safe Core v3 / Safe Contract v2 / Policy v3 / Review Re
 
 Safe Core constructs the safety-critical argv: `--ask-for-approval never`, `exec --json`, ephemeral execution, ignored user/repository Codex rules, read-only sandbox, Structured Output and explicit disabling of web search, shell/unified execution, shell snapshots, apps, multi-agent, remote plugins, hooks, goals, memories and skill dependency installation.
 
-Unsupported required flags/config fail closed. **There is no legacy fallback.**
+Unsupported required flags/config fail closed. **There is no legacy fallback.** `SAFE_CONTRACT_MANIFEST` is the canonical capability declaration and `SAFE_CONTRACT_DIGEST` is its SHA-256 identity. The digest supplements protocol versioning; it does not silently redefine Safe Contract v2 semantics.
+
+The daily Codex CLI Canary validates current upstream capability syntax. When protected OpenAI credentials are configured for the workflow, the live behavioral canary additionally attempts filesystem and loopback-network side effects under the Safe Contract and fails if either side effect succeeds. Unit adversarial-corpus tests permanently verify that repository/model text cannot alter the constructed safety argv.
 
 ## Process invariants
 
@@ -49,19 +51,27 @@ Provider-specific immutable source windows (for example GitLab `start_sha/head_s
 
 ## Receipt invariants
 
-Review Receipt v3 uses an explicit subject envelope: `git-index` for staged local review or `gitlab-mr` for server review. Commit Receipt v3 may bind a Review Receipt v3 fingerprint. Every receipt must pass Core closed-schema validation before storage/consumption.
+Review Receipt v4 uses an explicit subject envelope: `git-index` for staged local review or `gitlab-mr` for server review. Commit Receipt v4 may bind a Review Receipt v4 fingerprint. Every receipt must pass the Core closed-schema validator before storage/consumption.
+
+Receipt v4 remains unchanged by Core 4.1 trust-root governance. Safe Contract/prompt/execution digests are maintained as separate machine identities until a future receipt major explicitly adopts them; no maintenance release may add undeclared receipt fields.
 
 Receipts are provenance evidence, never authorization, human approval, build evidence or test evidence.
 
-## Consumer pinning
+## Consumer pinning and ownership
 
 Consumers use a commit-pinned Git submodule. The gitlink is the Core lock. No branch-following submodule, copied runtime, npm runtime dependency or cross-major compatibility shim is supported.
 
-A Core update must explicitly move the consumer gitlink and pass that product's complete gate.
+`core-ownership-manifest.json` defines Core-owned primitives and product-owned domains. Family validation checks consumers for forbidden independent declarations of Core-owned safety/process/policy/receipt primitives. A Core update must explicitly move the consumer gitlink and pass that product's complete gate.
+
+## Family baseline evidence
+
+After all consumers are coordinated onto a Core SHA, Family Compatibility generates `FAMILY_BASELINE.json` containing the exact Core SHA, consumer SHAs, protocol/runtime identity and a baseline digest. The Linux baseline artifact is attested by GitHub so a historical family state can be verified without inferring it from moving branches.
 
 ## Supply chain
 
-Actions must be full-SHA pinned. Release artifacts should be checksummed and receive build-provenance attestations where supported. Only final release jobs should receive write/id-token permissions.
+Actions must be full-SHA pinned. Release artifacts are checksummed and receive GitHub build-provenance attestations. Release also verifies package reproducibility at the file-manifest level before publication. Only final release jobs receive write/id-token/attestation permissions.
+
+Default-branch governance should require pull requests and required security/CI checks, block force pushes and branch deletion, and keep bypass narrowly restricted. Repository Rulesets are the authoritative server-side control; workflow tests verify the expected governance files but cannot substitute for GitHub-side enforcement.
 
 ## Reporting
 

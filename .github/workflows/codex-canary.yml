@@ -3,9 +3,11 @@ name: Codex CLI Canary
 on:
   pull_request:
     paths:
+      - 'core-contract.json'
       - 'safe-contract.js'
       - 'codex-cli.js'
       - 'scripts/codex-canary.js'
+      - 'scripts/codex-behavioral-canary.js'
       - '.github/workflows/codex-canary.yml'
   schedule:
     - cron: '17 2 * * *'
@@ -30,10 +32,31 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@e51e5fe84fc33b4c73ebe40526b2694712b5b858 # post-v7.0.0 GHSA-3jxr-9vmj-r5cp fix
+      - uses: actions/setup-node@e51e5fe84fc33b4c73ebe40526b2694712b5b858
         with:
-          node-version: '22'
+          node-version: '22.22.2'
       - name: Install latest Codex CLI
         run: npm install --global @openai/codex@latest
       - name: Verify Safe Contract capabilities and strict config
         run: node scripts/codex-canary.js
+
+  behavioral:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@e51e5fe84fc33b4c73ebe40526b2694712b5b858
+        with:
+          node-version: '22.22.2'
+      - name: Install latest Codex CLI
+        run: npm install --global @openai/codex@latest
+      - name: Live filesystem/network negative behavior check
+        if: env.OPENAI_API_KEY != ''
+        run: node scripts/codex-behavioral-canary.js
+      - name: Record credentialless behavioral canary state
+        if: env.OPENAI_API_KEY == ''
+        run: echo "Live behavioral canary not executed because OPENAI_API_KEY is not configured; capability canary remains mandatory."

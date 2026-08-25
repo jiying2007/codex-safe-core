@@ -11,7 +11,7 @@ Codex Safe Core 是 Codex Safe 产品族唯一的**安全运行时与协议核�
 | [Codex PR Safe](https://github.com/jiying2007/codex-pr) | 根据已提交变更生成 PR 标题/正文 |
 | [Codex Review Service](https://github.com/jiying2007/codex-review-service) | 自托管 GitLab MR 审查执行服务 |
 
-当前协议线：**Safe Core v4 / Safe Contract v2 / Policy Schema v3 / Review Receipt v4 / Commit Receipt v4 / Prompt Contract v1**。
+当前协议线：**Safe Core v4 / Safe Contract v2 / Policy Schema v3 / Review Receipt v4 / Commit Receipt v4 / Prompt Contract v1**。`core-contract.json` 是当前 Core / 协议 / 运行时事实的机器校验唯一来源。
 
 ## 我应该使用哪个仓库？
 
@@ -30,13 +30,26 @@ npm run ci
 
 Core 变更只有在四个 Consumer 都 coordinated-repin 到同一个已审核 Core commit，并通过各自 CI 后才算完成。
 
+## 机器可验证的 Trust Root 身份
+
+`core-contract.json` 管理当前版本和受支持运行时；`safe-contract.js` 从它派生协议常量，并导出闭合的 `SAFE_CONTRACT_MANIFEST` 与 SHA-256 `SAFE_CONTRACT_DIGEST`。Digest 用于精确标识权限/能力面，不会暗中改变 Safe Contract v2 语义，也不会给 Receipt v4 增加字段。
+
+Native runtime 明确只支持：
+
+- Node 22 LTS：**>=22.22.2 <23**
+- Node 24 LTS：**>=24.19.0 <25**
+
+CI 在 Linux、Windows、macOS 上验证两个精确基线，不再用 `>=22` 隐式承诺未测试的奇数/未来 Node major。
+
 ## 职责边界
 
-Core 负责 Codex capability probe/调用、进程生命周期、本地 Git 通用原语、Semantic Context、coverage-preserving Review Evidence Chunking、Policy Schema v3、确定性 Review Rules、指纹以及 Receipt 校验与 provenance。产品仓库只负责 Commit、Review、PR 或 GitLab Service 领域行为，不得自行维护 Core 已拥有的实现。
+Core 负责 Codex capability probe/调用、进程生命周期、本地 Git 通用原语、Semantic Context、coverage-preserving Review Evidence Chunking、Policy Schema v3、确定性 Review Rules、指纹以及 Receipt 校验与 provenance。`core-ownership-manifest.json` 固化这条边界。产品仓库只负责 Commit、Review、PR 或 GitLab Service 领域行为，不得自行维护 Core 已拥有的实现。
 
 ## Safe Contract v2
 
 要求 `--ask-for-approval never`、`exec --json`、ephemeral、忽略用户/仓库 Codex 规则、read-only sandbox、Structured Output，并显式关闭 shell/unified exec、web search、apps、multi-agent、plugins、hooks、goals、memories 与 dependency install。缺少能力直接 fail closed，不提供 legacy fallback。
+
+每日 Codex CLI Canary 在 Linux/Windows/macOS 检查最新上游 CLI 并记录 Safe Contract digest；配置受保护 OpenAI 凭据时，还会真实尝试被禁止的文件写入与 loopback network side effect，任一成功即失败。永久 adversarial corpus 验证仓库/模型中的恶意指令不能改变 Safe Contract argv。
 
 ## Policy Schema v3
 
@@ -46,17 +59,21 @@ Core 负责 Codex capability probe/调用、进程生命周期、本地 Git 通�
 
 Review/Commit Receipt 是闭合 v4 Contract，记录协议版本、requested/resolved model identity、Codex CLI version、immutable Git subject/evidence fingerprint 与 verdict metadata。Receipt 是 AI Workflow provenance，不是人工批准、构建或测试证据。
 
+Core 4.1 的 Trust Root 治理强化**不改变 Receipt v4 schema**。Safe Contract / execution digest 作为独立机器身份存在，只有未来显式升级 Receipt major 时才可进入 Receipt 字段。
+
 ## 确定性边界
 
 Git evidence identity、Policy evaluation、Receipt validation、coverage/readiness/mechanical gate、severity/confidence filtering 与 stale publication rejection 都是确定性逻辑。模型 wording/findings 属于非确定性输入，不能绕过 schema validation、evidence binding 或 deterministic gate。
 
 ## Family 治理
 
-- **Family Compatibility：** 每周/手动在 Linux、Windows、macOS 重放 Family Golden Corpus，验证四个 Consumer 精确 pin 当前 Core 并运行各自 CI。
-- **Codex CLI Canary：** 每天/手动使用最新上游 Codex CLI，在三平台检查 Safe Contract 必需能力。
+- **Family Compatibility：** 每周/手动在 Linux、Windows、macOS 重放 Family Golden Corpus，验证四个 Consumer 精确 pin 当前 Core、检查是否重新实现 Core-owned primitive，并运行各自 CI。
+- **Family Baseline Attestation：** coordinated repin 后生成 `FAMILY_BASELINE.json`，记录精确 Core/Consumer SHA、协议/运行时身份和 baseline digest，并生成 GitHub build provenance。
+- **Codex CLI Canary：** 每天/手动使用最新上游 Codex CLI，在三平台检查 Safe Contract 必需能力；有受保护凭据时执行 live negative behavior check。
+- **Adversarial Corpus：** 持续覆盖 prompt injection、工具提权、网络/文件系统诱导等输入。
 - **Performance Budget：** 使用宽松回归预算阻止数量级退化，不使用脆弱微基准。
 - **OpenSSF Scorecard：** 持续安全回归信号。
-- **Release Supply Chain：** immutable tag/assets、SHA-256、SPDX SBOM、GitHub build provenance attestation 与消费侧验证。
+- **Release Supply Chain：** trusted reusable publication workflow、Node 22/24 release gate、可复现 npm package、immutable tag/assets、SHA-256、SPDX SBOM、GitHub build provenance attestation 与消费侧验证。
 
 ## 开发
 
@@ -65,7 +82,7 @@ git submodule update --init --recursive
 npm run ci
 ```
 
-要求 Node.js 22+。
+使用 `core-contract.json` 中受支持的 Node 22/24 LTS 区间。
 
 ## 版本治理
 

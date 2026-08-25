@@ -1,0 +1,14 @@
+{
+  "coreVersion": "4.1.0",
+  "safeCoreMajorVersion": 4,
+  "safeContractVersion": 2,
+  "policySchemaVersion": 3,
+  "reviewReceiptVersion": 4,
+  "commitReceiptVersion": 4,
+  "reviewPromptContractVersion": 1,
+  "commitPromptContractVersion": 1,
+  "prPromptContractVersion": 1,
+  "supportedNodeMajors": [22, 24],
+  "minimumNodeVersion": "22.22.2",
+  "canonicalNodeVersion": "24.19.0"
+}

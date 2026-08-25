@@ -1,11 +1,11 @@
 {
   "name": "@jiying2007/codex-safe-core",
-  "version": "4.0.1",
+  "version": "4.1.0",
   "private": true,
   "description": "Canonical runtime core for the Codex Safe Git workflow family.",
   "license": "MIT",
   "main": "index.js",
-  "engines": { "node": ">=22" },
+  "engines": { "node": ">=22.22.2 <23 || >=24.19.0 <25" },
   "files": [
     "index.js",
     "safe-contract.js",
@@ -16,6 +16,8 @@
     "policy.js",
     "review-rules.js",
     "codex-safe.schema.json",
+    "core-contract.json",
+    "core-ownership-manifest.json",
     "LICENSE",
     "README.md",
     "README.zh-CN.md",
@@ -27,9 +29,11 @@
     "docs/CONSUMER_GUIDE.zh-CN.md"
   ],
   "scripts": {
-    "check:syntax": "node --check index.js && node --check safe-contract.js && node --check codex-cli.js && node --check process-runner.js && node --check git-repository.js && node --check context-builder.js && node --check policy.js && node --check review-rules.js && node --check scripts/codex-canary.js && node --check scripts/generate-sbom.js && node --check scripts/family-golden.js",
-    "test": "node --test test/safe-contract.test.js test/process-runner.test.js test/git-repository.test.js test/context-policy.test.js test/review-rules.test.js test/codex-cli.test.js test/release-workflow.test.js test/maintenance-governance.test.js test/supply-chain-canary.test.js test/family-golden.test.js test/performance-budget.test.js test/product-docs.test.js",
-    "check": "npm run check:syntax && npm test",
+    "check:syntax": "node --check index.js && node --check safe-contract.js && node --check codex-cli.js && node --check process-runner.js && node --check git-repository.js && node --check context-builder.js && node --check policy.js && node --check review-rules.js && node --check scripts/codex-canary.js && node --check scripts/codex-behavioral-canary.js && node --check scripts/generate-sbom.js && node --check scripts/family-golden.js && node --check scripts/verify-core-contract.js && node --check scripts/generate-family-baseline.js && node --check scripts/verify-consumer-boundaries.js && node --check scripts/verify-reproducible-package.js",
+    "test": "node --test test/safe-contract.test.js test/process-runner.test.js test/git-repository.test.js test/context-policy.test.js test/review-rules.test.js test/codex-cli.test.js test/release-workflow.test.js test/maintenance-governance.test.js test/supply-chain-canary.test.js test/family-golden.test.js test/performance-budget.test.js test/product-docs.test.js test/security-adversarial.test.js",
+    "check:contract": "node scripts/verify-core-contract.js",
+    "check:reproducible": "node scripts/verify-reproducible-package.js",
+    "check": "npm run check:syntax && npm run check:contract && npm test",
     "ci": "npm run check && npm pack --dry-run --ignore-scripts"
   },
   "repository": { "type": "git", "url": "https://github.com/jiying2007/codex-safe-core.git" },
