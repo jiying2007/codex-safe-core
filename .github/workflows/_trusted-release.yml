@@ -1,39 +1,68 @@
 name: Trusted Release
 
 on:
-  workflow_call:
-    inputs:
-      version:
-        required: true
-        type: string
-      tag:
-        required: true
-        type: string
+  workflow_run:
+    workflows: ["Release Validation"]
+    types: [completed]
 
 permissions:
   contents: write
   id-token: write
   attestations: write
 
+concurrency:
+  group: trusted-release-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
+
 jobs:
   publish:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Checkout exact validated main SHA
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
+          fetch-depth: 2
       - uses: actions/setup-node@e51e5fe84fc33b4c73ebe40526b2694712b5b858
         with:
           node-version: '22.22.2'
-      - name: Verify reproducible package
-        run: npm run check:reproducible
+      - name: Verify validated SHA is still canonical main
+        shell: bash
+        run: |
+          set -euo pipefail
+          validated_sha='${{ github.event.workflow_run.head_sha }}'
+          test "$(git rev-parse HEAD)" = "$validated_sha"
+          remote_main=$(git ls-remote origin refs/heads/main | awk '{print $1}')
+          test -n "$remote_main"
+          test "$remote_main" = "$validated_sha" || {
+            echo "Validated SHA ${validated_sha} is no longer current main (${remote_main}); refusing stale release." >&2
+            exit 1
+          }
+      - name: Resolve immutable version contract
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./core-contract.json').coreVersion")
+          test "$version" = "$(node -p "require('./package.json').version")"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v${version}" >> "$GITHUB_OUTPUT"
+      - name: Re-verify reproducible package and Core gates
+        run: |
+          npm run check:contract
+          npm run check:reproducible
+          npm run ci
       - name: Package, manifests, SBOM and checksums
         id: package
         shell: bash
         run: |
           set -euo pipefail
-          npm run ci
           npm pack --ignore-scripts --json > /tmp/pack.json
           artifact=$(node -e "const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/pack.json','utf8'));process.stdout.write(x[0].filename)")
           test -s "$artifact"
@@ -56,20 +85,21 @@ jobs:
       - name: Ensure immutable release tag
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          VALIDATED_SHA: ${{ github.event.workflow_run.head_sha }}
         shell: bash
         run: |
           set -euo pipefail
           if git ls-remote --exit-code --refs origin "refs/tags/${RELEASE_TAG}" >/dev/null 2>&1; then
             git fetch --force origin "refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}"
-            test "$(git rev-list -n 1 "$RELEASE_TAG")" = "$GITHUB_SHA"
+            test "$(git rev-list -n 1 "$RELEASE_TAG")" = "$VALIDATED_SHA"
           else
-            gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" -f ref="refs/tags/${RELEASE_TAG}" -f sha="$GITHUB_SHA" >/dev/null
+            gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" -f ref="refs/tags/${RELEASE_TAG}" -f sha="$VALIDATED_SHA" >/dev/null
           fi
       - name: Publish immutable GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
           ARTIFACT: ${{ steps.package.outputs.artifact }}
         shell: bash
         run: |
@@ -78,4 +108,4 @@ jobs:
             echo "Release ${RELEASE_TAG} already exists; immutable assets will not be overwritten." >&2
             exit 1
           fi
-          gh release create "$RELEASE_TAG" "$ARTIFACT" SBOM.spdx.json CORE_CONTRACT.json CORE_OWNERSHIP_MANIFEST.json SHA256SUMS --title "Codex Safe Core ${{ inputs.version }}" --generate-notes --verify-tag
+          gh release create "$RELEASE_TAG" "$ARTIFACT" SBOM.spdx.json CORE_CONTRACT.json CORE_OWNERSHIP_MANIFEST.json SHA256SUMS --title "Codex Safe Core ${{ steps.version.outputs.version }}" --generate-notes --verify-tag
