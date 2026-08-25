@@ -16,10 +16,7 @@ concurrency:
 
 jobs:
   publish:
-    if: >-
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.head_branch == 'main' &&
-      (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch')
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -44,21 +41,40 @@ jobs:
             echo "Validated SHA ${validated_sha} is no longer current main (${remote_main}); refusing stale release." >&2
             exit 1
           }
-      - name: Resolve immutable version contract
-        id: version
+      - name: Resolve immutable release decision
+        id: decision
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VALIDATED_SHA: ${{ github.event.workflow_run.head_sha }}
         shell: bash
         run: |
           set -euo pipefail
           version=$(node -p "require('./core-contract.json').coreVersion")
           test "$version" = "$(node -p "require('./package.json').version")"
+          tag="v${version}"
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "tag=v${version}" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Formal release ${tag} already exists; no new publication is required."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if git ls-remote --exit-code --refs origin "refs/tags/${tag}" >/dev/null 2>&1; then
+            git fetch --force origin "refs/tags/${tag}:refs/tags/${tag}"
+            test "$(git rev-list -n 1 "$tag")" = "$VALIDATED_SHA" || {
+              echo "Unreleased immutable tag ${tag} does not point to validated SHA ${VALIDATED_SHA}." >&2
+              exit 1
+            }
+          fi
+          echo "publish=true" >> "$GITHUB_OUTPUT"
       - name: Re-verify reproducible package and Core gates
+        if: steps.decision.outputs.publish == 'true'
         run: |
           npm run check:contract
           npm run check:reproducible
           npm run ci
       - name: Package, manifests, SBOM and checksums
+        if: steps.decision.outputs.publish == 'true'
         id: package
         shell: bash
         run: |
@@ -74,6 +90,7 @@ jobs:
           sha256sum --check SHA256SUMS
           echo "artifact=$artifact" >> "$GITHUB_OUTPUT"
       - name: Attest immutable release files
+        if: steps.decision.outputs.publish == 'true'
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: |
@@ -83,9 +100,10 @@ jobs:
             CORE_OWNERSHIP_MANIFEST.json
             SHA256SUMS
       - name: Ensure immutable release tag
+        if: steps.decision.outputs.publish == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          RELEASE_TAG: ${{ steps.decision.outputs.tag }}
           VALIDATED_SHA: ${{ github.event.workflow_run.head_sha }}
         shell: bash
         run: |
@@ -97,15 +115,13 @@ jobs:
             gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" -f ref="refs/tags/${RELEASE_TAG}" -f sha="$VALIDATED_SHA" >/dev/null
           fi
       - name: Publish immutable GitHub Release
+        if: steps.decision.outputs.publish == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          RELEASE_TAG: ${{ steps.decision.outputs.tag }}
           ARTIFACT: ${{ steps.package.outputs.artifact }}
         shell: bash
         run: |
           set -euo pipefail
-          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            echo "Release ${RELEASE_TAG} already exists; immutable assets will not be overwritten." >&2
-            exit 1
-          fi
-          gh release create "$RELEASE_TAG" "$ARTIFACT" SBOM.spdx.json CORE_CONTRACT.json CORE_OWNERSHIP_MANIFEST.json SHA256SUMS --title "Codex Safe Core ${{ steps.version.outputs.version }}" --generate-notes --verify-tag
+          test -n "$ARTIFACT"
+          gh release create "$RELEASE_TAG" "$ARTIFACT" SBOM.spdx.json CORE_CONTRACT.json CORE_OWNERSHIP_MANIFEST.json SHA256SUMS --title "Codex Safe Core ${{ steps.decision.outputs.version }}" --generate-notes --verify-tag
