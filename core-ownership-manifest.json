@@ -1,0 +1,32 @@
+{
+  "coreOwned": [
+    "safe-contract",
+    "codex-capability-probing",
+    "codex-invocation",
+    "process-lifecycle",
+    "generic-git-primitives",
+    "policy-schema",
+    "semantic-context",
+    "review-evidence-chunking",
+    "review-rules",
+    "receipt-validation",
+    "canonical-fingerprints"
+  ],
+  "consumerForbiddenImplementations": [
+    "SAFE_CODEX_CONFIG_OVERRIDES",
+    "buildSafeCodexArgs",
+    "buildReviewEvidenceChunks",
+    "validateReviewReceipt",
+    "validateCommitReceipt",
+    "CURRENT_POLICY_SCHEMA_VERSION"
+  ],
+  "productOwned": [
+    "commit-domain",
+    "review-domain",
+    "pr-domain",
+    "provider-adapters",
+    "gitlab-service-operations",
+    "sqlite-outbox",
+    "notifications"
+  ]
+}
