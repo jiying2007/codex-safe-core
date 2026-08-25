@@ -12,10 +12,22 @@ test('unchanged version is skipped only when immutable tag already exists',()=>{
   assert.match(release,/previous.*==.*version[\s\S]*git ls-remote --exit-code --refs origin "refs\/tags\/\$\{tag\}"[\s\S]*publish=false/);
 });
 
-test('caller validates both supported LTS release runtimes before trusted publication',()=>{
+test('validation workflow is read-only and covers both LTS runtimes plus reproducibility',()=>{
+  assert.match(release,/name: Release Validation/);
+  assert.match(release,/permissions:\n  contents: read/);
   assert.match(release,/node: \['22\.22\.2','24\.19\.0'\]/);
-  assert.match(release,/uses: \$\/\.github\/workflows\/_trusted-release\.yml/);
-  assert.doesNotMatch(release,/contents: write[\s\S]*runs-on:/);
+  assert.match(release,/npm run check:reproducible/);
+  assert.doesNotMatch(release,/contents: write|id-token: write|attestations: write|gh release create/);
+});
+
+test('trusted publication is workflow_run gated to successful main validation',()=>{
+  assert.match(trusted,/workflow_run:[\s\S]*workflows: \["Release Validation"\][\s\S]*types: \[completed\]/);
+  assert.match(trusted,/workflow_run\.conclusion == 'success'/);
+  assert.match(trusted,/workflow_run\.head_branch == 'main'/);
+  assert.match(trusted,/workflow_run\.event == 'push'/);
+  assert.match(trusted,/workflow_run\.head_sha/);
+  assert.match(trusted,/remote_main=.*git ls-remote origin refs\/heads\/main/);
+  assert.match(trusted,/test "\$remote_main" = "\$validated_sha"/);
 });
 
 test('trusted release provenance action stays SHA-pinned to v4.2.2',()=>{
@@ -25,6 +37,7 @@ test('trusted release provenance action stays SHA-pinned to v4.2.2',()=>{
 
 test('trusted release remains immutable, reproducible and provenance-complete',()=>{
   assert.match(trusted,/npm run check:reproducible/);
+  assert.match(trusted,/npm run ci/);
   assert.match(trusted,/SBOM\.spdx\.json/);
   assert.match(trusted,/CORE_CONTRACT\.json/);
   assert.match(trusted,/CORE_OWNERSHIP_MANIFEST\.json/);
