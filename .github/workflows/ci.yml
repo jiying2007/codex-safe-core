@@ -22,18 +22,22 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            node: '22'
+            node: '22.22.2'
           - os: windows-latest
-            node: '22'
+            node: '22.22.2'
           - os: macos-latest
-            node: '22'
+            node: '22.22.2'
           - os: ubuntu-latest
-            node: '24'
+            node: '24.19.0'
+          - os: windows-latest
+            node: '24.19.0'
+          - os: macos-latest
+            node: '24.19.0'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@e51e5fe84fc33b4c73ebe40526b2694712b5b858 # post-v7.0.0 GHSA-3jxr-9vmj-r5cp fix
+      - uses: actions/setup-node@e51e5fe84fc33b4c73ebe40526b2694712b5b858
         with:
           node-version: ${{ matrix.node }}
       - run: npm run check
