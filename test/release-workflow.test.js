@@ -14,7 +14,7 @@ test('unchanged version is skipped only when immutable tag already exists',()=>{
 
 test('caller validates both supported LTS release runtimes before trusted publication',()=>{
   assert.match(release,/node: \['22\.22\.2','24\.19\.0'\]/);
-  assert.match(release,/uses: \.\/\.github\/workflows\/_trusted-release\.yml/);
+  assert.match(release,/uses: \$\/\.github\/workflows\/_trusted-release\.yml/);
   assert.doesNotMatch(release,/contents: write[\s\S]*runs-on:/);
 });
 
