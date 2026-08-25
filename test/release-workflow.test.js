@@ -14,7 +14,7 @@ test('unchanged version is skipped only when immutable tag already exists',()=>{
 
 test('validation workflow is read-only and covers both LTS runtimes plus reproducibility',()=>{
   assert.match(release,/name: Release Validation/);
-  assert.match(release,/permissions:\n  contents: read/);
+  assert.match(release,/permissions:\r?\n  contents: read/);
   assert.match(release,/node: \['22\.22\.2','24\.19\.0'\]/);
   assert.match(release,/npm run check:reproducible/);
   assert.doesNotMatch(release,/contents: write|id-token: write|attestations: write|gh release create/);
