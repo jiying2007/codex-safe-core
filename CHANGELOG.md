@@ -4,6 +4,21 @@ All notable changes to Codex Safe Core are documented here.
 
 ## Unreleased
 
+## 4.2.0 - 2026-08-26
+
+### Changed
+
+- Promote Family Baseline into a versioned Family BOM with exact product versions, source SHAs, Core pins and protocol/runtime identity; publish provenance-attested baseline/BOM assets to permanent digest-addressed historical releases.
+- Add a coordinated Family Upgrade orchestrator that opens exact-pin consumer PRs, waits for each product's own CI, squash-merges successful repins and triggers Family Compatibility; cross-repository writes require a dedicated `FAMILY_BOT_TOKEN` and fail closed when it is absent.
+- Add machine-enforced family non-goals so Core cannot absorb provider/database/notification domains, consumers cannot branch-track Core, and removed legacy policy files cannot return.
+- Add a shared machine-readable error taxonomy and metadata-only family diagnostics envelope without exposing source, prompts, credentials or repository content.
+- Enforce exact commit-SHA pinning for every external GitHub Action and add a reusable Family Release Guard that verifies exact Core pin, governance and diagnostics identity for consumer releases.
+- Add Dependency Review with a fail-closed npm audit/license-policy fallback for repositories where GitHub Dependency Graph is not enabled.
+- Add append-only Codex CLI compatibility history tied to Safe Contract digest and Core identity; live filesystem/network behavior validation still requires protected `OPENAI_API_KEY` credentials and is never reported as passed when not executed.
+- Add broad performance trend snapshots while retaining non-fragile evidence/context regression budgets.
+- Add a release artifact verifier for SHA-256, Family baseline shape and GitHub provenance attestations.
+- Keep Safe Contract v2, Policy Schema v3, Review/Commit Receipt v4 and Prompt Contracts v1 unchanged; Core 4.2.0 is a governance/product-family feature release, not a protocol compatibility layer.
+
 ## 4.1.0 - 2026-08-25
 
 ### Changed
