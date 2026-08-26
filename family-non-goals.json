@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "core": {
+    "forbiddenRuntimeDomains": ["gitlab", "provider", "notification", "sqlite", "database"],
+    "forbidRuntimeDependencies": true,
+    "forbidBranchTrackingSubmodule": true
+  },
+  "family": {
+    "canonicalPolicyFile": ".codex-safe.json",
+    "forbiddenLegacyPolicyFiles": [".codex-review.json", ".codex-commit.json", ".codex-pr.json"],
+    "forbidCompatibilityProxy": true,
+    "forbidUnpinnedActions": true
+  },
+  "reviewService": {
+    "productionPlatforms": ["linux"],
+    "runnerTransport": "unix-domain-socket",
+    "forbiddenCompatibilitySurfaces": ["named-pipe-runner", "legacy-policy", "branch-following-core"]
+  }
+}
