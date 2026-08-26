@@ -8,6 +8,7 @@ on:
       - 'codex-cli.js'
       - 'scripts/codex-canary.js'
       - 'scripts/codex-behavioral-canary.js'
+      - 'scripts/write-codex-compat-record.js'
       - '.github/workflows/codex-canary.yml'
   schedule:
     - cron: '17 2 * * *'
@@ -60,3 +61,39 @@ jobs:
       - name: Record credentialless behavioral canary state
         if: env.OPENAI_API_KEY == ''
         run: echo "Live behavioral canary not executed because OPENAI_API_KEY is not configured; capability canary remains mandatory."
+
+  history:
+    if: github.event_name != 'pull_request'
+    needs: capability
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@e51e5fe84fc33b4c73ebe40526b2694712b5b858
+        with:
+          node-version: '22.22.2'
+      - name: Reconfirm latest Codex capability and write immutable record
+        run: |
+          npm install --global @openai/codex@latest
+          node scripts/codex-canary.js
+          node scripts/write-codex-compat-record.js CODEX_CLI_COMPATIBILITY.json
+      - name: Persist compatibility record as a historical release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./CODEX_CLI_COMPATIBILITY.json').codexCliVersion")"
+          safe="$(printf '%s' "$version" | tr -c '0-9A-Za-z._-' '_')"
+          asset="codex-cli-${safe}.json"
+          mv CODEX_CLI_COMPATIBILITY.json "$asset"
+          tag="codex-cli-compatibility-history"
+          gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --target "$GITHUB_SHA" --title "Codex CLI compatibility history" --notes "Append-only compatibility records produced by the mandatory multi-platform Safe Contract canary."
+          if gh release view "$tag" --json assets --jq '.assets[].name' | grep -Fxq "$asset"; then
+            echo "compatibility record already exists for $version"
+          else
+            gh release upload "$tag" "$asset"
+          fi
