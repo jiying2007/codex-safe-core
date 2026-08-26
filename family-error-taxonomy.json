@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "errors": {
+    "ECODEXCAPABILITY": {"owner":"core","class":"environment","retryable":false},
+    "ECODEXTIMEOUT": {"owner":"core","class":"execution","retryable":true},
+    "ECODEXEXEC": {"owner":"core","class":"execution","retryable":true},
+    "EPOLICY": {"owner":"core","class":"policy","retryable":false},
+    "EEVIDENCE": {"owner":"core","class":"evidence","retryable":false},
+    "ERECEIPT": {"owner":"core","class":"provenance","retryable":false},
+    "EGIT": {"owner":"core","class":"repository","retryable":false},
+    "EUNTRUSTED": {"owner":"core","class":"authority","retryable":false},
+    "ECONFIG": {"owner":"product","class":"configuration","retryable":false},
+    "EPROVIDER": {"owner":"product","class":"provider","retryable":true},
+    "EPUBLICATION": {"owner":"product","class":"publication","retryable":true}
+  }
+}

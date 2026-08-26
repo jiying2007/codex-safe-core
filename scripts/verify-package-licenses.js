@@ -1,0 +1,4 @@
+'use strict';
+const fs=require('node:fs');const path=require('node:path');const root=path.resolve(process.argv[2]||'.');const forbidden=/(^|\b)(AGPL|GPL)(?:-|\b)/i;const seen=[];
+function visit(dir){if(!fs.existsSync(dir))return;for(const e of fs.readdirSync(dir,{withFileTypes:true})){if(!e.isDirectory())continue;if(e.name.startsWith('.'))continue;const p=path.join(dir,e.name);if(e.name.startsWith('@')){visit(p);continue;}const pkg=path.join(p,'package.json');if(fs.existsSync(pkg)){const v=JSON.parse(fs.readFileSync(pkg,'utf8')),license=typeof v.license==='string'?v.license:JSON.stringify(v.licenses||'');if(forbidden.test(license))throw new Error(`forbidden dependency license ${license}: ${v.name||e.name}@${v.version||'?'}`);seen.push(v.name||e.name);}}}
+visit(path.join(root,'node_modules'));console.log(`dependency license policy verified for ${seen.length} installed packages`);

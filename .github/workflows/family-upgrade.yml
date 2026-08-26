@@ -1,0 +1,73 @@
+name: Family Upgrade
+
+on:
+  workflow_dispatch:
+    inputs:
+      core_sha:
+        description: Exact released Codex Safe Core SHA
+        required: true
+        type: string
+      core_version:
+        description: Released Core version, for example 4.2.0
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  coordinated-repin:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@e51e5fe84fc33b4c73ebe40526b2694712b5b858
+        with:
+          node-version: 22.22.2
+          check-latest: false
+      - name: Validate orchestration credentials and inputs
+        env:
+          FAMILY_BOT_TOKEN: ${{ secrets.FAMILY_BOT_TOKEN }}
+          CORE_SHA: ${{ inputs.core_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$FAMILY_BOT_TOKEN" || { echo 'FAMILY_BOT_TOKEN is required for cross-repository orchestration'; exit 2; }
+          [[ "$CORE_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo 'core_sha must be an exact 40-character SHA'; exit 2; }
+          test "$(git rev-parse HEAD)" = "$CORE_SHA" || { echo 'orchestrator only runs for the current released Core main SHA'; exit 2; }
+      - name: Open, validate, merge coordinated repin PRs
+        env:
+          GH_TOKEN: ${{ secrets.FAMILY_BOT_TOKEN }}
+          CORE_SHA: ${{ inputs.core_sha }}
+          CORE_VERSION: ${{ inputs.core_version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config --global user.name 'codex-safe-family-bot'
+          git config --global user.email 'codex-safe-family-bot@users.noreply.github.com'
+          ORCH="$PWD/scripts/repin-consumer.js"
+          for repo in codex-commit codex-review codex-pr codex-review-service; do
+            dir="$(mktemp -d)/$repo"
+            git clone --quiet --recurse-submodules "https://x-access-token:${GH_TOKEN}@github.com/jiying2007/${repo}.git" "$dir"
+            branch="repin-safe-core-v${CORE_VERSION}"
+            git -C "$dir" checkout -b "$branch"
+            node "$ORCH" "$dir" "$CORE_SHA"
+            git -C "$dir" add -A
+            git -C "$dir" diff --cached --quiet && { echo "$repo already pins $CORE_SHA"; continue; }
+            git -C "$dir" commit -m "chore: pin Codex Safe Core v${CORE_VERSION}"
+            git -C "$dir" push origin "$branch"
+            pr="$(gh pr list --repo "jiying2007/$repo" --head "$branch" --state open --json number --jq '.[0].number // empty')"
+            if [ -z "$pr" ]; then
+              gh pr create --repo "jiying2007/$repo" --head "$branch" --base main --title "chore: pin Codex Safe Core v${CORE_VERSION}" --body "Coordinated exact-pin upgrade to Codex Safe Core ${CORE_VERSION} (${CORE_SHA}). No compatibility shim or product-version change."
+              pr="$(gh pr list --repo "jiying2007/$repo" --head "$branch" --state open --json number --jq '.[0].number // empty')"
+            fi
+            test -n "$pr" || { echo "failed to resolve repin PR for $repo"; exit 2; }
+            gh pr checks "$pr" --repo "jiying2007/$repo" --watch --fail-fast
+            gh pr merge "$pr" --repo "jiying2007/$repo" --squash --delete-branch
+          done
+      - name: Trigger immutable Family baseline
+        env:
+          GH_TOKEN: ${{ secrets.FAMILY_BOT_TOKEN }}
+        shell: bash
+        run: gh workflow run "Family Compatibility" --repo jiying2007/codex-safe-core --ref main

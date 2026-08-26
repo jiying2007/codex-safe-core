@@ -46,6 +46,8 @@ jobs:
             pinned="$(git -C "family/${repo}" ls-files --stage src/codex-safe-core | awk '{print $2}')"
             test -n "$pinned"
             test "$pinned" = "$core_sha" || { echo "${repo} pins ${pinned}, expected ${core_sha}" >&2; exit 1; }
+            node scripts/verify-actions-pins.js "family/${repo}/.github/workflows"
+            node scripts/verify-non-goals.js "family/${repo}"
           done
       - name: Verify consumers do not reimplement Core-owned primitives
         run: node scripts/verify-consumer-boundaries.js family
@@ -77,7 +79,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
-      contents: read
+      contents: write
       id-token: write
       attestations: write
     steps:
@@ -95,15 +97,33 @@ jobs:
           for repo in codex-commit codex-review codex-pr codex-review-service; do
             git clone --quiet --recurse-submodules "https://github.com/jiying2007/${repo}.git" "family/${repo}"
           done
-      - name: Generate immutable Family baseline
-        run: node scripts/generate-family-baseline.js family FAMILY_BASELINE.json
+      - name: Generate immutable Family baseline and BOM
+        run: node scripts/generate-family-baseline.js family FAMILY_BASELINE.json FAMILY_BOM.json
       - name: Attest Family baseline
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
-          subject-path: FAMILY_BASELINE.json
+          subject-path: |
+            FAMILY_BASELINE.json
+            FAMILY_BOM.json
       - name: Upload Family baseline
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: codex-safe-family-baseline
-          path: FAMILY_BASELINE.json
+          path: |
+            FAMILY_BASELINE.json
+            FAMILY_BOM.json
           if-no-files-found: error
+      - name: Publish permanent immutable Family baseline release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./core-contract.json').coreVersion")"
+          digest="$(node -p "require('./FAMILY_BASELINE.json').baselineDigest")"
+          tag="family-baseline-v${version}-${digest:0:12}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "immutable Family baseline release already exists: $tag"
+          else
+            gh release create "$tag" FAMILY_BASELINE.json FAMILY_BOM.json --target "$GITHUB_SHA" --title "Codex Safe Family baseline ${version} ${digest:0:12}" --notes "Machine-generated and provenance-attested exact Core/consumer BOM. This release is historical family evidence, not an end-user product release."
+          fi

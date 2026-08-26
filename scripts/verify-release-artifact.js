@@ -1,0 +1,7 @@
+'use strict';
+const fs=require('node:fs');const path=require('node:path');const crypto=require('node:crypto');const {spawnSync}=require('node:child_process');
+const args=process.argv.slice(2);function value(flag){const i=args.indexOf(flag);return i>=0?args[i+1]:null;}const artifact=value('--artifact'),checksums=value('--checksums'),repo=value('--repo'),baseline=value('--baseline');if(!artifact||!checksums)throw new Error('usage: --artifact FILE --checksums SHA256SUMS [--repo owner/repo] [--baseline FAMILY_BASELINE.json]');
+const name=path.basename(artifact),lines=fs.readFileSync(checksums,'utf8').trim().split(/\r?\n/),row=lines.map(l=>l.trim().split(/\s+/)).find(parts=>parts.at(-1)?.replace(/^\*?/,'')===name);if(!row)throw new Error(`${name} missing from ${checksums}`);const expected=row[0].toLowerCase(),actual=crypto.createHash('sha256').update(fs.readFileSync(artifact)).digest('hex');if(actual!==expected)throw new Error(`SHA256 mismatch for ${name}`);
+if(baseline){const b=JSON.parse(fs.readFileSync(baseline,'utf8'));if(!b.core?.sha||!b.baselineDigest)throw new Error('invalid Family baseline');}
+if(repo){const gh=spawnSync('gh',['attestation','verify',artifact,'--repo',repo],{stdio:'inherit'});if(gh.error?.code==='ENOENT')throw new Error('gh CLI is required for provenance verification');if(gh.status!==0)throw new Error('GitHub provenance verification failed');}
+console.log(`release artifact verified: ${name} sha256:${actual}`);
