@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "tokenEstimateBytesPerToken": 2,
+  "riskThresholds": { "fastModelMaxExclusive": 4, "fullBudgetMin": 8 },
+  "qualityInvariant": "budget-omissions-must-be-explicit",
+  "usageFields": ["inputTokens", "cachedInputTokens", "cacheWriteInputTokens", "outputTokens", "reasoningOutputTokens"]
+}
