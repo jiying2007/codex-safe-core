@@ -1,0 +1,16 @@
+# Family 效率契约
+
+Codex Safe Core v4.3 为整个产品族统一提供通用的模型成本与执行效率原语。
+
+该契约保持产品无关：
+
+- 从 Codex JSONL 统一解析实际 Token usage；
+- 在执行前保守估算请求 Token，并支持 fail-closed preflight；
+- 确定性评估证据风险；
+- 自适应预算只允许缩小，绝不突破配置上限；
+- 可选把低风险任务路由到调用方指定的 fast model；
+- 在产品设置总字节预算时优先保留高风险 chunk；
+- 为并发产品任务提供 Token reservation；
+- Structured Codex 执行统一返回 request estimate、实际 usage 与 duration。
+
+各产品继续负责自己的预算值、质量阈值、持久化与 UI。预算导致的证据遗漏必须显式暴露，禁止静默宣称覆盖完整。
