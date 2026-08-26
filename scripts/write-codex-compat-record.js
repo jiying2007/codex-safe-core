@@ -1,0 +1,3 @@
+'use strict';
+const fs=require('node:fs');const {execFileSync}=require('node:child_process');const {SAFE_CONTRACT_DIGEST}=require('../safe-contract');
+const raw=execFileSync(process.env.CODEX_PATH||'codex',['--version'],{encoding:'utf8'}).trim();const version=(raw.match(/\d+\.\d+\.\d+(?:[-+][^\s]+)?/)||[raw])[0];const record={schemaVersion:1,codexCliVersion:version,rawVersion:raw,safeContractDigest:SAFE_CONTRACT_DIGEST,coreSha:process.env.GITHUB_SHA||null,coreVersion:require('../core-contract.json').coreVersion,result:'pass',recordedAt:new Date().toISOString()};const safe=version.replace(/[^0-9A-Za-z._-]/g,'_');const out=process.argv[2]||`codex-cli-${safe}.json`;fs.writeFileSync(out,JSON.stringify(record,null,2)+'\n');console.log(out);
