@@ -1,5 +1,0 @@
-[
-  {"name":"docs-low-risk","paths":["docs/README.md"],"text":"+ clarify docs","minRisk":0,"maxRisk":3},
-  {"name":"auth-high-risk","paths":["src/auth/token.js"],"text":"+ await mutex.lock();\n+ token = secret;","minRisk":8,"maxRisk":30},
-  {"name":"native-high-risk","paths":["src/runtime.c"],"text":"+ free(ptr);","minRisk":8,"maxRisk":30}
-]
