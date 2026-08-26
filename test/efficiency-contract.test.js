@@ -1,0 +1,18 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const contract=require('../core-contract.json');
+const pkg=require('../package.json');
+
+test('Core v4.3 efficiency release preserves protocol identities',()=>{
+  assert.equal(contract.coreVersion,'4.3.0');
+  assert.equal(pkg.version,contract.coreVersion);
+  assert.equal(contract.safeCoreMajorVersion,4);
+  assert.equal(contract.safeContractVersion,2);
+  assert.equal(contract.policySchemaVersion,3);
+  assert.equal(contract.reviewReceiptVersion,4);
+  assert.equal(contract.commitReceiptVersion,4);
+  assert.equal(contract.reviewPromptContractVersion,1);
+  assert.equal(contract.commitPromptContractVersion,1);
+  assert.equal(contract.prPromptContractVersion,1);
+});
