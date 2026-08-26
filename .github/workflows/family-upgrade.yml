@@ -19,7 +19,7 @@ jobs:
   coordinated-repin:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: actions/setup-node@e51e5fe84fc33b4c73ebe40526b2694712b5b858
@@ -53,14 +53,16 @@ jobs:
             branch="repin-safe-core-v${CORE_VERSION}"
             git -C "$dir" checkout -b "$branch"
             node "$ORCH" "$dir" "$CORE_SHA"
-            git -C "$dir" add src/codex-safe-core .codex-safe.example.json scripts/verify-manifest.js product-contract.json 2>/dev/null || true
+            git -C "$dir" add -A
             git -C "$dir" diff --cached --quiet && { echo "$repo already pins $CORE_SHA"; continue; }
             git -C "$dir" commit -m "chore: pin Codex Safe Core v${CORE_VERSION}"
             git -C "$dir" push origin "$branch"
             pr="$(gh pr list --repo "jiying2007/$repo" --head "$branch" --state open --json number --jq '.[0].number // empty')"
             if [ -z "$pr" ]; then
-              pr="$(gh pr create --repo "jiying2007/$repo" --head "$branch" --base main --title "chore: pin Codex Safe Core v${CORE_VERSION}" --body "Coordinated exact-pin upgrade to Codex Safe Core ${CORE_VERSION} (${CORE_SHA}). No compatibility shim or product-version change." --json number --jq .number)"
+              gh pr create --repo "jiying2007/$repo" --head "$branch" --base main --title "chore: pin Codex Safe Core v${CORE_VERSION}" --body "Coordinated exact-pin upgrade to Codex Safe Core ${CORE_VERSION} (${CORE_SHA}). No compatibility shim or product-version change."
+              pr="$(gh pr list --repo "jiying2007/$repo" --head "$branch" --state open --json number --jq '.[0].number // empty')"
             fi
+            test -n "$pr" || { echo "failed to resolve repin PR for $repo"; exit 2; }
             gh pr checks "$pr" --repo "jiying2007/$repo" --watch --fail-fast
             gh pr merge "$pr" --repo "jiying2007/$repo" --squash --delete-branch
           done
