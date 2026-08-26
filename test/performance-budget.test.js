@@ -3,6 +3,7 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const {performance}=require('node:perf_hooks');
 const {buildReviewEvidenceChunks,buildSemanticContext}=require('../context-builder');
+const {estimateRequestTokens,scoreEvidenceRisk,selectChunksWithinByteBudget}=require('../efficiency-planner');
 
 function largeDiff(targetBytes=4*1024*1024){
   const blocks=[];let bytes=0,index=0;
@@ -13,16 +14,22 @@ function largeDiff(targetBytes=4*1024*1024){
   return blocks.join('');
 }
 
-test('4 MiB evidence/context processing stays within broad regression budget',()=>{
+test('4 MiB evidence/context/cost planning stays within broad regression budget',()=>{
   const diff=largeDiff();
   const before=process.memoryUsage().rss;
   const started=performance.now();
   const evidence=buildReviewEvidenceChunks({diff,maxBytes:512*1024,maxChunks:8});
   const context=buildSemanticContext({diff,maxBytes:512*1024});
+  const estimate=estimateRequestTokens(context.text,{estimatedOutputTokens:1024});
+  const risk=scoreEvidenceRisk({paths:context.sourceFiles,text:context.text});
+  const planned=selectChunksWithinByteBudget(evidence.chunks,1024*1024);
   const elapsed=performance.now()-started;
   const rssGrowth=Math.max(0,process.memoryUsage().rss-before);
   assert.ok(evidence.inputDiffBytes>=4*1024*1024);
   assert.ok(context.inputDiffBytes>=4*1024*1024);
-  assert.ok(elapsed<5000,`Core evidence/context processing regressed to ${elapsed.toFixed(0)} ms`);
-  assert.ok(rssGrowth<256*1024*1024,`Core evidence/context RSS growth regressed to ${Math.round(rssGrowth/1024/1024)} MiB`);
+  assert.ok(estimate.totalTokens>0);
+  assert.ok(risk>=0);
+  assert.ok(planned.bytes<=1024*1024);
+  assert.ok(elapsed<5000,`Core evidence/context/cost planning regressed to ${elapsed.toFixed(0)} ms`);
+  assert.ok(rssGrowth<256*1024*1024,`Core evidence/context/cost planning RSS growth regressed to ${Math.round(rssGrowth/1024/1024)} MiB`);
 });

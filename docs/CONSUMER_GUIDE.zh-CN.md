@@ -31,7 +31,22 @@ git -C src/codex-safe-core rev-parse HEAD
 
 `core-ownership-manifest.json` 记录 Core-owned primitive。Consumer 必须消费这些实现，不能自行声明独立的 Process/Codex/Policy/Receipt/Review-Evidence 原语。Family Compatibility 在接受 baseline 前会运行 ownership boundary linter。
 
-Provider adapter、SQLite/outbox、通知、部署与产品领域 orchestration 继续属于对应产品，不进入 Core。
+Provider adapter、SQLite/outbox、通知、部署、增量审核持久状态与产品领域 orchestration 继续属于对应产品，不进入 Core。
+
+## Token、效率与质量契约
+
+Core v4.3 统一拥有全产品族通用的成本感知执行原语：
+
+- 统一解析 Codex JSONL 中 input、cached-input、cache-write、output、reasoning-output Token；
+- 统一使用保守 Token 估算，并支持在启动 Codex 进程前 fail-closed preflight；
+- 确定性证据风险评分、自适应预算、低风险模型路由，其中动态预算只允许缩小，绝不突破有效上限；
+- 按风险优先的总字节预算选择；任何被预算遗漏的证据都必须显式暴露，不能静默宣称完整；
+- 为存在并发模型任务的产品提供进程内 Token Reservation Ledger；
+- `runStructuredCodex()` 统一返回 usage、request estimate 和 duration，消费者不再自行重复解析。
+
+Consumer 只负责自己的策略值和领域行为：Commit 优化 staged semantic context，Review 优化审核 chunk，PR 优化描述生成，Review Service 负责项目日预算持久化与增量状态。Consumer 不得复制 Core 的 usage 解析、Token 估算或 reservation 实现。
+
+效率必须服从正确性：只要预算导致证据遗漏，就必须显式降级 coverage；不得为了省 Token 把 incomplete 结果包装为成功质量结论。
 
 ## Safe Contract 身份
 
@@ -48,4 +63,4 @@ Digest 用于精确证据，不替代语义协议版本。Receipt v4 保持闭�
 npm run ci
 ```
 
-Core CI 覆盖 contract/runtime 身份、确定性 Review Rules、adversarial safety fixtures、Family Golden Corpus、宽松性能回归预算、trusted release 治理与 supply-chain canary。Family Compatibility 还会验证 Consumer 精确 pin、ownership boundary 和四个 Consumer CI，然后生成可 attestation 的 Family Baseline。
+Core CI 覆盖 contract/runtime 身份、确定性 Review Rules、adversarial safety fixtures、Family Golden Corpus、Token/成本 Planner、宽松性能回归预算、trusted release 治理与 supply-chain canary。Family Compatibility 还会验证 Consumer 精确 pin、ownership boundary 和四个 Consumer CI，然后生成可 attestation 的 Family Baseline。

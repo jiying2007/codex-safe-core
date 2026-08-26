@@ -10,6 +10,11 @@ const {
   missingHelpFlags,
   isCliCompatibilityError
 } = require('./safe-contract');
+const {
+  extractCodexUsage,
+  estimateRequestTokens,
+  assertWithinTokenBudget
+} = require('./efficiency-planner');
 
 function createError(code, message, cause, extra = {}) {
   const error = new Error(message);
@@ -183,7 +188,10 @@ function createCodexCli({ runPreparedProcess, tempPrefix = 'codex-safe-', capabi
     token,
     maxStdoutBytes = 4 * 1024 * 1024,
     maxStderrBytes = 1024 * 1024,
-    processOptions = {}
+    processOptions = {},
+    maxEstimatedTokens = 0,
+    estimatedOutputTokens = 512,
+    estimateBytesPerToken = 2
   } = {}) {
     assertSchema(schema);
     assertSafeSchemaFileName(schemaFileName);
@@ -192,6 +200,15 @@ function createCodexCli({ runPreparedProcess, tempPrefix = 'codex-safe-', capabi
       throw new TypeError('processOptions must be an object.');
     }
 
+    const requestEstimate = Number(maxEstimatedTokens) > 0
+      ? assertWithinTokenBudget(input, {
+        maxTokens: Number(maxEstimatedTokens),
+        estimatedOutputTokens,
+        bytesPerToken: estimateBytesPerToken,
+        label: 'Codex structured request'
+      })
+      : estimateRequestTokens(input, { estimatedOutputTokens, bytesPerToken: estimateBytesPerToken });
+    const started = Date.now();
     const resolved = await resolveCodexExecutable(codexPath);
     await probeCodexCapabilities(resolved, model);
     return withTemporaryDirectory(async tempDir => {
@@ -221,7 +238,14 @@ function createCodexCli({ runPreparedProcess, tempPrefix = 'codex-safe-', capabi
       let parsed;
       try { parsed = JSON.parse(agentText); }
       catch { throw createError('ECODEXOUTPUT', 'The final Codex agent_message is not JSON matching the output schema.'); }
-      return { parsed, resolved, processResult };
+      return {
+        parsed,
+        resolved,
+        processResult,
+        usage: extractCodexUsage(processResult.stdout),
+        requestEstimate,
+        durationMs: Math.max(0, Date.now() - started)
+      };
     });
   }
 

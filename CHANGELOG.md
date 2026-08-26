@@ -4,6 +4,17 @@ All notable changes to Codex Safe Core are documented here.
 
 ## Unreleased
 
+## 4.3.0 - 2026-08-27
+
+### Changed
+
+- Add a shared cost-aware execution planner for the entire Codex Safe Family: normalized Codex token usage, conservative request preflight, deterministic evidence-risk scoring, adaptive cap-preserving budgets, optional low-risk model routing, risk-prioritized total-byte selection and concurrent token reservations.
+- Make `runStructuredCodex()` return normalized usage, request estimates and duration, and optionally reject an over-budget request before Codex capability probing or process startup.
+- Move generic Token/efficiency primitives into the Core ownership boundary so Commit, Review, PR and Review Service consume one implementation instead of drifting product-local copies.
+- Lock the quality invariant that efficiency may reduce work only through explicit policy/budget decisions; evidence omitted by a budget must remain visible to the product and cannot silently become a successful coverage verdict.
+- Add deterministic regression tests for usage parsing, preflight behavior, risk/model routing, adaptive budget caps, MR-wide byte selection and concurrent reservation overshoot.
+- Keep Safe Contract v2, Policy Schema v3, Review/Commit Receipt v4 and Prompt Contracts v1 unchanged; Core 4.3.0 is a shared execution-efficiency feature release, not a protocol compatibility layer.
+
 ## 4.2.0 - 2026-08-26
 
 ### Changed

@@ -8,6 +8,11 @@
     "policy-schema",
     "semantic-context",
     "review-evidence-chunking",
+    "token-usage-normalization",
+    "token-preflight-estimation",
+    "risk-aware-budgeting",
+    "model-routing-primitives",
+    "token-reservation-ledger",
     "review-rules",
     "receipt-validation",
     "canonical-fingerprints"
@@ -16,6 +21,8 @@
     "SAFE_CODEX_CONFIG_OVERRIDES",
     "buildSafeCodexArgs",
     "buildReviewEvidenceChunks",
+    "extractCodexUsage",
+    "TokenBudgetLedger",
     "validateReviewReceipt",
     "validateCommitReceipt",
     "CURRENT_POLICY_SCHEMA_VERSION"
@@ -26,6 +33,8 @@
     "pr-domain",
     "provider-adapters",
     "gitlab-service-operations",
+    "incremental-review-state",
+    "finding-carry-forward",
     "sqlite-outbox",
     "notifications"
   ]

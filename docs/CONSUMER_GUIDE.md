@@ -31,7 +31,22 @@ Governance/docs-only Core updates do not require consumer product-version bumps 
 
 `core-ownership-manifest.json` records Core-owned primitives. Consumer products must import/consume those primitives instead of declaring independent Process/Codex/Policy/Receipt/Review-Evidence implementations. Family Compatibility runs a boundary linter before accepting a baseline.
 
-Provider adapters, SQLite/outbox, notifications, deployment and product-domain orchestration stay in the owning product and must not be pulled into Core.
+Provider adapters, SQLite/outbox, notifications, deployment, incremental-review persistence and product-domain orchestration stay in the owning product and must not be pulled into Core.
+
+## Token, efficiency, and quality contract
+
+Core v4.3 owns the generic cost-aware execution primitives used by every product:
+
+- Codex JSONL usage normalization for input, cached-input, cache-write, output and reasoning-output tokens;
+- conservative request-token estimation and optional fail-closed preflight before a Codex process starts;
+- deterministic evidence risk scoring, adaptive budgets that may shrink but never exceed an effective cap, and optional low-risk model routing;
+- risk-prioritized total-byte planning with explicit omissions rather than silent coverage claims;
+- in-process token reservation for products that execute multiple jobs concurrently;
+- `runStructuredCodex()` execution metadata: normalized usage, request estimate and duration.
+
+Consumers own the policy values and product behavior around these primitives. Commit may optimize staged semantic context, Review may prioritize review chunks, PR may bound description synthesis, and Review Service may persist project budgets and incremental state. Consumers must not copy Core usage parsing, token estimation or reservation implementations.
+
+Efficiency is subordinate to correctness: a budget-induced evidence omission must be surfaced explicitly. Products must never convert incomplete evidence into a successful quality verdict merely to save tokens.
 
 ## Safe Contract identity
 
@@ -50,4 +65,4 @@ Run:
 npm run ci
 ```
 
-Core CI covers contract/runtime identity, deterministic review rules, adversarial safety fixtures, golden behavior, broad performance budgets, trusted release governance and supply-chain canaries. Family Compatibility additionally validates exact consumer pins, ownership boundaries and every consumer CI before producing the attested family baseline.
+Core CI covers contract/runtime identity, deterministic review rules, adversarial safety fixtures, golden behavior, cost/usage planning, broad performance budgets, trusted release governance and supply-chain canaries. Family Compatibility additionally validates exact consumer pins, ownership boundaries and every consumer CI before producing the attested family baseline.

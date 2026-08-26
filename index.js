@@ -6,6 +6,7 @@ module.exports = Object.freeze({
   ...require('./codex-cli'),
   ...require('./git-repository'),
   ...require('./context-builder'),
+  ...require('./efficiency-planner'),
   ...require('./policy'),
   ...require('./review-rules')
 });

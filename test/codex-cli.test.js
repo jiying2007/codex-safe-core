@@ -18,7 +18,10 @@ function createRunner({ missingExec = false, finalText = '{"ok":true}', failExec
     if (args.includes('exec')) {
       if (failExec) throw failExec;
       return {
-        stdout: JSON.stringify({ type: 'item.completed', item: { type: 'agent_message', text: finalText } }) + '\n',
+        stdout: [
+          JSON.stringify({ type: 'turn.completed', usage: { input_tokens: 100, cached_input_tokens: 30, output_tokens: 20, reasoning_output_tokens: 7 } }),
+          JSON.stringify({ type: 'item.completed', item: { type: 'agent_message', text: finalText } })
+        ].join('\n') + '\n',
         stderr: ''
       };
     }
@@ -60,7 +63,7 @@ test('capability probing is fail closed and cached', async () => {
   );
 });
 
-test('structured execution runs from a temporary directory and validates final JSON', async () => {
+test('structured execution returns usage, request estimate, and duration', async () => {
   const fake = createRunner();
   const cli = createCodexCli({ runPreparedProcess: fake.runPreparedProcess, tempPrefix: 'codex-safe-core-test-' });
   const result = await cli.runStructuredCodex({
@@ -68,14 +71,36 @@ test('structured execution runs from a temporary directory and validates final J
     model: '',
     timeoutMs: 1000,
     schema: { type: 'object', additionalProperties: false, properties: { ok: { type: 'boolean' } }, required: ['ok'] },
-    input: 'untrusted input'
+    input: 'untrusted input',
+    estimatedOutputTokens: 100
   });
   assert.deepEqual(result.parsed, { ok: true });
+  assert.equal(result.usage.inputTokens, 100);
+  assert.equal(result.usage.cachedInputTokens, 30);
+  assert.equal(result.usage.outputTokens, 20);
+  assert.ok(result.requestEstimate.totalTokens >= 100);
+  assert.ok(result.durationMs >= 0);
   const exec = fake.calls.find(call => call.args.includes('exec') && call.args.includes('--output-schema'));
   assert.ok(exec);
   assert.equal(exec.stdinText, 'untrusted input');
   assert.ok(exec.options.cwd);
   assert.ok(exec.args.indexOf('--ask-for-approval') < exec.args.indexOf('exec'));
+});
+
+test('structured execution rejects over-budget input before probing or executing Codex', async () => {
+  const fake = createRunner();
+  const cli = createCodexCli({ runPreparedProcess: fake.runPreparedProcess });
+  await assert.rejects(
+    cli.runStructuredCodex({
+      codexPath: 'codex',
+      schema: { type: 'object' },
+      input: 'x'.repeat(4000),
+      maxEstimatedTokens: 100,
+      estimatedOutputTokens: 100
+    }),
+    error => error?.code === 'ETOKENBUDGET'
+  );
+  assert.equal(fake.calls.length, 0);
 });
 
 test('CLI argument rejection is classified as version incompatibility', async () => {
