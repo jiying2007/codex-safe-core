@@ -1,0 +1,40 @@
+name: Performance Trend
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '29 4 * * 1'
+
+permissions:
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@e51e5fe84fc33b4c73ebe40526b2694712b5b858
+        with:
+          node-version: '22.22.2'
+      - name: Run broad performance budget and snapshot
+        run: |
+          node --test test/performance-budget.test.js
+          node scripts/write-performance-snapshot.js PERFORMANCE_SNAPSHOT.json
+      - name: Persist append-only performance snapshot
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          short="${GITHUB_SHA:0:12}"
+          asset="performance-${short}.json"
+          mv PERFORMANCE_SNAPSHOT.json "$asset"
+          tag="codex-safe-performance-history"
+          gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --target "$GITHUB_SHA" --title "Codex Safe performance history" --notes "Append-only broad regression snapshots; not a microbenchmark contract."
+          if gh release view "$tag" --json assets --jq '.assets[].name' | grep -Fxq "$asset"; then
+            echo "performance record already exists for $short"
+          else
+            gh release upload "$tag" "$asset"
+          fi
