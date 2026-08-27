@@ -7,6 +7,7 @@ const path=require('node:path');
 const root=path.resolve(__dirname,'..');
 const release=fs.readFileSync(path.join(root,'.github','workflows','release.yml'),'utf8');
 const trusted=fs.readFileSync(path.join(root,'.github','workflows','_trusted-release.yml'),'utf8');
+const family=fs.readFileSync(path.join(root,'.github','workflows','family-ci.yml'),'utf8');
 
 test('validation workflow is read-only and covers both LTS runtimes plus reproducibility',()=>{
   assert.match(release,/name: Release Validation/);
@@ -40,7 +41,14 @@ test('trusted release provenance action stays SHA-pinned to v4.2.2',()=>{
   assert.doesNotMatch(trusted,/actions\/attest-build-provenance@(?:v|main|master)/);
 });
 
-test('trusted release remains immutable, reproducible and provenance-complete',()=>{
+test('trusted release requires platform Immutable Releases and verifies final release state',()=>{
+  assert.match(trusted,/X-GitHub-Api-Version: 2026-03-10/);
+  assert.match(trusted,/repos\/\$\{GITHUB_REPOSITORY\}\/immutable-releases/);
+  assert.match(trusted,/releases\/tags\/\$\{RELEASE_TAG\}[\s\S]*--jq '\.immutable'/);
+  assert.match(trusted,/did not become immutable/);
+});
+
+test('trusted release remains reproducible and provenance-complete',()=>{
   assert.match(trusted,/npm run check:contract/);
   assert.match(trusted,/npm run check:reproducible/);
   assert.match(trusted,/npm run ci/);
@@ -50,4 +58,11 @@ test('trusted release remains immutable, reproducible and provenance-complete',(
   assert.match(trusted,/SHA256SUMS/);
   assert.match(trusted,/gh release create/);
   assert.doesNotMatch(trusted,/--clobber/);
+});
+
+test('Family publication has one canonical manifest and no duplicate baseline/BOM assets',()=>{
+  assert.match(family,/FAMILY_MANIFEST\.json/);
+  assert.match(family,/generate-family-manifest\.js/);
+  assert.match(family,/codex-safe-family-manifest/);
+  assert.doesNotMatch(family,/FAMILY_BASELINE\.json|FAMILY_BOM\.json|generate-family-baseline\.js/);
 });
