@@ -8,7 +8,7 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const read = name => fs.readFileSync(path.join(root, name), 'utf8');
 
-for (const name of ['README.md', 'README.zh-CN.md', 'docs/CONSUMER_GUIDE.md', 'docs/CONSUMER_GUIDE.zh-CN.md', 'SUPPORT.md']) {
+for (const name of ['README.md', 'README.zh-CN.md', 'docs/CONSUMER_GUIDE.md', 'docs/CONSUMER_GUIDE.zh-CN.md', 'docs/QUALITY_PLATFORM.md', 'docs/QUALITY_PLATFORM.zh-CN.md', 'SUPPORT.md']) {
   test(`${name} is a permanent product entry`, () => assert.ok(fs.existsSync(path.join(root, name))));
 }
 
@@ -25,4 +25,10 @@ test('current product docs stay on Family v4 semantics', () => {
   assert.match(text, /Policy Schema v3/);
   assert.match(text, /Review Receipt v4/);
   assert.doesNotMatch(text, /Safe Core v[123]\b|Review Receipt v[123]\b|Commit Receipt v[123]\b/);
+});
+
+test('quality platform docs define profiles, analyzer evidence, eval and safe patch boundaries bilingually',()=>{
+  const text=`${read('docs/QUALITY_PLATFORM.md')}\n${read('docs/QUALITY_PLATFORM.zh-CN.md')}`;
+  for(const value of ['quick','standard','deep','security','embedded','SARIF','FAMILY_MANIFEST.json'])assert.match(text,new RegExp(value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
+  assert.match(text,/never applies, commits, pushes or merges|永远不会自动 apply、commit、push 或 merge/);
 });
