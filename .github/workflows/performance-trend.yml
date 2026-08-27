@@ -22,6 +22,20 @@ jobs:
         run: |
           node --test test/performance-budget.test.js
           node scripts/write-performance-snapshot.js PERFORMANCE_SNAPSHOT.json
+      - name: Compare with previous same-runner snapshot
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="codex-safe-performance-history"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            previous="$(gh release view "$tag" --json assets --jq '.assets | map(select(.name | test("^performance-.*\\.json$"))) | sort_by(.createdAt) | last | .name // ""')"
+            if [[ -n "$previous" ]]; then
+              gh release download "$tag" --pattern "$previous" --dir previous
+              node scripts/compare-performance-snapshot.js PERFORMANCE_SNAPSHOT.json "previous/$previous"
+            fi
+          fi
       - name: Persist append-only performance snapshot
         env:
           GH_TOKEN: ${{ github.token }}
@@ -32,7 +46,7 @@ jobs:
           asset="performance-${short}.json"
           mv PERFORMANCE_SNAPSHOT.json "$asset"
           tag="codex-safe-performance-history"
-          gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --target "$GITHUB_SHA" --title "Codex Safe performance history" --notes "Append-only broad regression snapshots; not a microbenchmark contract."
+          gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --target "$GITHUB_SHA" --title "Codex Safe performance history" --notes "Append-only broad regression snapshots with relative regression checks."
           if gh release view "$tag" --json assets --jq '.assets[].name' | grep -Fxq "$asset"; then
             echo "performance record already exists for $short"
           else
