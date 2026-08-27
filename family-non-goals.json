@@ -1,19 +1,25 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "core": {
     "forbiddenRuntimeDomains": ["gitlab", "provider", "notification", "sqlite", "database"],
     "forbidRuntimeDependencies": true,
-    "forbidBranchTrackingSubmodule": true
+    "forbidBranchTrackingSubmodule": true,
+    "forbidRepositoryDefinedAnalyzerCommands": true,
+    "forbidImplicitNetworkRetrieval": true
   },
   "family": {
     "canonicalPolicyFile": ".codex-safe.json",
     "forbiddenLegacyPolicyFiles": [".codex-review.json", ".codex-commit.json", ".codex-pr.json"],
     "forbidCompatibilityProxy": true,
-    "forbidUnpinnedActions": true
+    "forbidUnpinnedActions": true,
+    "forbidModelAutoCommitPushMerge": true,
+    "forbidSelfTrainingFromFeedback": true,
+    "singleFamilyManifest": true
   },
   "reviewService": {
     "productionPlatforms": ["linux"],
     "runnerTransport": "unix-domain-socket",
-    "forbiddenCompatibilitySurfaces": ["named-pipe-runner", "legacy-policy", "branch-following-core"]
+    "forbiddenCompatibilitySurfaces": ["named-pipe-runner", "legacy-policy", "branch-following-core"],
+    "multiTenantIsolation": false
   }
 }

@@ -4,6 +4,18 @@ All notable changes to Codex Safe Core are documented here.
 
 ## Unreleased
 
+## 4.4.0 - 2026-08-27
+
+### Changed
+
+- Add the shared Quality Platform: deterministic review profiles (`quick`, `standard`, `deep`, `security`, `embedded`), bounded semantic Impact Evidence Graphs, normalized generic/SARIF analyzer findings, quality/cost evaluation primitives, safe patch-proposal validation and relative performance comparison.
+- Add a checked synthetic defect corpus and offline quality gate covering Critical Recall, Recall, Precision, false positives, duplicate/invalid-line rates and Token per true positive; Critical Recall is fail-closed at 100% and live/model result files can be supplied separately.
+- Replace duplicated Family Baseline/BOM generation with one canonical `FAMILY_MANIFEST.json` carrying exact Core/consumer SHAs, protocol/runtime identities and package/product-contract digests under one manifest digest.
+- Make Core ownership and non-goal governance reject consumer reimplementation of Quality Platform primitives, repository-defined analyzer execution commands, implicit Core network evidence retrieval and the return of duplicate Family manifest surfaces.
+- Extend broad 4 MiB performance coverage to Impact/Token/Risk planning and add scheduled same-runner relative regression checks.
+- Require release workflows to verify GitHub Immutable Releases are enabled and verify the published Release API reports `immutable=true`; digest addressing alone is no longer described as immutability.
+- Keep Safe Contract v2, Policy Schema v3, Review/Commit Receipt v4 and Prompt Contracts v1 unchanged; Core 4.4.0 adds shared quality/evidence/execution capabilities without a repository-policy compatibility layer.
+
 ## 4.3.0 - 2026-08-27
 
 ### Changed

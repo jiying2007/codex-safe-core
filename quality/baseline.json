@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "criticalRecall": 1,
+  "recall": 1,
+  "precision": 1,
+  "falsePositivePerReview": 0,
+  "tokensPerTruePositive": 1065
+}

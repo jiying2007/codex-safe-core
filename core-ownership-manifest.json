@@ -13,6 +13,12 @@
     "risk-aware-budgeting",
     "model-routing-primitives",
     "token-reservation-ledger",
+    "review-profiles",
+    "impact-evidence-graph",
+    "analyzer-finding-normalization",
+    "quality-evaluation",
+    "patch-proposal-validation",
+    "performance-regression-comparison",
     "review-rules",
     "receipt-validation",
     "canonical-fingerprints"
@@ -23,6 +29,11 @@
     "buildReviewEvidenceChunks",
     "extractCodexUsage",
     "TokenBudgetLedger",
+    "resolveReviewProfile",
+    "buildImpactEvidenceGraph",
+    "normalizeSarif",
+    "evaluateQualityResults",
+    "validatePatchProposal",
     "validateReviewReceipt",
     "validateCommitReceipt",
     "CURRENT_POLICY_SCHEMA_VERSION"
@@ -35,6 +46,8 @@
     "gitlab-service-operations",
     "incremental-review-state",
     "finding-carry-forward",
+    "analyzer-report-acquisition",
+    "human-finding-resolution",
     "sqlite-outbox",
     "notifications"
   ]
