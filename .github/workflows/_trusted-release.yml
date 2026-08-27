@@ -41,16 +41,6 @@ jobs:
             echo "Validated SHA ${validated_sha} is no longer current main (${remote_main}); refusing stale release." >&2
             exit 1
           }
-      - name: Require repository Immutable Releases
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          gh api -H 'X-GitHub-Api-Version: 2026-03-10' "repos/${GITHUB_REPOSITORY}/immutable-releases" >/dev/null || {
-            echo 'GitHub Immutable Releases must be enabled before publication.' >&2
-            exit 1
-          }
       - name: Resolve immutable release decision
         id: decision
         env:
@@ -65,18 +55,25 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           if gh release view "$tag" >/dev/null 2>&1; then
+            tag_sha=$(git ls-remote origin "refs/tags/${tag}" | awk '{print $1}')
+            test -n "$tag_sha"
+            test "$tag_sha" = "$VALIDATED_SHA" || {
+              echo "Existing formal release ${tag} points to ${tag_sha}, expected ${VALIDATED_SHA}." >&2
+              exit 1
+            }
             test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${tag}" --jq '.immutable')" = true || {
               echo "Existing formal release ${tag} is not immutable." >&2
               exit 1
             }
-            echo "Formal release ${tag} already exists and is immutable; no new publication is required."
+            gh release verify "$tag"
+            echo "Formal release ${tag} already exists, points to validated main, and is immutable; no new publication is required."
             echo "publish=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           if git ls-remote --exit-code --refs origin "refs/tags/${tag}" >/dev/null 2>&1; then
             git fetch --force origin "refs/tags/${tag}:refs/tags/${tag}"
             test "$(git rev-list -n 1 "$tag")" = "$VALIDATED_SHA" || {
-              echo "Unreleased immutable tag ${tag} does not point to validated SHA ${VALIDATED_SHA}." >&2
+              echo "Unreleased tag ${tag} does not point to validated SHA ${VALIDATED_SHA}." >&2
               exit 1
             }
           fi
@@ -113,7 +110,7 @@ jobs:
             CORE_CONTRACT.json
             CORE_OWNERSHIP_MANIFEST.json
             SHA256SUMS
-      - name: Ensure immutable release tag
+      - name: Ensure release tag
         if: steps.decision.outputs.publish == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -128,7 +125,7 @@ jobs:
           else
             gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" -f ref="refs/tags/${RELEASE_TAG}" -f sha="$VALIDATED_SHA" >/dev/null
           fi
-      - name: Publish immutable GitHub Release
+      - name: Publish and verify immutable GitHub Release
         if: steps.decision.outputs.publish == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -139,7 +136,17 @@ jobs:
           set -euo pipefail
           test -n "$ARTIFACT"
           gh release create "$RELEASE_TAG" "$ARTIFACT" SBOM.spdx.json CORE_CONTRACT.json CORE_OWNERSHIP_MANIFEST.json SHA256SUMS --title "Codex Safe Core ${{ steps.decision.outputs.version }}" --generate-notes --verify-tag
-          test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" --jq '.immutable')" = true || {
+          immutable=false
+          for attempt in {1..12}; do
+            immutable=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" --jq '.immutable')
+            [[ "$immutable" == true ]] && break
+            sleep 5
+          done
+          test "$immutable" = true || {
             echo "Published release ${RELEASE_TAG} did not become immutable." >&2
             exit 1
           }
+          gh release verify "$RELEASE_TAG"
+          for asset in "$ARTIFACT" SBOM.spdx.json CORE_CONTRACT.json CORE_OWNERSHIP_MANIFEST.json SHA256SUMS; do
+            gh release verify-asset "$RELEASE_TAG" "$asset"
+          done

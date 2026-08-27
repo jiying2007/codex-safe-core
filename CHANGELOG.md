@@ -4,6 +4,15 @@ All notable changes to Codex Safe Core are documented here.
 
 ## Unreleased
 
+## 4.4.1 - 2026-08-27
+
+### Changed
+
+- Replace the repository-admin `immutable-releases` preflight with authoritative post-publication verification because the standard Actions `GITHUB_TOKEN` cannot read repository Administration settings.
+- Verify every new Core and Family Manifest release reaches `immutable=true`, passes `gh release verify`, and matches each locally generated release asset through `gh release verify-asset`; publication remains fail-closed.
+- Require an already-existing formal Core release to be both immutable and still tag-exact to the validated canonical `main` SHA before treating publication as complete.
+- Keep Safe Contract v2, Policy Schema v3, Receipt v4, Prompt Contracts v1 and Quality Platform v1 unchanged; this is a supply-chain publication patch only.
+
 ## 4.4.0 - 2026-08-27
 
 ### Changed

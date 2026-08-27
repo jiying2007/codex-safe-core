@@ -109,16 +109,12 @@ jobs:
           name: codex-safe-family-manifest
           path: FAMILY_MANIFEST.json
           if-no-files-found: error
-      - name: Publish immutable digest-addressed Family manifest release
+      - name: Publish and verify immutable digest-addressed Family manifest release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          gh api -H 'X-GitHub-Api-Version: 2026-03-10' "repos/${GITHUB_REPOSITORY}/immutable-releases" >/dev/null || {
-            echo 'GitHub Immutable Releases must be enabled before Family manifest publication.' >&2
-            exit 1
-          }
           version="$(node -p "require('./core-contract.json').coreVersion")"
           digest="$(node -p "require('./FAMILY_MANIFEST.json').manifestDigest")"
           tag="family-manifest-v${version}-${digest:0:12}"
@@ -127,7 +123,15 @@ jobs:
           else
             gh release create "$tag" FAMILY_MANIFEST.json --target "$GITHUB_SHA" --title "Codex Safe Family manifest ${version} ${digest:0:12}" --notes "Machine-generated and provenance-attested exact Core/consumer manifest. This release is historical family evidence, not an end-user product release."
           fi
-          test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${tag}" --jq '.immutable')" = true || {
+          immutable=false
+          for attempt in {1..12}; do
+            immutable=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${tag}" --jq '.immutable')
+            [[ "$immutable" == true ]] && break
+            sleep 5
+          done
+          test "$immutable" = true || {
             echo "Family manifest release ${tag} is not immutable." >&2
             exit 1
           }
+          gh release verify "$tag"
+          gh release verify-asset "$tag" FAMILY_MANIFEST.json
