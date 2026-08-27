@@ -29,8 +29,11 @@ test('trusted publication is workflow_run gated to successful main validation',(
   assert.match(trusted,/test "\$remote_main" = "\$validated_sha"/);
 });
 
-test('formal release is skipped while orphan tag retry stays exact-head',()=>{
-  assert.match(trusted,/gh release view "\$tag"[\s\S]*publish=false/);
+test('formal release is skipped only when immutable and still exact-head',()=>{
+  assert.match(trusted,/gh release view "\$tag"[\s\S]*tag_sha=.*git ls-remote origin[\s\S]*VALIDATED_SHA/);
+  assert.match(trusted,/Existing formal release \$\{tag\} is not immutable/);
+  assert.match(trusted,/gh release verify "\$tag"/);
+  assert.match(trusted,/publish=false/);
   assert.match(trusted,/git ls-remote --exit-code --refs origin "refs\/tags\/\$\{tag\}"/);
   assert.match(trusted,/git rev-list -n 1 "\$tag"[\s\S]*VALIDATED_SHA/);
   assert.match(trusted,/publish=true/);
@@ -41,11 +44,12 @@ test('trusted release provenance action stays SHA-pinned to v4.2.2',()=>{
   assert.doesNotMatch(trusted,/actions\/attest-build-provenance@(?:v|main|master)/);
 });
 
-test('trusted release requires platform Immutable Releases and verifies final release state',()=>{
-  assert.match(trusted,/X-GitHub-Api-Version: 2026-03-10/);
-  assert.match(trusted,/repos\/\$\{GITHUB_REPOSITORY\}\/immutable-releases/);
+test('trusted release verifies actual immutable state without repository-admin preflight',()=>{
+  assert.doesNotMatch(trusted,/\/immutable-releases/);
   assert.match(trusted,/releases\/tags\/\$\{RELEASE_TAG\}[\s\S]*--jq '\.immutable'/);
   assert.match(trusted,/did not become immutable/);
+  assert.match(trusted,/gh release verify "\$RELEASE_TAG"/);
+  assert.match(trusted,/gh release verify-asset "\$RELEASE_TAG"/);
 });
 
 test('trusted release remains reproducible and provenance-complete',()=>{
@@ -60,9 +64,12 @@ test('trusted release remains reproducible and provenance-complete',()=>{
   assert.doesNotMatch(trusted,/--clobber/);
 });
 
-test('Family publication has one canonical manifest and no duplicate baseline/BOM assets',()=>{
+test('Family publication has one canonical manifest and verifies immutable release assets',()=>{
   assert.match(family,/FAMILY_MANIFEST\.json/);
   assert.match(family,/generate-family-manifest\.js/);
   assert.match(family,/codex-safe-family-manifest/);
   assert.doesNotMatch(family,/FAMILY_BASELINE\.json|FAMILY_BOM\.json|generate-family-baseline\.js/);
+  assert.doesNotMatch(family,/\/immutable-releases/);
+  assert.match(family,/gh release verify "\$tag"/);
+  assert.match(family,/gh release verify-asset "\$tag" FAMILY_MANIFEST\.json/);
 });
