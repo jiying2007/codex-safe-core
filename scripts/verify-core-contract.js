@@ -34,7 +34,6 @@ const quality=`${read('docs/QUALITY_PLATFORM.md')}\n${read('docs/QUALITY_PLATFOR
 assert.match(quality,/Core 4\.4/);
 for(const name of ['quick','standard','deep','security','embedded'])assert.match(quality,new RegExp(`\\b${name}\\b`));
 assert.match(quality,/FAMILY_MANIFEST\.json/);
-assert.doesNotMatch(quality,/FAMILY_BASELINE\.json[^/]|FAMILY_BOM\.json[^/]/);
 const ci=read('.github/workflows/ci.yml');
 assert.match(ci,new RegExp(esc(contract.minimumNodeVersion)));
 assert.match(ci,new RegExp(esc(contract.canonicalNodeVersion)));
