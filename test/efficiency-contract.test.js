@@ -4,8 +4,10 @@ const assert=require('node:assert/strict');
 const contract=require('../core-contract.json');
 const pkg=require('../package.json');
 
-test('Core v4.3 efficiency release preserves protocol identities',()=>{
-  assert.equal(contract.coreVersion,'4.3.0');
+test('Core v4 efficiency line preserves protocol identities while allowing feature releases',()=>{
+  const [major,minor]=String(contract.coreVersion).split('.').map(Number);
+  assert.equal(major,4);
+  assert.ok(minor>=3,'efficiency planner requires Core 4.3 or newer');
   assert.equal(pkg.version,contract.coreVersion);
   assert.equal(contract.safeCoreMajorVersion,4);
   assert.equal(contract.safeContractVersion,2);
