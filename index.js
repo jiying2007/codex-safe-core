@@ -7,6 +7,7 @@ module.exports = Object.freeze({
   ...require('./git-repository'),
   ...require('./context-builder'),
   ...require('./efficiency-planner'),
+  ...require('./quality-platform'),
   ...require('./policy'),
   ...require('./review-rules')
 });
