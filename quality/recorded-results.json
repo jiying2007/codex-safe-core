@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "results": [
+    {"id":"uaf-native","findings":[{"severity":"critical","category":"resource","file":"src/uaf.c","line":12,"fingerprint":"uaf"}],"usage":{"inputTokens":1200,"outputTokens":150}},
+    {"id":"command-injection","findings":[{"severity":"critical","category":"security","file":"src/cmd.js","line":18,"fingerprint":"cmd"}],"usage":{"inputTokens":900,"outputTokens":120}},
+    {"id":"lock-order","findings":[{"severity":"high","category":"concurrency","file":"src/lock.c","line":31,"fingerprint":"lock"}],"usage":{"inputTokens":1100,"outputTokens":140}},
+    {"id":"ota-rollback","findings":[{"severity":"high","category":"correctness","file":"src/ota.c","line":44,"fingerprint":"ota"}],"usage":{"inputTokens":1000,"outputTokens":130}},
+    {"id":"isr-blocking","findings":[{"severity":"high","category":"concurrency","file":"src/irq.c","line":9,"fingerprint":"isr"}],"usage":{"inputTokens":850,"outputTokens":110}},
+    {"id":"missing-test","findings":[{"severity":"medium","category":"test","file":"src/api.js","line":21,"fingerprint":"test"}],"usage":{"inputTokens":700,"outputTokens":90}}
+  ]
+}
