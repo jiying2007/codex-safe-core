@@ -23,15 +23,52 @@ git -C src/codex-safe-core rev-parse HEAD
 4. 运行四个 Consumer 各自完整 CI。
 5. 全部通过后再合并 Consumer。
 6. 最后运行 Family Compatibility，确认所有 Consumer 与 canonical Core HEAD 一致。
-7. 要求生成的 `FAMILY_BASELINE.json` 中四个 Consumer 都精确 pin 同一 Core SHA，并保留对应 GitHub provenance attestation。
+7. 要求生成的 `FAMILY_MANIFEST.json` 中四个 Consumer 都精确 pin 同一 Core SHA，并保留对应 GitHub provenance attestation。
 
 仅治理/文档类 Core 维护不要求 Consumer 强制升级产品版本；只有产品/runtime 语义变化才需要版本发布。但 gitlink 仍必须协调 repin，因为它就是产品族 Trust Root 锁。
 
 ## 职责边界
 
-`core-ownership-manifest.json` 记录 Core-owned primitive。Consumer 必须消费这些实现，不能自行声明独立的 Process/Codex/Policy/Receipt/Review-Evidence 原语。Family Compatibility 在接受 baseline 前会运行 ownership boundary linter。
+`core-ownership-manifest.json` 记录 Core-owned primitive。Consumer 必须消费这些实现，不能自行声明独立的 Process/Codex/Policy/Receipt/Review-Evidence 原语。Family Compatibility 在接受 manifest 前会运行 ownership boundary linter。
 
-Provider adapter、SQLite/outbox、通知、部署、增量审核持久状态与产品领域 orchestration 继续属于对应产品，不进入 Core。
+SCM Provider adapter、SQLite/outbox、通知、部署、增量审核持久状态与产品领域 orchestration 继续属于对应产品，不进入 Core。Codex 模型 Provider Runtime 则属于另一层：安全 Provider 配置、凭据引用、timeout 规则和错误分类必须由 Core 统一拥有，保证 Commit / Review / PR / Review Service 以同一种方式启动 Codex。
+
+## Codex Runtime / Provider 契约
+
+Core v4.6 新增全产品族统一 Codex Runtime Contract，同时保持 Safe Contract v2 不变。
+
+只支持两种 Provider 模式：
+
+- `openai`：使用 Codex 内置 OpenAI provider。Core 不读取用户 `config.toml`；Codex 原生登录/API Key 行为仍由 Codex 自己负责。
+- `openai-compatible`：由 Consumer 显式提供 OpenAI-compatible Responses endpoint。Core 通过受控 `--config` 注入合成 provider，同时继续强制 `--ignore-user-config` 与 `--ignore-rules`。
+
+兼容 Provider 只接受 `baseUrl` 和 API Key 环境变量名，不接受 secret 值。Secret 不进入配置、argv、receipt 或日志。除 loopback 开发地址外必须使用 HTTPS；带用户名密码、query 或 fragment 的 URL 直接拒绝。
+
+OpenAI-compatible 模式固定为 `wire_api="responses"`、`requires_openai_auth=false`、`supports_websockets=false`，即直接使用 HTTP/SSE，避免企业网关、中转站或代理环境不支持 Responses WebSocket upgrade 时先长时间重试。安全执行边界没有放松：不会恢复用户 config、仓库 rules、MCP、hooks、tools、web search 或其它权限能力。
+
+Consumer 只负责把产品设置转换为统一 runtime 对象：
+
+```js
+const runtime = {
+  provider: {
+    mode: 'openai-compatible',
+    baseUrl: 'https://relay.example.com/v1',
+    apiKeyEnv: 'RELAY_API_KEY'
+  },
+  timeouts: {
+    connectMs: 15000,
+    requestMs: 180000,
+    operationMs: 600000,
+    idleMs: 60000
+  }
+};
+```
+
+`requestMs` 是单次 Codex 请求上限；`operationMs` 是一次产品操作包含多次模型请求时的总 deadline。Consumer 必须按自己的 orchestration 使用总 deadline，不能继续用一个 `timeoutSeconds` 同时承担两种语义。
+
+`probeCodexRuntime()` 是唯一正式的 live Environment Check。它必须经过与真实调用完全相同的 executable resolution、Safe Contract flags、Provider Bridge、credential reference、Responses transport 与 structured-output 路径。只跑 `codex --version` / `--help` 不能宣称 Runtime Ready。
+
+Core 统一输出稳定错误码：`ECODEX_PROVIDER_CONFIG`、`ECODEX_CREDENTIAL`、`ECODEX_DNS`、`ECODEX_CONNECT`、`ECODEX_TLS`、`ECODEX_AUTH`、`ECODEX_RATE_LIMIT`、`ECODEX_MODEL`、`ECODEX_REQUEST_TIMEOUT` 等。进程 timeout 会保留限长 stdout/stderr tail、elapsed time 和 last-activity age；Consumer 可以展示 Core 脱敏后的字段，但禁止输出 secret。
 
 ## Token、效率与质量契约
 
@@ -63,4 +100,4 @@ Digest 用于精确证据，不替代语义协议版本。Receipt v4 保持闭�
 npm run ci
 ```
 
-Core CI 覆盖 contract/runtime 身份、确定性 Review Rules、adversarial safety fixtures、Family Golden Corpus、Token/成本 Planner、宽松性能回归预算、trusted release 治理与 supply-chain canary。Family Compatibility 还会验证 Consumer 精确 pin、ownership boundary 和四个 Consumer CI，然后生成可 attestation 的 Family Baseline。
+Core CI 覆盖 contract/runtime 身份、Provider Runtime 安全、确定性 Review Rules、adversarial safety fixtures、Family Golden Corpus、Token/成本 Planner、宽松性能回归预算、trusted release 治理与 supply-chain canary。Family Compatibility 还会验证 Consumer 精确 pin、ownership boundary 和四个 Consumer CI，然后生成可 attestation 的 Family Manifest。
