@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "core": {
-    "forbiddenRuntimeDomains": ["gitlab", "provider", "notification", "sqlite", "database"],
+    "forbiddenRuntimeDomains": ["gitlab", "scm-provider", "notification", "sqlite", "database"],
     "forbidRuntimeDependencies": true,
     "forbidBranchTrackingSubmodule": true,
     "forbidRepositoryDefinedAnalyzerCommands": true,
