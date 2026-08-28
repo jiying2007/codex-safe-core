@@ -113,15 +113,21 @@ test('structured execution injects a safe HTTP-only compatible provider before s
 test('live runtime probe uses the same structured provider path', async () => {
   const fake = createRunner();
   const cli = createCodexCli({ runPreparedProcess: fake.runPreparedProcess });
-  const probe = await cli.probeCodexRuntime({
-    codexPath: 'codex',
-    runtime: {
-      provider: { mode: 'openai-compatible', baseUrl: 'https://relay.example.com/v1', apiKeyEnv: 'RELAY_API_KEY' }
-    },
-    token: undefined
-  ,});
-  assert.equal(probe.ok, true);
-  assert.equal(probe.provider.mode, 'openai-compatible');
+  const previous = process.env.RELAY_API_KEY;
+  process.env.RELAY_API_KEY = 'secret';
+  try {
+    const probe = await cli.probeCodexRuntime({
+      codexPath: 'codex',
+      runtime: {
+        provider: { mode: 'openai-compatible', baseUrl: 'https://relay.example.com/v1', apiKeyEnv: 'RELAY_API_KEY' }
+      }
+    });
+    assert.equal(probe.ok, true);
+    assert.equal(probe.provider.mode, 'openai-compatible');
+  } finally {
+    if (previous === undefined) delete process.env.RELAY_API_KEY;
+    else process.env.RELAY_API_KEY = previous;
+  }
 });
 
 test('missing compatible-provider credential fails before Codex probing', async () => {
