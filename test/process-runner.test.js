@@ -46,10 +46,18 @@ test('stdout limits fail closed', async () => {
   );
 });
 
-test('timeouts terminate the process', async () => {
+test('timeouts terminate the process and preserve bounded diagnostics', async () => {
   await assert.rejects(
-    runner.runProcess(process.execPath, ['-e', 'setTimeout(() => {}, 10000)'], { timeoutMs: 50 }),
+    runner.runProcess(
+      process.execPath,
+      ['-e', 'process.stdout.write("partial-out");process.stderr.write("partial-err");setTimeout(() => {}, 10000)'],
+      { timeoutMs: 50 }
+    ),
     error => error?.code === 'ETIMEDOUT'
+      && error.stdoutTail.includes('partial-out')
+      && error.stderrTail.includes('partial-err')
+      && Number.isFinite(error.elapsedMs)
+      && Number.isFinite(error.lastActivityMs)
   );
 });
 
