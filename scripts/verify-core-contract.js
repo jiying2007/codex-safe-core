@@ -20,7 +20,7 @@ assert.equal(safe.COMMIT_RECEIPT_SCHEMA_VERSION,contract.commitReceiptVersion);
 assert.equal(safe.REVIEW_PROMPT_CONTRACT_VERSION,contract.reviewPromptContractVersion);
 assert.equal(safe.COMMIT_PROMPT_CONTRACT_VERSION,contract.commitPromptContractVersion);
 assert.equal(safe.PR_PROMPT_CONTRACT_VERSION,contract.prPromptContractVersion);
-for(const key of ['qualityPlatformVersion','reviewProfileVersion','impactEvidenceVersion','analyzerFindingVersion','patchProposalVersion','semanticReviewVersion','evidenceManifestVersion','reviewKeyVersion','findingLedgerVersion','findingVerificationVersion','familyManifestVersion'])assert.ok(Number.isInteger(contract[key])&&contract[key]>=1,`${key} must be a positive integer`);
+for(const key of ['qualityPlatformVersion','reviewProfileVersion','impactEvidenceVersion','analyzerFindingVersion','patchProposalVersion','semanticReviewVersion','evidenceManifestVersion','reviewKeyVersion','findingLedgerVersion','findingVerificationVersion','familyManifestVersion','codexRuntimeVersion','providerContractVersion','diagnosticContractVersion'])assert.ok(Number.isInteger(contract[key])&&contract[key]>=1,`${key} must be a positive integer`);
 assert.match(safe.SAFE_CONTRACT_DIGEST,/^[0-9a-f]{64}$/);
 const expected=crypto.createHash('sha256').update(JSON.stringify(safe.SAFE_CONTRACT_MANIFEST)).digest('hex');
 assert.equal(safe.SAFE_CONTRACT_DIGEST,expected);
@@ -31,11 +31,11 @@ for(const file of ['README.md','README.zh-CN.md','ARCHITECTURE.md','SECURITY.md'
   assert.doesNotMatch(text,/Review Receipt v3|Commit Receipt v3|Safe Core v3/,`${file} stale v3 protocol facts`);
 }
 const quality=`${read('docs/QUALITY_PLATFORM.md')}\n${read('docs/QUALITY_PLATFORM.zh-CN.md')}`;
-assert.match(quality,/Core 4\.5/);
+assert.match(quality,/Core 4\.(?:5|6)/);
 for(const name of ['quick','standard','deep','security','embedded'])assert.match(quality,new RegExp(`\\b${name}\\b`));
 assert.match(quality,/FAMILY_MANIFEST\.json/);
 assert.match(quality,/semantic review contracts/i);
 const ci=read('.github/workflows/ci.yml');
 assert.match(ci,new RegExp(esc(contract.minimumNodeVersion)));
 assert.match(ci,new RegExp(esc(contract.canonicalNodeVersion)));
-console.log(`Core contract verified: ${contract.coreVersion}, Safe Contract ${contract.safeContractVersion}, Quality Platform ${contract.qualityPlatformVersion}, Node ${pkg.engines.node}, digest ${safe.SAFE_CONTRACT_DIGEST}.`);
+console.log(`Core contract verified: ${contract.coreVersion}, Safe Contract ${contract.safeContractVersion}, Runtime ${contract.codexRuntimeVersion}, Provider ${contract.providerContractVersion}, Diagnostics ${contract.diagnosticContractVersion}, Node ${pkg.engines.node}, digest ${safe.SAFE_CONTRACT_DIGEST}.`);

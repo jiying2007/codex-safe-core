@@ -1,5 +1,15 @@
 # Changelog
 
+## 4.6.0 - 2026-08-28
+
+### Codex runtime/provider platform
+
+- Add one Core-owned Codex Runtime/Provider Contract for Commit, Review, PR and Review Service while preserving Safe Contract v2 and the mandatory `--ignore-user-config` / `--ignore-rules` isolation boundary.
+- Add explicit `openai` and `openai-compatible` runtime modes. Compatible providers accept only an HTTPS `baseUrl` and API-key environment-variable name, inject a synthetic Responses provider, and force `supports_websockets=false` so gateways and relays use HTTP/SSE instead of the fragile Responses WebSocket path.
+- Split per-request and whole-operation timeout semantics, add a live `probeCodexRuntime()` through the real structured execution path, classify provider configuration/credential/DNS/connect/TLS/auth/rate-limit/model/request-timeout failures, and preserve bounded process diagnostic tails with elapsed/last-activity timing.
+- Make runtime provider normalization, credential-by-reference handling, provider argv injection, error classification and runtime diagnostics Core-owned so consumers cannot drift or re-enable user configuration as a compatibility shortcut.
+- Keep Safe Contract v2, Policy Schema v3, Review/Commit Receipt v4 and Prompt Contracts v1 unchanged.
+
 ## 4.5.0 - 2026-08-28
 
 ### Semantic review platform

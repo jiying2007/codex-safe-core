@@ -7,13 +7,14 @@ const path = require('path');
 /** @typedef {{dispose: () => void}} DisposableLike */
 /** @typedef {{isCancellationRequested: boolean, onCancellationRequested: (listener: () => void) => DisposableLike}} CancellationTokenLike */
 /** @typedef {{cwd?: string, env?: NodeJS.ProcessEnv, shell?: boolean, windowsVerbatimArguments?: boolean, timeoutMs?: number, maxStdoutBytes?: number, maxStderrBytes?: number}} ProcessOptions */
-/** @typedef {Error & {code?: string|number, stdout?: string|Buffer, stderr?: string|Buffer}} ProcessError */
+/** @typedef {Error & {code?: string|number, stdout?: string|Buffer, stderr?: string|Buffer, stdoutTail?: string, stderrTail?: string, elapsedMs?: number, lastActivityMs?: number}} ProcessError */
 
 const DEFAULT_TEXT_STDOUT_LIMIT = 4 * 1024 * 1024;
 const DEFAULT_TEXT_STDERR_LIMIT = 1 * 1024 * 1024;
 const DEFAULT_BUFFER_STDOUT_LIMIT = 16 * 1024 * 1024;
 const DEFAULT_BUFFER_STDERR_LIMIT = 256 * 1024;
 const FORCE_KILL_DELAY_MS = 1500;
+const DIAGNOSTIC_TAIL_BYTES = 16 * 1024;
 
 function createProcessRunner(ui = (_zh, en) => en) {
   if (typeof ui !== 'function') throw new TypeError('createProcessRunner requires a translation function.');
@@ -65,6 +66,12 @@ function createProcessRunner(ui = (_zh, en) => en) {
     return error;
   }
 
+  function bufferTail(chunks, maxBytes = DIAGNOSTIC_TAIL_BYTES) {
+    if (!chunks.length || maxBytes <= 0) return '';
+    const buffer = Buffer.concat(chunks);
+    return buffer.subarray(Math.max(0, buffer.length - maxBytes)).toString('utf8');
+  }
+
   function execute(command, args, options = {}, stdinText = '', cancellationToken, mode = 'text') {
     if (options.shell === true) {
       const error = new Error('Shell execution is forbidden by Codex Safe Core.');
@@ -97,6 +104,8 @@ function createProcessRunner(ui = (_zh, en) => en) {
       const stderrChunks = [];
       let stdoutBytes = 0;
       let stderrBytes = 0;
+      const startedAt = Date.now();
+      let lastActivityAt = startedAt;
 
       const cleanup = () => {
         if (timeoutHandle) clearTimeout(timeoutHandle);
@@ -109,6 +118,16 @@ function createProcessRunner(ui = (_zh, en) => en) {
         settled = true;
         cleanup();
         fn(value);
+      };
+
+      const attachDiagnostics = error => {
+        if (!error || typeof error !== 'object') return error;
+        const now = Date.now();
+        error.stdoutTail = bufferTail(stdoutChunks);
+        error.stderrTail = bufferTail(stderrChunks);
+        error.elapsedMs = Math.max(0, now - startedAt);
+        error.lastActivityMs = Math.max(0, now - lastActivityAt);
+        return error;
       };
 
       const killTree = () => {
@@ -151,12 +170,12 @@ function createProcessRunner(ui = (_zh, en) => en) {
       const terminate = error => {
         if (terminating || settled) return;
         terminating = true;
-        terminationError = error;
+        terminationError = attachDiagnostics(error);
         void killTree().finally(() => {
           if (settled) return;
           forceKillHandle = setTimeout(() => {
             forceKillTree();
-            settle(reject, error);
+            settle(reject, attachDiagnostics(error));
           }, FORCE_KILL_DELAY_MS);
         });
       };
@@ -176,6 +195,7 @@ function createProcessRunner(ui = (_zh, en) => en) {
       }
 
       child.stdout.on('data', chunk => {
+        lastActivityAt = Date.now();
         const buffer = Buffer.from(chunk);
         stdoutBytes += buffer.length;
         if (stdoutBytes > maxStdoutBytes) {
@@ -190,6 +210,7 @@ function createProcessRunner(ui = (_zh, en) => en) {
       });
 
       child.stderr.on('data', chunk => {
+        lastActivityAt = Date.now();
         const buffer = Buffer.from(chunk);
         stderrBytes += buffer.length;
         if (stderrBytes > maxStderrBytes) {
@@ -204,13 +225,13 @@ function createProcessRunner(ui = (_zh, en) => en) {
       });
 
       child.stdin.on('error', error => {
-        if (error?.code !== 'EPIPE' && !terminating) settle(reject, error);
+        if (error?.code !== 'EPIPE' && !terminating) settle(reject, attachDiagnostics(error));
       });
-      child.once('error', error => settle(reject, error));
+      child.once('error', error => settle(reject, attachDiagnostics(error)));
       child.once('close', code => {
         if (settled) return;
         if (terminationError) {
-          settle(reject, terminationError);
+          settle(reject, attachDiagnostics(terminationError));
           return;
         }
         const stdoutBuffer = Buffer.concat(stdoutChunks);
@@ -232,7 +253,7 @@ function createProcessRunner(ui = (_zh, en) => en) {
         error.code = code ?? -1;
         error.stdout = stdout;
         error.stderr = stderr;
-        settle(reject, error);
+        settle(reject, attachDiagnostics(error));
       });
 
       if (timeoutMs > 0) {
@@ -298,5 +319,6 @@ module.exports = {
   DEFAULT_BUFFER_STDOUT_LIMIT,
   DEFAULT_BUFFER_STDERR_LIMIT,
   FORCE_KILL_DELAY_MS,
+  DIAGNOSTIC_TAIL_BYTES,
   createProcessRunner
 };
