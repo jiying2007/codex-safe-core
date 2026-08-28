@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.5.0 - 2026-08-28
+
+### Semantic review platform
+
+- Add pure, product-agnostic semantic review contracts for immutable Evidence Manifests, stable Review Keys, stable Finding IDs, evidence-scoped human resolutions, evidence-backed finding verification, chunk-scoped evidence selection, and repeated-review stability.
+- Add ordinary C/C++ call-symbol extraction so products can resolve declaration/definition evidence for unchanged dependencies without letting Core perform repository I/O.
+- Keep Safe Contract v2, Policy Schema v3, Review/Commit Receipt v4, and product Git/network boundaries unchanged.
+
 All notable changes to Codex Safe Core are documented here.
 
 ## Unreleased
