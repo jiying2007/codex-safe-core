@@ -1,5 +1,5 @@
 {
-  "coreVersion": "4.4.1",
+  "coreVersion": "4.5.0",
   "safeCoreMajorVersion": 4,
   "safeContractVersion": 2,
   "policySchemaVersion": 3,
@@ -8,13 +8,21 @@
   "reviewPromptContractVersion": 1,
   "commitPromptContractVersion": 1,
   "prPromptContractVersion": 1,
-  "qualityPlatformVersion": 1,
+  "qualityPlatformVersion": 2,
   "reviewProfileVersion": 1,
-  "impactEvidenceVersion": 1,
+  "impactEvidenceVersion": 2,
   "analyzerFindingVersion": 1,
   "patchProposalVersion": 1,
   "familyManifestVersion": 2,
-  "supportedNodeMajors": [22, 24],
+  "supportedNodeMajors": [
+    22,
+    24
+  ],
   "minimumNodeVersion": "22.22.2",
-  "canonicalNodeVersion": "24.19.0"
+  "canonicalNodeVersion": "24.19.0",
+  "semanticReviewVersion": 1,
+  "evidenceManifestVersion": 1,
+  "reviewKeyVersion": 1,
+  "findingLedgerVersion": 1,
+  "findingVerificationVersion": 1
 }

@@ -21,7 +21,14 @@
     "performance-regression-comparison",
     "review-rules",
     "receipt-validation",
-    "canonical-fingerprints"
+    "canonical-fingerprints",
+    "semantic-review-evidence-contracts",
+    "evidence-manifest-digests",
+    "stable-review-keys",
+    "stable-finding-identities",
+    "finding-resolution-primitives",
+    "evidence-backed-finding-verification",
+    "repeated-review-stability"
   ],
   "consumerForbiddenImplementations": [
     "SAFE_CODEX_CONFIG_OVERRIDES",
@@ -36,7 +43,12 @@
     "validatePatchProposal",
     "validateReviewReceipt",
     "validateCommitReceipt",
-    "CURRENT_POLICY_SCHEMA_VERSION"
+    "CURRENT_POLICY_SCHEMA_VERSION",
+    "buildEvidenceManifest",
+    "computeReviewKey",
+    "computeStableFindingId",
+    "validateEvidenceBackedFinding",
+    "compareFindingSets"
   ],
   "productOwned": [
     "commit-domain",

@@ -1,6 +1,6 @@
 # 质量平台
 
-Codex Safe Core 4.4 增加统一、确定性的质量原语，同时继续禁止把 GitLab、VS Code、数据库、通知等产品职责塞进 Core。
+Codex Safe Core 4.5 增加统一、确定性的质量原语，同时继续禁止把 GitLab、VS Code、数据库、通知等产品职责塞进 Core。
 
 ## Review Profile
 
@@ -29,3 +29,8 @@ Core 只验证候选 unified patch。二进制补丁、超出已审证据路径�
 ## Family Manifest
 
 删除内容重复的 `FAMILY_BASELINE.json` / `FAMILY_BOM.json` 双文件，统一为 `FAMILY_MANIFEST.json`。其中记录 Core/Consumer 精确 SHA、协议版本、Runtime、package-lock digest、product-contract digest，并由唯一 manifest digest 锁定。
+
+
+## Semantic review contracts
+
+Core 4.5 新增纯函数语义 Review 契约：不可变 Evidence Manifest 摘要、稳定 Review Key、稳定 Finding ID、按证据摘要生效的人工 Resolution、证据支撑的验证等级/状态、按 chunk 选择证据、重复 Review 稳定性以及 C/C++ 调用符号提取。Core 不读取仓库，也不执行 analyzer/model；产品负责获取绑定 Git Index 的受限证据，再交给 Core。

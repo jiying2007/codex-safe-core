@@ -1,6 +1,6 @@
 # Quality Platform
 
-Codex Safe Core 4.4 adds shared, deterministic quality primitives without moving product-owned GitLab, VS Code, database or notification concerns into Core.
+Codex Safe Core 4.5 adds shared, deterministic quality primitives without moving product-owned GitLab, VS Code, database or notification concerns into Core.
 
 ## Review profiles
 
@@ -29,3 +29,8 @@ Broad absolute budgets remain as catastrophic regression guards. Scheduled perfo
 ## Family manifest
 
 The duplicated `FAMILY_BASELINE.json` / `FAMILY_BOM.json` pair is replaced by one `FAMILY_MANIFEST.json`. It records exact Core and consumer SHAs, protocol versions, runtime versions, package-lock digests and product-contract digests under one canonical manifest digest.
+
+
+## Semantic review contracts
+
+Core 4.5 adds pure semantic review contracts: immutable Evidence Manifest digests, stable Review Keys, stable Finding IDs, evidence-scoped human resolutions, evidence-backed verification grades/statuses, chunk-scoped evidence selection, repeated-review stability, and C/C++ call-symbol extraction. Core never reads repositories or executes analyzers/models for these contracts; products acquire index-pinned evidence and pass bounded data into Core.

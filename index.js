@@ -8,6 +8,7 @@ module.exports = Object.freeze({
   ...require('./context-builder'),
   ...require('./efficiency-planner'),
   ...require('./quality-platform'),
+  ...require('./semantic-review'),
   ...require('./policy'),
   ...require('./review-rules')
 });
