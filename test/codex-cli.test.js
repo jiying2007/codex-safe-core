@@ -63,7 +63,7 @@ test('capability probing is fail closed and cached', async () => {
   );
 });
 
-test('structured execution returns usage, request estimate, and duration', async () => {
+test('structured execution returns usage, request estimate, provider metadata, and duration', async () => {
   const fake = createRunner();
   const cli = createCodexCli({ runPreparedProcess: fake.runPreparedProcess, tempPrefix: 'codex-safe-core-test-' });
   const result = await cli.runStructuredCodex({
@@ -78,6 +78,7 @@ test('structured execution returns usage, request estimate, and duration', async
   assert.equal(result.usage.inputTokens, 100);
   assert.equal(result.usage.cachedInputTokens, 30);
   assert.equal(result.usage.outputTokens, 20);
+  assert.equal(result.provider.mode, 'openai');
   assert.ok(result.requestEstimate.totalTokens >= 100);
   assert.ok(result.durationMs >= 0);
   const exec = fake.calls.find(call => call.args.includes('exec') && call.args.includes('--output-schema'));
@@ -85,6 +86,57 @@ test('structured execution returns usage, request estimate, and duration', async
   assert.equal(exec.stdinText, 'untrusted input');
   assert.ok(exec.options.cwd);
   assert.ok(exec.args.indexOf('--ask-for-approval') < exec.args.indexOf('exec'));
+});
+
+test('structured execution injects a safe HTTP-only compatible provider before stdin marker', async () => {
+  const fake = createRunner();
+  const cli = createCodexCli({ runPreparedProcess: fake.runPreparedProcess });
+  await cli.runStructuredCodex({
+    codexPath: 'codex',
+    runtime: {
+      provider: { mode: 'openai-compatible', baseUrl: 'https://relay.example.com/v1', apiKeyEnv: 'RELAY_API_KEY' },
+      timeouts: { requestMs: 120000, operationMs: 300000 }
+    },
+    processOptions: { env: { RELAY_API_KEY: 'secret' } },
+    schema: { type: 'object', additionalProperties: false, properties: { ok: { type: 'boolean' } }, required: ['ok'] },
+    input: 'x'
+  });
+  const exec = fake.calls.find(call => call.args.includes('exec') && call.args.includes('--output-schema'));
+  assert.equal(exec.args.at(-1), '-');
+  assert.ok(exec.args.includes('model_provider="codex_safe_compatible"'));
+  assert.ok(exec.args.includes('model_providers.codex_safe_compatible.supports_websockets=false'));
+  assert.ok(exec.args.includes('model_providers.codex_safe_compatible.wire_api="responses"'));
+  assert.equal(exec.options.timeoutMs, 120000);
+  assert.ok(!exec.args.join(' ').includes('secret'));
+});
+
+test('live runtime probe uses the same structured provider path', async () => {
+  const fake = createRunner();
+  const cli = createCodexCli({ runPreparedProcess: fake.runPreparedProcess });
+  const probe = await cli.probeCodexRuntime({
+    codexPath: 'codex',
+    runtime: {
+      provider: { mode: 'openai-compatible', baseUrl: 'https://relay.example.com/v1', apiKeyEnv: 'RELAY_API_KEY' }
+    },
+    token: undefined
+  ,});
+  assert.equal(probe.ok, true);
+  assert.equal(probe.provider.mode, 'openai-compatible');
+});
+
+test('missing compatible-provider credential fails before Codex probing', async () => {
+  const fake = createRunner();
+  const cli = createCodexCli({ runPreparedProcess: fake.runPreparedProcess });
+  await assert.rejects(
+    cli.runStructuredCodex({
+      runtime: { provider: { mode: 'openai-compatible', baseUrl: 'https://relay.example.com/v1', apiKeyEnv: 'RELAY_API_KEY' } },
+      processOptions: { env: {} },
+      schema: { type: 'object' },
+      input: 'x'
+    }),
+    error => error?.code === 'ECODEX_CREDENTIAL'
+  );
+  assert.equal(fake.calls.length, 0);
 });
 
 test('structured execution rejects over-budget input before probing or executing Codex', async () => {
@@ -110,5 +162,20 @@ test('CLI argument rejection is classified as version incompatibility', async ()
   await assert.rejects(
     cli.runStructuredCodex({ codexPath: 'codex', schema: { type: 'object' }, input: 'x' }),
     value => value?.code === 'ECODEXVERSION'
+  );
+});
+
+test('provider DNS failures are classified with endpoint metadata', async () => {
+  const error = Object.assign(new Error('network'), { stderr: 'failed to lookup address information: Try again' });
+  const fake = createRunner({ failExec: error });
+  const cli = createCodexCli({ runPreparedProcess: fake.runPreparedProcess });
+  await assert.rejects(
+    cli.runStructuredCodex({
+      runtime: { provider: { mode: 'openai-compatible', baseUrl: 'https://relay.example.com/v1', apiKeyEnv: 'RELAY_API_KEY' } },
+      processOptions: { env: { RELAY_API_KEY: 'secret' } },
+      schema: { type: 'object' },
+      input: 'x'
+    }),
+    value => value?.code === 'ECODEX_DNS' && value.provider?.endpointHost === 'relay.example.com'
   );
 });
