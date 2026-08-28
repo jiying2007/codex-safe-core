@@ -23,15 +23,52 @@ The current machine contract is `core-contract.json`: **Safe Core v4 / Safe Cont
 4. Run every consumer CI.
 5. Merge consumers only when all are green.
 6. Run Family Compatibility against the canonical Core HEAD.
-7. Require the generated `FAMILY_BASELINE.json` to show the same Core pin for all four consumer SHAs and retain its GitHub provenance attestation.
+7. Require the generated `FAMILY_MANIFEST.json` to show the same Core pin for all four consumer SHAs and retain its GitHub provenance attestation.
 
 Governance/docs-only Core updates do not require consumer product-version bumps unless product/runtime semantics change. They still require coordinated gitlink repin because the gitlink is the family trust lock.
 
 ## Ownership boundary
 
-`core-ownership-manifest.json` records Core-owned primitives. Consumer products must import/consume those primitives instead of declaring independent Process/Codex/Policy/Receipt/Review-Evidence implementations. Family Compatibility runs a boundary linter before accepting a baseline.
+`core-ownership-manifest.json` records Core-owned primitives. Consumer products must import/consume those primitives instead of declaring independent Process/Codex/Policy/Receipt/Review-Evidence implementations. Family Compatibility runs a boundary linter before accepting a manifest.
 
-Provider adapters, SQLite/outbox, notifications, deployment, incremental-review persistence and product-domain orchestration stay in the owning product and must not be pulled into Core.
+SCM provider adapters, SQLite/outbox, notifications, deployment, incremental-review persistence and product-domain orchestration stay in the owning product and must not be pulled into Core. The Codex model-provider runtime is different: its safe configuration, credential-by-reference rules, timeout policy and error classification are Core-owned so all products invoke Codex identically.
+
+## Codex Runtime / Provider Contract
+
+Core v4.6 owns one explicit runtime contract for every Codex invocation while Safe Contract v2 remains unchanged.
+
+Supported provider modes are:
+
+- `openai` — the built-in Codex OpenAI provider. Core does not import user `config.toml`; normal Codex login/API-key behavior remains owned by Codex.
+- `openai-compatible` — an explicit OpenAI-compatible Responses endpoint supplied by the consumer. Core injects a synthetic provider through bounded `--config` overrides while still passing `--ignore-user-config` and `--ignore-rules`.
+
+The compatible-provider contract accepts only `baseUrl` and an API-key environment-variable name. The secret value is never accepted as configuration, argv or receipt metadata. HTTPS is mandatory except for loopback development endpoints. Query strings, URL credentials and fragments are rejected.
+
+Compatible providers are forced to `wire_api="responses"`, `requires_openai_auth=false` and `supports_websockets=false`. This intentionally uses HTTP/SSE rather than the Responses WebSocket path because corporate gateways and OpenAI-compatible relays frequently do not support the WebSocket upgrade. The Safe execution boundary remains unchanged: user config, repository rules, MCP, hooks, tools, web search and other authority-bearing settings are not restored.
+
+Consumers construct only product settings and pass a normalized runtime object to Core:
+
+```js
+const runtime = {
+  provider: {
+    mode: 'openai-compatible',
+    baseUrl: 'https://relay.example.com/v1',
+    apiKeyEnv: 'RELAY_API_KEY'
+  },
+  timeouts: {
+    connectMs: 15000,
+    requestMs: 180000,
+    operationMs: 600000,
+    idleMs: 60000
+  }
+};
+```
+
+`requestMs` is the per-Codex-call ceiling. `operationMs` is the product-level multi-call deadline and must be enforced by the consumer orchestration when one operation contains multiple structured calls. Consumers must not reuse the old single-timeout model for both concepts.
+
+`probeCodexRuntime()` is the canonical live environment check. It uses the same executable resolution, Safe Contract flags, provider bridge, credential reference, Responses transport and structured-output path as a real request. A capability-only `--version`/`--help` check must not be reported as runtime-ready.
+
+Core classifies provider failures into stable codes such as `ECODEX_PROVIDER_CONFIG`, `ECODEX_CREDENTIAL`, `ECODEX_DNS`, `ECODEX_CONNECT`, `ECODEX_TLS`, `ECODEX_AUTH`, `ECODEX_RATE_LIMIT`, `ECODEX_MODEL` and `ECODEX_REQUEST_TIMEOUT`. Timeout/process failures retain bounded stdout/stderr tails, elapsed time and last-activity age; consumer UIs may render those fields after Core redaction but must never print credential values.
 
 ## Token, efficiency, and quality contract
 
@@ -65,4 +102,4 @@ Run:
 npm run ci
 ```
 
-Core CI covers contract/runtime identity, deterministic review rules, adversarial safety fixtures, golden behavior, cost/usage planning, broad performance budgets, trusted release governance and supply-chain canaries. Family Compatibility additionally validates exact consumer pins, ownership boundaries and every consumer CI before producing the attested family baseline.
+Core CI covers contract/runtime identity, provider runtime safety, deterministic review rules, adversarial safety fixtures, golden behavior, cost/usage planning, broad performance budgets, trusted release governance and supply-chain canaries. Family Compatibility additionally validates exact consumer pins, ownership boundaries and every consumer CI before producing the attested family manifest.
