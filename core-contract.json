@@ -1,5 +1,5 @@
 {
-  "coreVersion": "4.5.0",
+  "coreVersion": "4.6.0",
   "safeCoreMajorVersion": 4,
   "safeContractVersion": 2,
   "policySchemaVersion": 3,
@@ -24,5 +24,8 @@
   "evidenceManifestVersion": 1,
   "reviewKeyVersion": 1,
   "findingLedgerVersion": 1,
-  "findingVerificationVersion": 1
+  "findingVerificationVersion": 1,
+  "codexRuntimeVersion": 1,
+  "providerContractVersion": 1,
+  "diagnosticContractVersion": 1
 }
