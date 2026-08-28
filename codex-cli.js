@@ -15,6 +15,13 @@ const {
   estimateRequestTokens,
   assertWithinTokenBudget
 } = require('./efficiency-planner');
+const {
+  normalizeCodexRuntimeOptions,
+  appendProviderArgs,
+  assertProviderCredential,
+  providerMetadata,
+  classifyCodexFailure
+} = require('./codex-runtime');
 
 function createError(code, message, cause, extra = {}) {
   const error = new Error(message);
@@ -167,8 +174,8 @@ function createCodexCli({ runPreparedProcess, tempPrefix = 'codex-safe-', capabi
     return result;
   }
 
-  function buildCodexArgs(schemaPath, model = '') {
-    return buildSafeCodexArgs(schemaPath, model);
+  function buildCodexArgs(schemaPath, model = '', runtime = {}) {
+    return appendProviderArgs(buildSafeCodexArgs(schemaPath, model), runtime);
   }
 
   async function withTemporaryDirectory(fn) {
@@ -182,6 +189,8 @@ function createCodexCli({ runPreparedProcess, tempPrefix = 'codex-safe-', capabi
     codexPath = 'codex',
     model = '',
     timeoutMs,
+    runtime = {},
+    phase = 'request',
     schema,
     input,
     schemaFileName = 'output-schema.json',
@@ -200,6 +209,11 @@ function createCodexCli({ runPreparedProcess, tempPrefix = 'codex-safe-', capabi
       throw new TypeError('processOptions must be an object.');
     }
 
+    const environment = processOptions.env || process.env;
+    const normalizedRuntime = assertProviderCredential(runtime, environment);
+    const effectiveTimeoutMs = timeoutMs === undefined
+      ? normalizedRuntime.timeouts.requestMs
+      : Math.min(Math.max(0, Math.floor(timeoutMs)), normalizedRuntime.timeouts.requestMs);
     const requestEstimate = Number(maxEstimatedTokens) > 0
       ? assertWithinTokenBudget(input, {
         maxTokens: Number(maxEstimatedTokens),
@@ -218,8 +232,8 @@ function createCodexCli({ runPreparedProcess, tempPrefix = 'codex-safe-', capabi
       try {
         processResult = await runPreparedProcess(
           resolved.executable,
-          buildCodexArgs(schemaPath, model),
-          { ...processOptions, cwd: tempDir, timeoutMs, maxStdoutBytes, maxStderrBytes },
+          buildCodexArgs(schemaPath, model, normalizedRuntime),
+          { ...processOptions, cwd: tempDir, timeoutMs: effectiveTimeoutMs, maxStdoutBytes, maxStderrBytes },
           input,
           token
         );
@@ -231,7 +245,7 @@ function createCodexCli({ runPreparedProcess, tempPrefix = 'codex-safe-', capabi
             error
           );
         }
-        throw error;
+        throw classifyCodexFailure(error, normalizedRuntime, { phase, env: environment });
       }
 
       const agentText = parseCodexJsonl(processResult.stdout);
@@ -244,8 +258,38 @@ function createCodexCli({ runPreparedProcess, tempPrefix = 'codex-safe-', capabi
         processResult,
         usage: extractCodexUsage(processResult.stdout),
         requestEstimate,
+        provider: providerMetadata(normalizedRuntime),
         durationMs: Math.max(0, Date.now() - started)
       };
+    });
+  }
+
+  async function probeCodexRuntime({ codexPath = 'codex', model = '', runtime = {}, timeoutMs, token } = {}) {
+    const normalizedRuntime = normalizeCodexRuntimeOptions(runtime);
+    const result = await runStructuredCodex({
+      codexPath,
+      model,
+      runtime: normalizedRuntime,
+      timeoutMs: timeoutMs === undefined ? Math.min(30000, normalizedRuntime.timeouts.requestMs) : timeoutMs,
+      phase: 'connectivity-probe',
+      schema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: { ok: { type: 'boolean', const: true } },
+        required: ['ok']
+      },
+      input: 'Connectivity probe. Return exactly {"ok":true} through the required output schema. Do not use tools or external data.',
+      schemaFileName: 'runtime-probe-schema.json',
+      token,
+      maxEstimatedTokens: 2048,
+      estimatedOutputTokens: 32
+    });
+    return Object.freeze({
+      ok: result.parsed?.ok === true,
+      codexVersion: result.resolved?.version || '',
+      model: model || 'cli-default',
+      provider: result.provider,
+      durationMs: result.durationMs
     });
   }
 
@@ -253,6 +297,7 @@ function createCodexCli({ runPreparedProcess, tempPrefix = 'codex-safe-', capabi
     findWindowsCodexCandidates,
     resolveCodexExecutable,
     probeCodexCapabilities,
+    probeCodexRuntime,
     buildCodexArgs,
     withTemporaryDirectory,
     runStructuredCodex,
