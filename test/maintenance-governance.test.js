@@ -10,8 +10,8 @@ const { spawnSync } = require('node:child_process');
 const root = path.resolve(__dirname, '..');
 const contributing = fs.readFileSync(path.join(root, 'CONTRIBUTING.md'), 'utf8');
 
-test('maintenance flow is coordinated across all three active consumers', () => {
-  for (const name of ['Codex Review Safe', 'Codex Commit Safe', 'Codex Review Service']) {
+test('maintenance flow is coordinated across all four active consumers', () => {
+  for (const name of ['Codex Review Safe', 'Codex Commit Safe', 'Codex Review Service', 'Codex Diagnose Safe']) {
     assert.match(contributing, new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
   assert.match(contributing, /Codex PR Safe is retired/i);
@@ -45,7 +45,7 @@ test('released artifacts document consumer-side attestation verification', () =>
 
 test('consumer boundary scan excludes the canonical Core submodule but still rejects consumer reimplementation', () => {
   const family = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-safe-family-boundary-'));
-  const repos = ['codex-commit','codex-review','codex-review-service'];
+  const repos = ['codex-commit','codex-review','codex-review-service','codex-diagnose'];
   try {
     for (const repo of repos) {
       const repoRoot = path.join(family, repo);

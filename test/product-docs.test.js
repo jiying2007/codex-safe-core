@@ -15,7 +15,7 @@ for (const name of ['README.md', 'README.zh-CN.md', 'docs/CONSUMER_GUIDE.md', 'd
 test('Core README directs end users to active products rather than pretending Core is standalone', () => {
   const text = `${read('README.md')}\n${read('README.zh-CN.md')}`;
   assert.match(text, /not a standalone end-user application|不是面向最终用户独立安装使用的应用/);
-  for (const product of ['Codex Review Safe', 'Codex Commit Safe', 'Codex Review Service']) assert.match(text, new RegExp(product));
+  for (const product of ['Codex Review Safe', 'Codex Commit Safe', 'Codex Review Service', 'Codex Diagnose Safe']) assert.match(text, new RegExp(product));
   assert.match(text, /Codex PR Safe[^\n]{0,80}(?:retired|已退役)/i);
 });
 
@@ -25,11 +25,12 @@ test('current product docs stay on Family v4 semantics', () => {
   assert.match(text, /Safe Contract v2/);
   assert.match(text, /Policy Schema v3/);
   assert.match(text, /Review Receipt v4/);
+  assert.match(text, /Diagnosis Receipt v1/);
   assert.doesNotMatch(text, /Safe Core v[123]\b|Review Receipt v[123]\b|Commit Receipt v[123]\b/);
 });
 
-test('quality platform docs define profiles, analyzer evidence, eval and safe patch boundaries bilingually',()=>{
+test('quality platform docs define profiles analyzer test-impact diagnosis and safe patch boundaries bilingually',()=>{
   const text=`${read('docs/QUALITY_PLATFORM.md')}\n${read('docs/QUALITY_PLATFORM.zh-CN.md')}`;
-  for(const value of ['quick','standard','deep','security','embedded','SARIF','FAMILY_MANIFEST.json'])assert.match(text,new RegExp(value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
+  for(const value of ['quick','standard','deep','security','embedded','embedded-linux','embedded-mcu','driver','kernel','realtime','SARIF','Test Impact','Diagnosis','FAMILY_MANIFEST.json'])assert.match(text,new RegExp(value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i'));
   assert.match(text,/never applies, commits, pushes or merges|永远不会自动 apply、commit、push 或 merge/);
 });

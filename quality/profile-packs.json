@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "packs": {
+    "general": {
+      "baseProfile": "standard",
+      "focusCategories": ["correctness", "security", "concurrency", "resource", "robustness", "performance", "test"],
+      "checks": ["logic and boundary correctness", "error propagation", "resource lifetime", "concurrency safety", "security-sensitive behavior", "regression and test coverage"]
+    },
+    "backend": {
+      "baseProfile": "deep",
+      "focusCategories": ["correctness", "security", "concurrency", "resource", "robustness", "performance", "api", "test"],
+      "checks": ["transaction and idempotency semantics", "timeouts retries and backpressure", "concurrent state transitions", "API compatibility", "database and cache consistency", "authorization and secret boundaries"]
+    },
+    "frontend": {
+      "baseProfile": "standard",
+      "focusCategories": ["correctness", "security", "performance", "robustness", "api", "test"],
+      "checks": ["state synchronization", "async race conditions", "XSS and unsafe rendering", "accessibility-impacting regressions", "bundle or rendering regressions", "API contract drift"]
+    },
+    "security": {
+      "baseProfile": "security",
+      "focusCategories": ["security", "correctness", "resource", "api", "test"],
+      "checks": ["trust-boundary violations", "authentication and authorization", "injection and unsafe deserialization", "credential exposure", "cryptographic misuse", "supply-chain and dependency risk"]
+    },
+    "cpp": {
+      "baseProfile": "deep",
+      "focusCategories": ["correctness", "concurrency", "resource", "performance", "robustness", "api", "test"],
+      "checks": ["ownership and lifetime", "undefined behavior", "iterator and pointer validity", "exception and error safety", "thread safety", "ABI and API compatibility"]
+    },
+    "embedded-linux": {
+      "baseProfile": "embedded",
+      "focusCategories": ["correctness", "concurrency", "resource", "performance", "robustness", "api", "test"],
+      "checks": ["fd handle mmap and heap lifetime", "pthread mutex deadlock and cancellation", "signal and fork exec safety", "ioctl and errno propagation", "DMA cache coherency alignment and endian", "blocking IO watchdog restart and recovery"]
+    },
+    "embedded-mcu": {
+      "baseProfile": "embedded",
+      "focusCategories": ["correctness", "concurrency", "resource", "performance", "robustness", "test"],
+      "checks": ["ISR and critical-section safety", "volatile atomicity and register RMW", "stack and bounded memory usage", "peripheral and DMA lifecycle", "watchdog and brownout recovery", "flash wear bootloader OTA and rollback boundaries"]
+    },
+    "driver": {
+      "baseProfile": "embedded",
+      "focusCategories": ["correctness", "concurrency", "resource", "performance", "robustness", "api", "test"],
+      "checks": ["probe remove and error unwind symmetry", "IRQ DMA and cache ordering", "locking and sleep-context correctness", "userspace ABI and ioctl validation", "power-management transitions", "reference counting and lifetime"]
+    },
+    "kernel": {
+      "baseProfile": "embedded",
+      "focusCategories": ["correctness", "security", "concurrency", "resource", "performance", "robustness", "api", "test"],
+      "checks": ["sleeping versus atomic context", "RCU refcount and object lifetime", "lock ordering and IRQ context", "copy_to_user copy_from_user validation", "DMA memory ordering", "kernel ABI and subsystem conventions"]
+    },
+    "realtime": {
+      "baseProfile": "embedded",
+      "focusCategories": ["correctness", "concurrency", "resource", "performance", "robustness", "test"],
+      "checks": ["bounded execution time", "priority inversion and lock hold time", "allocation and blocking on realtime paths", "interrupt latency", "queue backpressure and deadline behavior", "watchdog and overload degradation"]
+    }
+  }
+}

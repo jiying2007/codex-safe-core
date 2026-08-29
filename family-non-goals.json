@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "core": {
-    "forbiddenRuntimeDomains": ["gitlab", "scm-provider", "notification", "sqlite", "database"],
+    "forbiddenRuntimeDomains": ["gitlab", "scm-provider", "notification", "sqlite", "database", "pipeline-api"],
     "forbidRuntimeDependencies": true,
     "forbidBranchTrackingSubmodule": true,
     "forbidRepositoryDefinedAnalyzerCommands": true,
@@ -14,12 +14,20 @@
     "forbidUnpinnedActions": true,
     "forbidModelAutoCommitPushMerge": true,
     "forbidSelfTrainingFromFeedback": true,
+    "forbidPrMrNarrativeGenerator": true,
     "singleFamilyManifest": true
   },
   "reviewService": {
     "productionPlatforms": ["linux"],
     "runnerTransport": "unix-domain-socket",
-    "forbiddenCompatibilitySurfaces": ["named-pipe-runner", "legacy-policy", "branch-following-core"],
+    "forbiddenCompatibilitySurfaces": ["named-pipe-runner", "legacy-policy", "branch-following-core", "shell-defined-analyzer-command"],
     "multiTenantIsolation": false
+  },
+  "diagnose": {
+    "modelMayMutateRepository": false,
+    "modelMayRetryPipeline": false,
+    "modelMayCreateMergeRequest": false,
+    "modelMayExecuteFailureLogInstructions": false,
+    "pipelineLogsAreUntrustedEvidence": true
   }
 }
