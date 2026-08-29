@@ -4,7 +4,7 @@ For end-user installation or usage issues, report them in the product repository
 
 - Review workflow → `jiying2007/codex-review`
 - Commit-message workflow → `jiying2007/codex-commit`
-- PR workflow → `jiying2007/codex-pr`
+- CI/build/test failure diagnosis → `jiying2007/codex-diagnose`
 - GitLab service deployment/operations → `jiying2007/codex-review-service`
 
 Use this Core repository for shared Safe Contract, process/Git primitives, Policy Schema, Receipt/provenance, Review Evidence, deterministic rules, Family Compatibility or Codex CLI capability regressions.

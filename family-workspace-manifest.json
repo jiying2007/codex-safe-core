@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "safeCore": {
+    "path": "codex-safe-core"
+  },
+  "activeConsumers": [
+    {
+      "name": "Codex Commit Safe",
+      "path": "codex-commit",
+      "safeCorePath": "src/codex-safe-core"
+    },
+    {
+      "name": "Codex Diagnose Safe",
+      "path": "codex-diagnose",
+      "safeCorePath": "src/codex-safe-core",
+      "contractPath": "product-contract.json"
+    },
+    {
+      "name": "Codex Review Safe",
+      "path": "codex-review",
+      "safeCorePath": "src/codex-safe-core"
+    },
+    {
+      "name": "Codex Review Service",
+      "path": "codex-review-service",
+      "safeCorePath": "src/codex-safe-core",
+      "contractPath": "product-contract.json"
+    }
+  ],
+  "retiredProducts": [
+    {
+      "name": "Codex PR Safe",
+      "path": "codex-pr"
+    }
+  ]
+}

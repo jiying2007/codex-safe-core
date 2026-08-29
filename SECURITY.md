@@ -2,9 +2,9 @@
 
 ## Scope
 
-Codex Safe Core is the canonical security/runtime and protocol boundary for Codex Review Safe, Codex Commit Safe, Codex PR Safe and Codex Review Service. A regression here is a product-family regression.
+Codex Safe Core is the canonical security/runtime and protocol boundary for Codex Review Safe, Codex Commit Safe, Codex Diagnose Safe and Codex Review Service. A regression here is a product-family regression. Codex PR Safe is retired and outside the active security boundary.
 
-Current protocol line: **Safe Core v4 / Safe Contract v2 / Policy Schema v3 / Review Receipt v4 / Commit Receipt v4 / Prompt Contracts v1**. `core-contract.json` is the machine-checked source of these current protocol/runtime facts.
+Current protocol line: **Safe Core v4 / Safe Contract v2 / Policy Schema v3 / Review Receipt v4 / Commit Receipt v4 / Diagnosis Receipt v1 / Prompt Contracts v1**. `core-contract.json` is the machine-checked source of these current protocol/runtime facts.
 
 ## Trust boundaries
 
@@ -43,7 +43,7 @@ Provider-specific immutable source windows (for example GitLab `start_sha/head_s
 - only `.codex-safe.json`;
 - `schemaVersion` must be `3`;
 - unknown top-level/section/rule fields fail closed;
-- sections: `commit`, `review`, `reviewService`, `pr`;
+- sections: `commit`, `review`, `reviewService`;
 - `review.rules` contains cross-product deterministic Review rules;
 - `reviewService` contains server-only context/coverage controls;
 - local consumers read policy from captured HEAD; Review Service reads from immutable target `start_sha`;
