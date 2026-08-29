@@ -53,20 +53,6 @@
         "skipGeneratedFiles": { "type": "boolean" },
         "blockUnreviewableFiles": { "type": "boolean" }
       }
-    },
-    "pr": {
-      "type": "object", "additionalProperties": false,
-      "properties": {
-        "language": { "enum": ["zh-CN", "en"] },
-        "baseBranch": { "type": "string", "maxLength": 256, "pattern": "^(?!-)[^\\u0000-\\u001F\\u007F]*$" },
-        "maxDiffBytes": { "type": "integer", "minimum": 4096, "maximum": 2097152 },
-        "maxCommitBytes": { "type": "integer", "minimum": 4096, "maximum": 524288 },
-        "titleMaxLength": { "type": "integer", "minimum": 40, "maximum": 160 },
-        "maxBodyChars": { "type": "integer", "minimum": 1000, "maximum": 20000 },
-        "includePullRequestTemplate": { "type": "boolean" },
-        "extraInstructions": { "type": "string", "maxLength": 4000 },
-        "timeoutSeconds": { "type": "integer", "minimum": 10, "maximum": 300 }
-      }
     }
   },
   "$defs": {

@@ -12,7 +12,7 @@ function fileSha(file){return crypto.createHash('sha256').update(fs.readFileSync
 const root=path.resolve(__dirname,'..');
 const familyDir=path.resolve(process.argv[2]||path.join(root,'family'));
 const out=path.resolve(process.argv[3]||path.join(root,'FAMILY_MANIFEST.json'));
-const names=['codex-commit','codex-review','codex-pr','codex-review-service'];
+const names=['codex-commit','codex-review','codex-review-service'];
 const coreSha=git(['rev-parse','HEAD']);
 const consumers={};
 
@@ -48,7 +48,6 @@ const payload={
     commitReceipt:contract.commitReceiptVersion,
     reviewPrompt:contract.reviewPromptContractVersion,
     commitPrompt:contract.commitPromptContractVersion,
-    prPrompt:contract.prPromptContractVersion,
     qualityPlatform:contract.qualityPlatformVersion,
     reviewProfile:contract.reviewProfileVersion,
     impactEvidence:contract.impactEvidenceVersion,

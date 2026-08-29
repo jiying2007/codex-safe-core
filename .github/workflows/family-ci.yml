@@ -29,20 +29,20 @@ jobs:
           node-version: '22.22.2'
       - name: Validate Core
         run: npm run ci
-      - name: Clone consumer repositories
+      - name: Clone active consumer repositories
         shell: bash
         run: |
           set -euo pipefail
           mkdir family
-          for repo in codex-commit codex-review codex-pr codex-review-service; do
+          for repo in codex-commit codex-review codex-review-service; do
             git clone --quiet --recurse-submodules "https://github.com/jiying2007/${repo}.git" "family/${repo}"
           done
-      - name: Verify all consumers pin this Core
+      - name: Verify all active consumers pin this Core
         shell: bash
         run: |
           set -euo pipefail
           core_sha="$(git rev-parse HEAD)"
-          for repo in codex-commit codex-review codex-pr codex-review-service; do
+          for repo in codex-commit codex-review codex-review-service; do
             pinned="$(git -C "family/${repo}" ls-files --stage src/codex-safe-core | awk '{print $2}')"
             test -n "$pinned"
             test "$pinned" = "$core_sha" || { echo "${repo} pins ${pinned}, expected ${core_sha}" >&2; exit 1; }
@@ -51,8 +51,8 @@ jobs:
           done
       - name: Verify consumers do not reimplement Core-owned primitives
         run: node scripts/verify-consumer-boundaries.js family
-      - name: Replay Family golden corpus through every consumer Core
-        run: node scripts/family-golden.js family/codex-commit/src/codex-safe-core family/codex-review/src/codex-safe-core family/codex-pr/src/codex-safe-core family/codex-review-service/src/codex-safe-core
+      - name: Replay Family golden corpus through every active consumer Core
+        run: node scripts/family-golden.js family/codex-commit/src/codex-safe-core family/codex-review/src/codex-safe-core family/codex-review-service/src/codex-safe-core
       - name: Install Linux Extension Host dependencies
         if: runner.os == 'Linux'
         shell: bash
@@ -64,7 +64,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for repo in codex-commit codex-review codex-pr codex-review-service; do
+          for repo in codex-commit codex-review codex-review-service; do
             echo "::group::${repo}"
             if [[ "$RUNNER_OS" == "Linux" ]]; then
               (cd "family/${repo}" && xvfb-run -a npm run ci)
@@ -89,12 +89,12 @@ jobs:
       - uses: actions/setup-node@e51e5fe84fc33b4c73ebe40526b2694712b5b858
         with:
           node-version: '22.22.2'
-      - name: Clone exact consumer heads
+      - name: Clone exact active consumer heads
         shell: bash
         run: |
           set -euo pipefail
           mkdir family
-          for repo in codex-commit codex-review codex-pr codex-review-service; do
+          for repo in codex-commit codex-review codex-review-service; do
             git clone --quiet --recurse-submodules "https://github.com/jiying2007/${repo}.git" "family/${repo}"
           done
       - name: Generate canonical Family manifest

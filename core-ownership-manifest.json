@@ -61,7 +61,6 @@
   "productOwned": [
     "commit-domain",
     "review-domain",
-    "pr-domain",
     "scm-provider-adapters",
     "gitlab-service-operations",
     "incremental-review-state",

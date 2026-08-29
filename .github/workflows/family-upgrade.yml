@@ -47,7 +47,7 @@ jobs:
           git config --global user.name 'codex-safe-family-bot'
           git config --global user.email 'codex-safe-family-bot@users.noreply.github.com'
           ORCH="$PWD/scripts/repin-consumer.js"
-          for repo in codex-commit codex-review codex-pr codex-review-service; do
+          for repo in codex-commit codex-review codex-review-service; do
             dir="$(mktemp -d)/$repo"
             git clone --quiet --recurse-submodules "https://x-access-token:${GH_TOKEN}@github.com/jiying2007/${repo}.git" "$dir"
             branch="repin-safe-core-v${CORE_VERSION}"
