@@ -12,10 +12,11 @@ for (const name of ['README.md', 'README.zh-CN.md', 'docs/CONSUMER_GUIDE.md', 'd
   test(`${name} is a permanent product entry`, () => assert.ok(fs.existsSync(path.join(root, name))));
 }
 
-test('Core README directs end users to products rather than pretending Core is standalone', () => {
+test('Core README directs end users to active products rather than pretending Core is standalone', () => {
   const text = `${read('README.md')}\n${read('README.zh-CN.md')}`;
   assert.match(text, /not a standalone end-user application|不是面向最终用户独立安装使用的应用/);
-  for (const product of ['Codex Review Safe', 'Codex Commit Safe', 'Codex PR Safe', 'Codex Review Service']) assert.match(text, new RegExp(product));
+  for (const product of ['Codex Review Safe', 'Codex Commit Safe', 'Codex Review Service']) assert.match(text, new RegExp(product));
+  assert.match(text, /Codex PR Safe[^\n]{0,80}(?:retired|已退役)/i);
 });
 
 test('current product docs stay on Family v4 semantics', () => {
