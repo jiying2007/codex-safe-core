@@ -19,7 +19,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 40
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -34,7 +34,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir family
-          for repo in codex-commit codex-review codex-review-service; do
+          for repo in codex-commit codex-review codex-review-service codex-diagnose; do
             git clone --quiet --recurse-submodules "https://github.com/jiying2007/${repo}.git" "family/${repo}"
           done
       - name: Verify all active consumers pin this Core
@@ -42,7 +42,7 @@ jobs:
         run: |
           set -euo pipefail
           core_sha="$(git rev-parse HEAD)"
-          for repo in codex-commit codex-review codex-review-service; do
+          for repo in codex-commit codex-review codex-review-service codex-diagnose; do
             pinned="$(git -C "family/${repo}" ls-files --stage src/codex-safe-core | awk '{print $2}')"
             test -n "$pinned"
             test "$pinned" = "$core_sha" || { echo "${repo} pins ${pinned}, expected ${core_sha}" >&2; exit 1; }
@@ -52,7 +52,7 @@ jobs:
       - name: Verify consumers do not reimplement Core-owned primitives
         run: node scripts/verify-consumer-boundaries.js family
       - name: Replay Family golden corpus through every active consumer Core
-        run: node scripts/family-golden.js family/codex-commit/src/codex-safe-core family/codex-review/src/codex-safe-core family/codex-review-service/src/codex-safe-core
+        run: node scripts/family-golden.js family/codex-commit/src/codex-safe-core family/codex-review/src/codex-safe-core family/codex-review-service/src/codex-safe-core family/codex-diagnose/src/codex-safe-core
       - name: Install Linux Extension Host dependencies
         if: runner.os == 'Linux'
         shell: bash
@@ -64,7 +64,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for repo in codex-commit codex-review codex-review-service; do
+          for repo in codex-commit codex-review codex-review-service codex-diagnose; do
             echo "::group::${repo}"
             if [[ "$RUNNER_OS" == "Linux" ]]; then
               (cd "family/${repo}" && xvfb-run -a npm run ci)
@@ -94,7 +94,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir family
-          for repo in codex-commit codex-review codex-review-service; do
+          for repo in codex-commit codex-review codex-review-service codex-diagnose; do
             git clone --quiet --recurse-submodules "https://github.com/jiying2007/${repo}.git" "family/${repo}"
           done
       - name: Generate canonical Family manifest
