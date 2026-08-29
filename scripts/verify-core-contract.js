@@ -7,6 +7,9 @@ const root=path.resolve(__dirname,'..');
 const contract=require('../core-contract.json');
 const pkg=require('../package.json');
 const safe=require('../safe-contract');
+const profiles=require('../review-profile-pack');
+const diagnosis=require('../diagnosis-platform');
+const testImpact=require('../test-impact');
 function read(file){return fs.readFileSync(path.join(root,file),'utf8');}
 function esc(s){return String(s).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
 assert.equal(pkg.version,contract.coreVersion);
@@ -21,22 +24,29 @@ assert.equal(safe.REVIEW_PROMPT_CONTRACT_VERSION,contract.reviewPromptContractVe
 assert.equal(safe.COMMIT_PROMPT_CONTRACT_VERSION,contract.commitPromptContractVersion);
 assert.equal(Object.prototype.hasOwnProperty.call(contract,'prPromptContractVersion'),false);
 assert.equal(Object.prototype.hasOwnProperty.call(safe,'PR_PROMPT_CONTRACT_VERSION'),false);
-for(const key of ['qualityPlatformVersion','reviewProfileVersion','impactEvidenceVersion','analyzerFindingVersion','patchProposalVersion','semanticReviewVersion','evidenceManifestVersion','reviewKeyVersion','findingLedgerVersion','findingVerificationVersion','familyManifestVersion','codexRuntimeVersion','providerContractVersion','diagnosticContractVersion'])assert.ok(Number.isInteger(contract[key])&&contract[key]>=1,`${key} must be a positive integer`);
+for(const key of ['qualityPlatformVersion','reviewProfileVersion','profilePackVersion','impactEvidenceVersion','testImpactVersion','analyzerFindingVersion','patchProposalVersion','diagnosePromptContractVersion','diagnosisContractVersion','diagnosisReceiptVersion','semanticReviewVersion','evidenceManifestVersion','reviewKeyVersion','findingLedgerVersion','findingVerificationVersion','familyManifestVersion','codexRuntimeVersion','providerContractVersion','diagnosticContractVersion'])assert.ok(Number.isInteger(contract[key])&&contract[key]>=1,`${key} must be a positive integer`);
+assert.equal(contract.profilePackVersion,profiles.PROFILE_PACK_VERSION);
+assert.equal(contract.testImpactVersion,testImpact.TEST_IMPACT_VERSION);
+assert.equal(contract.diagnosisContractVersion,diagnosis.DIAGNOSIS_CONTRACT_VERSION);
+assert.equal(contract.diagnosisReceiptVersion,diagnosis.DIAGNOSIS_RECEIPT_VERSION);
 assert.match(safe.SAFE_CONTRACT_DIGEST,/^[0-9a-f]{64}$/);
 const expected=crypto.createHash('sha256').update(JSON.stringify(safe.SAFE_CONTRACT_MANIFEST)).digest('hex');
 assert.equal(safe.SAFE_CONTRACT_DIGEST,expected);
 for(const file of ['README.md','README.zh-CN.md','ARCHITECTURE.md','SECURITY.md','docs/CONSUMER_GUIDE.md','docs/CONSUMER_GUIDE.zh-CN.md']){
   const text=read(file);
-  assert.match(text,new RegExp(`Safe Core[^\n]{0,30}(?:v)?${contract.safeCoreMajorVersion}`, 'i'),`${file} Core major drift`);
-  assert.match(text,new RegExp(`Safe Contract[^\n]{0,30}(?:v)?${contract.safeContractVersion}`, 'i'),`${file} Safe Contract drift`);
+  assert.match(text,new RegExp(`Safe Core[^\n]{0,30}(?:v)?${contract.safeCoreMajorVersion}`,'i'),`${file} Core major drift`);
+  assert.match(text,new RegExp(`Safe Contract[^\n]{0,30}(?:v)?${contract.safeContractVersion}`,'i'),`${file} Safe Contract drift`);
   assert.doesNotMatch(text,/Review Receipt v3|Commit Receipt v3|Safe Core v3/,`${file} stale v3 protocol facts`);
 }
 const quality=`${read('docs/QUALITY_PLATFORM.md')}\n${read('docs/QUALITY_PLATFORM.zh-CN.md')}`;
-assert.match(quality,/Core 4\.(?:5|6)/);
+assert.match(quality,/Core 4\.(?:5|6|7|8)/);
 for(const name of ['quick','standard','deep','security','embedded'])assert.match(quality,new RegExp(`\\b${name}\\b`));
+for(const name of ['embedded-linux','embedded-mcu','driver','kernel','realtime'])assert.match(quality,new RegExp(`\\b${name}\\b`));
+assert.match(quality,/Test Impact/i);
+assert.match(quality,/Diagnosis/i);
 assert.match(quality,/FAMILY_MANIFEST\.json/);
 assert.match(quality,/semantic review contracts/i);
 const ci=read('.github/workflows/ci.yml');
 assert.match(ci,new RegExp(esc(contract.minimumNodeVersion)));
 assert.match(ci,new RegExp(esc(contract.canonicalNodeVersion)));
-console.log(`Core contract verified: ${contract.coreVersion}, Safe Contract ${contract.safeContractVersion}, Runtime ${contract.codexRuntimeVersion}, Provider ${contract.providerContractVersion}, Diagnostics ${contract.diagnosticContractVersion}, Node ${pkg.engines.node}, digest ${safe.SAFE_CONTRACT_DIGEST}.`);
+console.log(`Core contract verified: ${contract.coreVersion}, Safe Contract ${contract.safeContractVersion}, Runtime ${contract.codexRuntimeVersion}, Provider ${contract.providerContractVersion}, Diagnosis ${contract.diagnosisContractVersion}/${contract.diagnosisReceiptVersion}, Node ${pkg.engines.node}, digest ${safe.SAFE_CONTRACT_DIGEST}.`);
