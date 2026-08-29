@@ -7,7 +7,6 @@
   "commitReceiptVersion": 4,
   "reviewPromptContractVersion": 1,
   "commitPromptContractVersion": 1,
-  "prPromptContractVersion": 1,
   "qualityPlatformVersion": 2,
   "reviewProfileVersion": 1,
   "impactEvidenceVersion": 2,
