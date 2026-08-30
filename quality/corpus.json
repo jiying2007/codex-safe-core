@@ -1,11 +1,17 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "cases": [
     {"id":"uaf-native","description":"Native use-after-free regression","expected":[{"severity":"critical","category":"resource","file":"src/uaf.c","line":12}]},
     {"id":"command-injection","description":"Untrusted shell argument injection","expected":[{"severity":"critical","category":"security","file":"src/cmd.js","line":18}]},
     {"id":"lock-order","description":"Reverse lock acquisition","expected":[{"severity":"high","category":"concurrency","file":"src/lock.c","line":31}]},
     {"id":"ota-rollback","description":"OTA state persisted before verification","expected":[{"severity":"high","category":"correctness","file":"src/ota.c","line":44}]},
     {"id":"isr-blocking","description":"Blocking mutex in ISR path","expected":[{"severity":"high","category":"concurrency","file":"src/irq.c","line":9}]},
-    {"id":"missing-test","description":"Behavior change without required test","expected":[{"severity":"medium","category":"test","file":"src/api.js","line":21}]}
+    {"id":"missing-test","description":"Behavior change without required test","expected":[{"severity":"medium","category":"test","file":"src/api.js","line":21}]},
+    {"id":"migration-commit-order","description":"Schema migration records success before validation","expected":[{"severity":"high","category":"correctness","file":"src/migrate.js","line":27}]},
+    {"id":"authorization-bypass","description":"Authorization branch defaults to allow","expected":[{"severity":"critical","category":"security","file":"src/authz.js","line":33}]},
+    {"id":"fd-leak","description":"Socket file descriptor is leaked on error path","expected":[{"severity":"high","category":"resource","file":"src/socket.c","line":57}]},
+    {"id":"ring-overflow","description":"Embedded ring-buffer arithmetic can overflow","expected":[{"severity":"high","category":"correctness","file":"src/ring.c","line":73}]},
+    {"id":"sleep-in-atomic","description":"Driver path sleeps while holding atomic/spin context","expected":[{"severity":"high","category":"concurrency","file":"driver/io.c","line":88}]},
+    {"id":"clean-docs","description":"Documentation-only wording change should not create a finding","expected":[]}
   ]
 }
