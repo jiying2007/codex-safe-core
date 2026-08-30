@@ -1,6 +1,6 @@
 # Quality Platform
 
-Codex Safe Core 4.9.1 / Quality Platform v3 extends the shared, deterministic quality platform without moving product-owned GitLab, VS Code, pipeline API, database, analyzer acquisition, or notification concerns into Core.
+Codex Safe Core 4.9.2 / Quality Platform v3 extends the shared, deterministic quality platform without moving product-owned GitLab, VS Code, pipeline API, database, analyzer acquisition, or notification concerns into Core.
 
 ## Review profiles
 
@@ -24,7 +24,7 @@ Core normalizes generic findings and SARIF 2.1 results into one analyzer-finding
 
 ## Diagnosis Contract and Receipt v1
 
-Core 4.9.1 keeps Diagnosis Contract/Receipt v1 stable: bounded failure-log compaction, conservative deterministic classification, a closed structured output schema, normalized diagnosis results, evidence digests, and Diagnosis Receipt v1. Pipeline logs and artifact text are always untrusted evidence. Core never fetches a pipeline, retries a job, executes a command from a log, edits code, creates a merge request, or publishes a diagnosis.
+Core 4.9.2 keeps Diagnosis Contract/Receipt v1 stable: bounded failure-log compaction, conservative deterministic classification, a closed structured output schema, normalized diagnosis results, evidence digests, and Diagnosis Receipt v1. Pipeline logs and artifact text are always untrusted evidence. Core never fetches a pipeline, retries a job, executes a command from a log, edits code, creates a merge request, or publishes a diagnosis.
 
 ## Quality evaluation
 
@@ -54,7 +54,7 @@ Core validates candidate unified patches before a product previews or applies th
 
 ## Performance
 
-Broad absolute budgets remain as catastrophic regression guards. Scheduled performance history additionally compares same-runner snapshots and rejects more than 10% latency or RSS regression.
+Broad absolute budgets remain as catastrophic regression guards. Scheduled performance history additionally compares same-runner snapshots and rejects more than 10% latency or RSS regression. Each exact Core version/SHA publishes one immutable performance evidence Release with its snapshot asset at creation time; reruns verify the same immutable evidence instead of mutating a fixed history Release.
 
 ## Atomic Family Snapshot v1 and Manifest v3
 
