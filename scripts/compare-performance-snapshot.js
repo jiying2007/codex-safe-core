@@ -1,26 +1,8 @@
 #!/usr/bin/env node
 'use strict';
-
 const fs=require('node:fs');
 const {comparePerformanceSnapshot}=require('../quality-platform');
-
-const [currentFile,baselineFile]=process.argv.slice(2);
-if(!currentFile||!baselineFile)throw new Error('Usage: node scripts/compare-performance-snapshot.js CURRENT BASELINE');
-const current=JSON.parse(fs.readFileSync(currentFile,'utf8'));
-const baseline=JSON.parse(fs.readFileSync(baselineFile,'utf8'));
-const result=comparePerformanceSnapshot({
-  latencyMs:Number(current.metrics?.elapsedMs||0),
-  rssBytes:Number(current.metrics?.rssGrowthBytes||0)
-},{
-  latencyMs:Number(baseline.metrics?.elapsedMs||0),
-  rssBytes:Number(baseline.metrics?.rssGrowthBytes||0)
-},{
-  latencyRegressionPct:10,
-  rssRegressionPct:10,
-  artifactRegressionPct:5
-});
-if(!result.ok){
-  process.stderr.write(`${JSON.stringify({ok:false,result,current:current.metrics,baseline:baseline.metrics},null,2)}\n`);
-  process.exit(1);
-}
-process.stdout.write(`${JSON.stringify({ok:true,result,current:current.metrics,baseline:baseline.metrics},null,2)}\n`);
+function compareSnapshots(current,baseline){const currentSchema=Number(current.schemaVersion||0),baselineSchema=Number(baseline.schemaVersion||0);const currentMetrics=current.metrics||{},baselineMetrics=baseline.metrics||{};const broadOk=Number(currentMetrics.elapsedMs||Infinity)<Number(current.budgets?.elapsedMs||5000)&&Number(currentMetrics.rssGrowthBytes||Infinity)<Number(current.budgets?.rssGrowthBytes||256*1024*1024);if(!broadOk)return{ok:false,migration:false,reason:'broad_budget'};if(currentSchema>=3&&baselineSchema<3)return{ok:true,migration:true,reason:'legacy_single_sample_baseline',result:null};const result=comparePerformanceSnapshot({latencyMs:Number(currentMetrics.elapsedMs||0),rssBytes:Number(currentMetrics.rssGrowthBytes||0)},{latencyMs:Number(baselineMetrics.elapsedMs||0),rssBytes:Number(baselineMetrics.rssGrowthBytes||0)},{latencyRegressionPct:10,rssRegressionPct:10,artifactRegressionPct:5});return{ok:result.ok,migration:false,reason:result.ok?'within_regression_budget':'regression',result};}
+function main(){const[currentFile,baselineFile]=process.argv.slice(2);if(!currentFile||!baselineFile)throw new Error('Usage: node scripts/compare-performance-snapshot.js CURRENT BASELINE');const current=JSON.parse(fs.readFileSync(currentFile,'utf8')),baseline=JSON.parse(fs.readFileSync(baselineFile,'utf8')),comparison=compareSnapshots(current,baseline),payload={ok:comparison.ok,comparison,current:current.metrics,baseline:baseline.metrics};(comparison.ok?process.stdout:process.stderr).write(`${JSON.stringify(payload,null,2)}\n`);if(!comparison.ok)process.exit(1);}
+if(require.main===module)main();
+module.exports={compareSnapshots};

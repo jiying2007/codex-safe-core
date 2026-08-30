@@ -1,5 +1,14 @@
 # Changelog
 
+## 4.9.5 - 2026-08-30
+
+### Performance trend sampling reliability
+
+- Replace single-run wall-clock/RSS trend evidence with seven isolated-process samples and median aggregation while keeping the existing broad absolute budgets.
+- Fail closed if deterministic workload structure drifts across samples.
+- Treat the first schema v3 snapshot as an explicit migration from legacy schema v2 single-sample evidence; relative 10% regression gating resumes median-to-median once both snapshots are v3.
+- Keep all Safe Contract, policy, receipt, quality, provider and consumer product semantics unchanged.
+
 ## 4.9.4 - 2026-08-30
 
 ### Timestamp contract consistency
