@@ -146,5 +146,14 @@ jobs:
             sleep 5
           done
           test "$immutable" = true || { echo "Family manifest release ${tag} is not immutable." >&2; exit 1; }
-          gh release verify "$tag"
+          release_verified=false
+          for attempt in {1..12}; do
+            if gh release verify "$tag"; then
+              release_verified=true
+              break
+            fi
+            echo "Release attestation for ${tag} is not visible yet (attempt ${attempt}/12); retrying." >&2
+            sleep 5
+          done
+          test "$release_verified" = true || { echo "Family manifest release ${tag} attestation did not become verifiable." >&2; exit 1; }
           gh release verify-asset "$tag" FAMILY_MANIFEST.json
