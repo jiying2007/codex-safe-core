@@ -1,6 +1,6 @@
 # Quality Platform
 
-Codex Safe Core 4.9.2 / Quality Platform v3 extends the shared, deterministic quality platform without moving product-owned GitLab, VS Code, pipeline API, database, analyzer acquisition, or notification concerns into Core.
+Codex Safe Core 4.9.3 / Quality Platform v3 extends the shared, deterministic quality platform without moving product-owned GitLab, VS Code, pipeline API, database, analyzer acquisition, or notification concerns into Core.
 
 ## Review profiles
 
@@ -24,7 +24,7 @@ Core normalizes generic findings and SARIF 2.1 results into one analyzer-finding
 
 ## Diagnosis Contract and Receipt v1
 
-Core 4.9.2 keeps Diagnosis Contract/Receipt v1 stable: bounded failure-log compaction, conservative deterministic classification, a closed structured output schema, normalized diagnosis results, evidence digests, and Diagnosis Receipt v1. Pipeline logs and artifact text are always untrusted evidence. Core never fetches a pipeline, retries a job, executes a command from a log, edits code, creates a merge request, or publishes a diagnosis.
+Core 4.9.3 keeps Diagnosis Contract/Receipt v1 stable: bounded failure-log compaction, conservative deterministic classification, a closed structured output schema, normalized diagnosis results, evidence digests, and Diagnosis Receipt v1. Pipeline logs and artifact text are always untrusted evidence. Core never fetches a pipeline, retries a job, executes a command from a log, edits code, creates a merge request, or publishes a diagnosis.
 
 ## Quality evaluation
 
@@ -61,6 +61,8 @@ Broad absolute budgets remain as catastrophic regression guards. Scheduled perfo
 Family Compatibility first freezes one exact Core/consumer snapshot. Linux, Windows, macOS and the manifest job all checkout those exact SHAs; no job re-resolves moving `main` heads. Every active consumer must carry Product Contract v1 and pin a Core SHA that maps to a final immutable Core `vX.Y.Z` Release.
 
 `FAMILY_MANIFEST.json` v3 records the snapshot digest, exact Core/consumer SHAs, every consumer Product Contract digest, Core contract digest, the complete integer `*Version` protocol map, a protocol fingerprint, runtime versions and package-lock digests under one manifest digest. Adding a new versioned Core protocol therefore changes the protocol fingerprint automatically rather than requiring a second hand-maintained list.
+
+Immutable Family manifest publication waits for the Release itself to become immutable and then retries `gh release verify` within a bounded window so GitHub's automatically generated release attestation can propagate. The gate remains fail-closed if the release attestation never becomes verifiable, and the manifest asset digest is verified only after the release attestation succeeds.
 
 ## Semantic review contracts
 
