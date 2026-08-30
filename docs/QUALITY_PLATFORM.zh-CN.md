@@ -1,6 +1,6 @@
 # 质量平台
 
-Codex Safe Core 4.9.0 / Quality Platform v3 扩展统一、确定性的质量平台，同时继续禁止把 GitLab、VS Code、Pipeline API、数据库、Analyzer 获取、通知等产品职责塞进 Core。
+Codex Safe Core 4.9.1 / Quality Platform v3 扩展统一、确定性的质量平台，同时继续禁止把 GitLab、VS Code、Pipeline API、数据库、Analyzer 获取、通知等产品职责塞进 Core。
 
 ## Review Profile
 
@@ -24,16 +24,25 @@ Core 将通用 analyzer finding 和 SARIF 2.1 结果归一成统一 Finding Cont
 
 ## Diagnosis Contract / Receipt v1
 
-Core 4.9.0 保持 Diagnosis Contract / Receipt v1 不变：失败日志有界压缩、保守确定性分类、closed structured output schema、Diagnosis Result 归一、Evidence Digest 与 Diagnosis Receipt。Pipeline 日志和 Artifact 文本永远是不可信证据。Core 不获取 Pipeline、不重试 Job、不执行日志中的命令、不修改代码、不创建 MR，也不发布 Diagnosis。
+Core 4.9.1 保持 Diagnosis Contract / Receipt v1 不变：失败日志有界压缩、保守确定性分类、closed structured output schema、Diagnosis Result 归一、Evidence Digest 与 Diagnosis Receipt。Pipeline 日志和 Artifact 文本永远是不可信证据。Core 不获取 Pipeline、不重试 Job、不执行日志中的命令、不修改代码、不创建 MR，也不发布 Diagnosis。
 
 ## Quality Eval
 
 Quality Platform v3 提供两套带标签的离线门禁：
 
-- Review：`quality/corpus.json` 覆盖 Critical/High/Medium 缺陷和 clean negative case；`scripts/quality-eval.js` 门禁 Critical Recall、Recall、Precision、False Positive/Review、重复/无效行号率和 Token/True Positive。
-- Diagnose：`quality/diagnosis-corpus.json` 覆盖 source、test、dependency、infra、flaky、unknown、cascade failure；`scripts/diagnosis-quality-eval.js` 门禁 classification accuracy、root-cause Top-1 accuracy、affected-file recall、retry accuracy、evidence validity、confidence calibration 和 tokens/diagnosis。
+- Review：`quality/corpus.json` 至少包含 24 个带 provenance 的回归 case，覆盖 security、concurrency、resource、correctness、test，并至少保留 3 个 clean negative 和 10 个显式 synthetic mutation；`scripts/quality-eval.js` 门禁 Critical Recall、Recall、Precision、False Positive/Review、重复/无效行号率和 Token/True Positive。
+- Diagnose：`quality/diagnosis-corpus.json` 至少包含 16 个带 provenance 的 case，覆盖 source、test、dependency、infra、flaky、unknown 与 cascade failure，同时保留多个 insufficient-evidence negative 和 mutation failure；`scripts/diagnosis-quality-eval.js` 门禁 classification accuracy、root-cause Top-1 accuracy、affected-file recall、retry accuracy、evidence validity、confidence calibration 和 tokens/diagnosis。
+- `scripts/verify-quality-corpus.js` 强制 corpus/result 不能缩小、不能丢失分类覆盖/negative case，也不能静默丢失 provenance 元数据。
 
 仓库内 recorded result 是确定性回归 fixture，不代表生产模型效果声明。产品或定时评测可以通过 `--results` 注入新结果；修改 baseline 必须和解释该变化的 corpus 修改一起审计。
+
+## Live Codex Canary
+
+定时 `Codex CLI Canary` 现在在缺少受保护真实凭证时直接 fail closed。完成 Linux/Windows/macOS CLI capability matrix 后，会继续执行 Safe Contract 文件系统/网络越界 canary，以及一个有界 structured quality smoke，覆盖 security、concurrency、resource lifetime 和 clean negative。PR 因拿不到 protected secret 可以只跳过 live call；schedule/manual 不允许跳过。只有 live check 全部通过，才允许写入 compatibility history。
+
+Compatibility history 改为每个 `(Codex CLI version, Core version, Core SHA)` 单独创建一个 immutable Release，并在创建 Release 时一次性附带 evidence asset，不再尝试向已 immutable 的固定 Release 执行 `gh release upload`。因此 append-only history 与 Release Immutability 不再冲突。
+
+该 live smoke 只是模型/CLI drift detector，不是统计意义上的质量证明。广泛生产质量仍需要持续积累真实模型评测与 accepted-finding telemetry。
 
 ## Patch Proposal Safety
 

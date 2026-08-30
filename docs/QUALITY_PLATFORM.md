@@ -1,6 +1,6 @@
 # Quality Platform
 
-Codex Safe Core 4.9.0 / Quality Platform v3 extends the shared, deterministic quality platform without moving product-owned GitLab, VS Code, pipeline API, database, analyzer acquisition, or notification concerns into Core.
+Codex Safe Core 4.9.1 / Quality Platform v3 extends the shared, deterministic quality platform without moving product-owned GitLab, VS Code, pipeline API, database, analyzer acquisition, or notification concerns into Core.
 
 ## Review profiles
 
@@ -24,16 +24,25 @@ Core normalizes generic findings and SARIF 2.1 results into one analyzer-finding
 
 ## Diagnosis Contract and Receipt v1
 
-Core 4.9.0 keeps Diagnosis Contract/Receipt v1 stable: bounded failure-log compaction, conservative deterministic classification, a closed structured output schema, normalized diagnosis results, evidence digests, and Diagnosis Receipt v1. Pipeline logs and artifact text are always untrusted evidence. Core never fetches a pipeline, retries a job, executes a command from a log, edits code, creates a merge request, or publishes a diagnosis.
+Core 4.9.1 keeps Diagnosis Contract/Receipt v1 stable: bounded failure-log compaction, conservative deterministic classification, a closed structured output schema, normalized diagnosis results, evidence digests, and Diagnosis Receipt v1. Pipeline logs and artifact text are always untrusted evidence. Core never fetches a pipeline, retries a job, executes a command from a log, edits code, creates a merge request, or publishes a diagnosis.
 
 ## Quality evaluation
 
 Quality Platform v3 has two labeled offline gates:
 
-- Review: `quality/corpus.json` covers critical/high/medium defects plus a clean negative case. `scripts/quality-eval.js` gates critical recall, recall, precision, false positives/review, duplicate/invalid-line rates and tokens per true positive.
-- Diagnose: `quality/diagnosis-corpus.json` covers source, test, dependency, infra, flaky, unknown and cascade failures. `scripts/diagnosis-quality-eval.js` gates classification accuracy, root-cause Top-1 accuracy, affected-file recall, retry accuracy, evidence validity, confidence calibration and tokens per diagnosis.
+- Review: `quality/corpus.json` now contains at least 24 provenance-labeled regression cases across security, concurrency, resource, correctness and test findings, including at least three clean negatives and ten explicit synthetic mutations. `scripts/quality-eval.js` gates critical recall, recall, precision, false positives/review, duplicate/invalid-line rates and tokens per true positive.
+- Diagnose: `quality/diagnosis-corpus.json` now contains at least 16 provenance-labeled cases covering source, test, dependency, infra, flaky, unknown and cascade failures, including multiple insufficient-evidence negatives and mutation-derived failures. `scripts/diagnosis-quality-eval.js` gates classification accuracy, root-cause Top-1 accuracy, affected-file recall, retry accuracy, evidence validity, confidence calibration and tokens per diagnosis.
+- `scripts/verify-quality-corpus.js` prevents the checked corpus/results from shrinking, losing category/classification diversity, dropping negative cases, or silently losing provenance metadata.
 
 Recorded result files are deterministic regression fixtures, not claims about production model quality. Products or scheduled evaluation infrastructure may supply fresh result files with `--results`; baseline changes must be reviewed with the corpus change that justified them.
+
+## Live Codex canary
+
+The scheduled `Codex CLI Canary` now fails closed when a protected live credential is missing. After the multi-platform CLI capability matrix, it executes both the Safe Contract filesystem/network escape canary and one bounded structured quality smoke covering security, concurrency, resource-lifetime and clean-negative cases. A pull request without protected secrets may skip only the live call; scheduled/manual runs may not. Compatibility history is published only after those live checks pass.
+
+Compatibility history uses one release per `(Codex CLI version, Core version, Core SHA)` and creates the evidence asset atomically with the release. This preserves append-only history while remaining compatible with repository Release Immutability; an immutable release is never mutated with a later `gh release upload`.
+
+This live smoke is a drift detector, not a statistical quality claim. Broad production quality still requires accumulated real/model evaluation samples and accepted-finding telemetry.
 
 ## Patch proposal safety
 

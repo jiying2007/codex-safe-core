@@ -5,6 +5,6 @@
   "affectedFileRecall": 1,
   "retryAccuracy": 1,
   "evidenceValidityRate": 1,
-  "confidenceCalibrationError": 0.1075,
-  "tokensPerDiagnosis": 797.5
+  "confidenceCalibrationError": 0.10375000000000001,
+  "tokensPerDiagnosis": 790.3125
 }

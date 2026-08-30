@@ -8,6 +8,7 @@ on:
       - 'codex-cli.js'
       - 'scripts/codex-canary.js'
       - 'scripts/codex-behavioral-canary.js'
+      - 'scripts/codex-quality-canary.js'
       - 'scripts/write-codex-compat-record.js'
       - '.github/workflows/codex-canary.yml'
   schedule:
@@ -43,9 +44,10 @@ jobs:
 
   behavioral:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     env:
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.CODEX_CANARY_OPENAI_API_KEY || secrets.OPENAI_API_KEY }}
+      CODEX_CANARY_MODEL: ${{ vars.CODEX_CANARY_MODEL }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -55,16 +57,25 @@ jobs:
           node-version: '22.22.2'
       - name: Install latest Codex CLI
         run: npm install --global @openai/codex@latest
+      - name: Require protected live canary credential outside pull requests
+        if: github.event_name != 'pull_request' && env.OPENAI_API_KEY == ''
+        shell: bash
+        run: |
+          echo 'Scheduled/manual Codex behavioral canary requires CODEX_CANARY_OPENAI_API_KEY (preferred) or OPENAI_API_KEY.' >&2
+          exit 1
       - name: Live filesystem/network negative behavior check
         if: env.OPENAI_API_KEY != ''
         run: node scripts/codex-behavioral-canary.js
-      - name: Record credentialless behavioral canary state
-        if: env.OPENAI_API_KEY == ''
-        run: echo "Live behavioral canary not executed because OPENAI_API_KEY is not configured; capability canary remains mandatory."
+      - name: Live model quality smoke
+        if: env.OPENAI_API_KEY != ''
+        run: node scripts/codex-quality-canary.js
+      - name: Record pull-request credentialless canary state
+        if: github.event_name == 'pull_request' && env.OPENAI_API_KEY == ''
+        run: echo "Protected credentials are unavailable to this pull request; capability checks remain mandatory and scheduled live canary remains fail-closed."
 
   history:
     if: github.event_name != 'pull_request'
-    needs: capability
+    needs: [capability, behavioral]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -80,7 +91,7 @@ jobs:
           npm install --global @openai/codex@latest
           node scripts/codex-canary.js
           node scripts/write-codex-compat-record.js CODEX_CLI_COMPATIBILITY.json
-      - name: Persist compatibility record as a historical release asset
+      - name: Persist compatibility record as one immutable release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -88,12 +99,22 @@ jobs:
           set -euo pipefail
           version="$(node -p "require('./CODEX_CLI_COMPATIBILITY.json').codexCliVersion")"
           safe="$(printf '%s' "$version" | tr -c '0-9A-Za-z._-' '_')"
+          core_version="$(node -p "require('./core-contract.json').coreVersion")"
+          core_short="${GITHUB_SHA:0:12}"
           asset="codex-cli-${safe}.json"
           mv CODEX_CLI_COMPATIBILITY.json "$asset"
-          tag="codex-cli-compatibility-history"
-          gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --target "$GITHUB_SHA" --title "Codex CLI compatibility history" --notes "Append-only compatibility records produced by the mandatory multi-platform Safe Contract canary."
-          if gh release view "$tag" --json assets --jq '.assets[].name' | grep -Fxq "$asset"; then
-            echo "compatibility record already exists for $version"
+          tag="codex-cli-compat-v${safe}-core-v${core_version}-${core_short}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "immutable compatibility evidence already exists: $tag"
           else
-            gh release upload "$tag" "$asset"
+            gh release create "$tag" "$asset" --target "$GITHUB_SHA" --title "Codex CLI ${version} compatibility on Core ${core_version}" --notes "Immutable compatibility evidence produced only after mandatory multi-platform capability checks and the protected live behavioral/quality canary."
           fi
+          immutable=false
+          for attempt in {1..12}; do
+            immutable="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${tag}" --jq '.immutable')"
+            [[ "$immutable" == true ]] && break
+            sleep 5
+          done
+          test "$immutable" = true || { echo "Compatibility release ${tag} is not immutable." >&2; exit 1; }
+          gh release verify "$tag"
+          gh release verify-asset "$tag" "$asset"

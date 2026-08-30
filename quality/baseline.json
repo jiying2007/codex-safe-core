@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
-  "corpusSchemaVersion": 2,
+  "corpusSchemaVersion": 3,
   "criticalRecall": 1,
   "recall": 1,
   "precision": 1,
   "falsePositivePerReview": 0,
-  "tokensPerTruePositive": 1129.5454545454545
+  "tokensPerTruePositive": 1148.5714285714287
 }

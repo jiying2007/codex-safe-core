@@ -1,5 +1,16 @@
 # Changelog
 
+## 4.9.1 - 2026-08-30
+
+### Reliability and quality evidence
+
+- Fix Codex CLI compatibility-history publication so each `(Codex CLI version, Core version, Core SHA)` creates one immutable evidence Release with its asset at creation time instead of trying to append to an already immutable fixed Release.
+- Make scheduled/manual live Codex canaries fail closed when no protected canary credential is configured; pull requests without protected secrets still run the mandatory multi-platform capability checks without claiming the live behavior passed.
+- Add one bounded live structured quality smoke for security, concurrency, resource-lifetime and clean-negative cases after the existing filesystem/network Safe Contract escape check; compatibility evidence is persisted only after both live checks pass.
+- Expand the checked Review regression corpus from 12 to 24 provenance-labeled cases and the Diagnose corpus from 8 to 16 cases, including explicit synthetic mutations and clean/insufficient-evidence negatives.
+- Add a deterministic corpus-contract verifier that prevents silent shrinkage, result/corpus ID drift, lost category/classification diversity, missing negative cases, or removal of provenance metadata.
+- Keep Safe Contract v2, Policy Schema v3, Review/Commit Receipt v4, Diagnosis Contract/Receipt v1, Quality Platform v3 and all product-owned GitLab/provider boundaries unchanged.
+
 ## 4.6.0 - 2026-08-28
 
 ### Codex runtime/provider platform

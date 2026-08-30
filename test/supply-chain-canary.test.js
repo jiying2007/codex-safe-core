@@ -12,6 +12,7 @@ const workflows = fs.readdirSync(workflowDir)
   .map(name => [name, fs.readFileSync(path.join(workflowDir, name), 'utf8')]);
 const canary = fs.readFileSync(path.join(workflowDir, 'codex-canary.yml'), 'utf8');
 const canaryScript = fs.readFileSync(path.join(root, 'scripts', 'codex-canary.js'), 'utf8');
+const qualityCanaryScript = fs.readFileSync(path.join(root, 'scripts', 'codex-quality-canary.js'), 'utf8');
 
 const vulnerableSetupNode = 'actions/setup-node@820762786026740c76f36085b0efc47a31fe5020';
 const patchedSetupNode = 'actions/setup-node@e51e5fe84fc33b4c73ebe40526b2694712b5b858';
@@ -33,4 +34,31 @@ test('latest Codex canary exercises Safe Contract config overrides under strict 
   assert.match(canaryScript, /SAFE_CODEX_CONFIG_OVERRIDES/);
   assert.match(canaryScript, /--strict-config/);
   assert.match(canaryScript, /strictConfigOverridesVerified/);
+});
+
+test('scheduled live canary is fail-closed and gates compatibility history', () => {
+  assert.match(canary, /CODEX_CANARY_OPENAI_API_KEY/);
+  assert.match(canary, /github\.event_name != 'pull_request' && env\.OPENAI_API_KEY == ''/);
+  assert.match(canary, /Scheduled\/manual Codex behavioral canary requires/);
+  assert.match(canary, /node scripts\/codex-behavioral-canary\.js/);
+  assert.match(canary, /node scripts\/codex-quality-canary\.js/);
+  assert.match(canary, /needs: \[capability, behavioral\]/);
+});
+
+test('compatibility history never mutates an immutable fixed release', () => {
+  assert.doesNotMatch(canary, /tag="codex-cli-compatibility-history"/);
+  assert.doesNotMatch(canary, /gh release upload/);
+  assert.match(canary, /codex-cli-compat-v\$\{safe\}-core-v\$\{core_version\}-\$\{core_short\}/);
+  assert.match(canary, /gh release create "\$tag" "\$asset"/);
+  assert.match(canary, /\.immutable/);
+  assert.match(canary, /gh release verify-asset "\$tag" "\$asset"/);
+});
+
+test('live quality canary stays bounded and includes a clean negative', () => {
+  assert.match(qualityCanaryScript, /maxEstimatedTokens:8000/);
+  assert.match(qualityCanaryScript, /command-injection/);
+  assert.match(qualityCanaryScript, /lock-order/);
+  assert.match(qualityCanaryScript, /use-after-free/);
+  assert.match(qualityCanaryScript, /clean-doc-change/);
+  assert.match(qualityCanaryScript, /hasDefect:false/);
 });
