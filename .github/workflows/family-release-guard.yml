@@ -24,7 +24,7 @@ jobs:
       - uses: actions/setup-node@e51e5fe84fc33b4c73ebe40526b2694712b5b858
         with:
           node-version: '22.22.2'
-      - name: Verify exact Trust Root and family governance
+      - name: Verify exact released Trust Root and family governance
         env:
           EXPECTED_CORE_SHA: ${{ inputs.expected_core_sha }}
           PRODUCT: ${{ inputs.product }}
@@ -34,6 +34,8 @@ jobs:
           [[ "$EXPECTED_CORE_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo 'expected_core_sha must be exact'; exit 2; }
           pinned="$(git ls-files --stage src/codex-safe-core | awk '{print $2}')"
           test "$pinned" = "$EXPECTED_CORE_SHA" || { echo "$PRODUCT pins $pinned, expected $EXPECTED_CORE_SHA"; exit 2; }
+          node src/codex-safe-core/scripts/verify-released-core.js "$EXPECTED_CORE_SHA"
+          node src/codex-safe-core/scripts/verify-consumer-product-contract.js "$EXPECTED_CORE_SHA" "$PRODUCT"
           node src/codex-safe-core/scripts/verify-actions-pins.js .github/workflows
           node src/codex-safe-core/scripts/verify-non-goals.js .
           node src/codex-safe-core/scripts/family-diagnostics.js > FAMILY_DIAGNOSTICS.json
