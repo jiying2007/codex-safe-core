@@ -73,3 +73,11 @@ test('Family publication has one canonical manifest and verifies immutable relea
   assert.match(family,/gh release verify "\$tag"/);
   assert.match(family,/gh release verify-asset "\$tag" FAMILY_MANIFEST\.json/);
 });
+
+test('Family release verification tolerates bounded release-attestation propagation delay',()=>{
+  assert.match(family,/release_verified=false/);
+  assert.match(family,/for attempt in \{1\.\.12\}; do[\s\S]*if gh release verify "\$tag"; then[\s\S]*release_verified=true[\s\S]*sleep 5/);
+  assert.match(family,/Release attestation for \$\{tag\} is not visible yet/);
+  assert.match(family,/attestation did not become verifiable/);
+  assert.match(family,/test "\$release_verified" = true/);
+});
