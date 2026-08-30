@@ -1,5 +1,14 @@
 # Changelog
 
+## 4.9.6 - 2026-08-30
+
+### Performance evidence provenance
+
+- Attest each new immutable Performance Trend snapshot with GitHub build provenance before publishing its release.
+- Make repeated runs for an existing Core evidence tag download and verify the canonical immutable asset instead of comparing a fresh sample against an immutable remote asset.
+- Add bounded attestation-propagation verification matching the Family release evidence model.
+- Keep Safe Contract, policy, receipt, provider, quality-platform and consumer product semantics unchanged.
+
 ## 4.9.5 - 2026-08-30
 
 ### Performance trend sampling reliability
