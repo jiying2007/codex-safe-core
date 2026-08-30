@@ -30,7 +30,7 @@ git submodule update --init --recursive
 npm run ci
 ```
 
-A Core change is not complete until all four active consumers are coordinated-repinned to the exact reviewed Core commit and pass their own CI.
+A Core change is not complete until all four active consumers are coordinated-repinned to the exact reviewed, formally released Core commit and pass their own CI.
 
 ## Machine-verifiable Trust Root identity
 
@@ -45,7 +45,7 @@ CI validates both exact floors on Linux, Windows and macOS. Untested odd/future 
 
 ## Ownership
 
-Core owns Codex capability probing/invocation, process lifecycle, generic Git primitives, Semantic Context, coverage-preserving Review Evidence Chunking, Policy Schema v3, deterministic review rules, fingerprints and Receipt validation/provenance. Core 4.8 additionally owns versioned Review Profile Packs, deterministic Test Impact selection and the pure Diagnosis Contract/Receipt primitives. `core-ownership-manifest.json` records this boundary. Products own only Commit, Review, Diagnose or GitLab-service domain behavior and must not carry an independent implementation of a Core-owned primitive.
+Core owns Codex capability probing/invocation, process lifecycle, generic Git primitives, Semantic Context, coverage-preserving Review Evidence Chunking, Policy Schema v3, deterministic review rules, fingerprints and Receipt validation/provenance. Core 4.9 additionally owns versioned Review Profile Packs, deterministic Test Impact selection, pure Diagnosis Contract/Receipt primitives, bounded token-estimator calibration, Review/Diagnose quality evaluation, Atomic Family Snapshot v1, Family Manifest v3, Product Contract v1 validation and immutable released-Core pin validation. `core-ownership-manifest.json` records this boundary. Products own only Commit, Review, Diagnose or GitLab-service domain behavior and must not carry an independent implementation of a Core-owned primitive.
 
 Analyzer artifact acquisition/parsing orchestration, GitLab pipeline/job APIs, diagnosis publication and SCM provider side effects remain product-owned. PR/MR narrative generation, GitHub Pull Requests provider integration, compare-URL construction, fork-topology assumptions and SCM-side PR/MR creation are explicitly outside Core.
 
@@ -59,9 +59,9 @@ The daily Codex CLI Canary checks the latest upstream CLI on Linux/Windows/macOS
 
 The only repository policy is `.codex-safe.json`. Older policy schemas are intentionally rejected. The active closed schema contains only Commit, Review and Review Service sections. The former `pr` section is rejected rather than kept as a compatibility surface. Diagnose has a separate product configuration because CI diagnosis is not a repository-review policy surface.
 
-## Quality Platform v4.8 extensions
+## Core 4.9 Quality Platform v3
 
-The existing `quick`, `standard`, `deep`, `security`, and `embedded` execution profiles remain stable. Profile Pack v1 adds versioned engineering packs for `general`, `backend`, `frontend`, `security`, `cpp`, `embedded-linux`, `embedded-mcu`, `driver`, `kernel`, and `realtime`. Test Impact v1 ranks controller-provided test candidates from changed paths and semantic evidence without executing tests. Diagnosis Contract v1 compacts untrusted failure logs, provides conservative deterministic classification and binds model output to Diagnosis Receipt v1.
+The existing `quick`, `standard`, `deep`, `security`, and `embedded` execution profiles remain stable. Profile Pack v1 provides versioned engineering packs for `general`, `backend`, `frontend`, `security`, `cpp`, `embedded-linux`, `embedded-mcu`, `driver`, `kernel`, and `realtime`. Test Impact v1 ranks controller-provided test candidates from changed paths and semantic evidence without executing tests. Diagnosis Contract v1 remains stable. Quality Platform v3 adds labeled Review and Diagnose regression corpora, including clean negative/cascade cases and explicit cost/accuracy gates. Token Calibration v1 can improve preflight estimates from actual usage without weakening fail-closed budgets.
 
 ## Receipt provenance
 
@@ -71,15 +71,16 @@ Core 4.x Trust Root governance does **not** add fields to Review/Commit Receipt 
 
 ## Deterministic boundary
 
-Git evidence identity, policy evaluation, Receipt validation, coverage/readiness/mechanical gates, severity/confidence filtering, stale-publication rejection, Profile Pack resolution, Test Impact ranking and diagnosis evidence digests are deterministic. Model wording/findings/diagnoses are non-deterministic inputs and cannot bypass schema validation, evidence binding or deterministic gates.
+Git evidence identity, policy evaluation, Receipt validation, coverage/readiness/mechanical gates, severity/confidence filtering, stale-publication rejection, Profile Pack resolution, Test Impact ranking, diagnosis evidence digests, quality metrics, Family snapshot identity and manifest identity are deterministic. Model wording/findings/diagnoses are non-deterministic inputs and cannot bypass schema validation, evidence binding or deterministic gates.
 
 ## Family governance
 
-- **Family Compatibility:** weekly/manual Linux + Windows + macOS validation replays the family golden corpus, verifies the four active exact Core pins, checks consumers for Core-owned primitive reimplementation, and runs every active consumer CI.
-- **Family Manifest Attestation:** after coordinated repin, generates `FAMILY_MANIFEST.json` with exact Core/consumer SHAs, protocol/runtime identity and a digest, then attaches GitHub build provenance.
+- **Atomic Family Compatibility:** weekly/manual Linux + Windows + macOS validation first freezes one exact Core/consumer snapshot, then every platform checks out that same snapshot, verifies the four exact released Core pins, checks consumers for Core-owned primitive reimplementation, and runs every active consumer CI.
+- **Family Manifest v3 Attestation:** the manifest job consumes the same frozen snapshot and records exact Core/consumer SHAs, Product Contract digests, Core Contract digest, the complete versioned protocol map/fingerprint, runtime identity and a manifest digest before GitHub build provenance and immutable digest-addressed publication.
+- **Released Core gate:** active consumers may pin only a Core SHA that is the exact target of a final, immutable `vX.Y.Z` Core Release.
 - **Codex CLI Canary:** daily/manual capability validation against the latest upstream CLI, with credential-backed live negative behavior testing when configured.
 - **Adversarial corpus:** prompt-injection/tool-escalation samples permanently protect the deterministic Safe Contract boundary.
-- **Performance budgets:** broad regression gates catch order-of-magnitude context/evidence regressions without fragile micro-benchmarks.
+- **Performance and quality budgets:** broad performance gates catch catastrophic regressions while labeled Review/Diagnose corpora catch accuracy, false-positive, calibration and token-cost regressions.
 - **OpenSSF Scorecard:** recurring security-regression signal.
 - **Release supply chain:** trusted reusable publication workflow, explicit Node 22/24 release tests, reproducible npm package gate, immutable tags/assets, SHA-256, SPDX SBOM and GitHub build-provenance attestation.
 

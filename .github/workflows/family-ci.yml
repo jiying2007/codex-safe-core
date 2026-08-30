@@ -13,13 +13,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  family:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 50
+  snapshot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      snapshot: ${{ steps.resolve.outputs.snapshot }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -27,27 +25,46 @@ jobs:
       - uses: actions/setup-node@e51e5fe84fc33b4c73ebe40526b2694712b5b858
         with:
           node-version: '22.22.2'
+      - id: resolve
+        name: Freeze exact active consumer heads
+        shell: bash
+        run: node scripts/resolve-family-snapshot.js --github-output "$GITHUB_OUTPUT"
+
+  family:
+    needs: snapshot
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 50
+    env:
+      FAMILY_SNAPSHOT_JSON: ${{ needs.snapshot.outputs.snapshot }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@e51e5fe84fc33b4c73ebe40526b2694712b5b858
+        with:
+          node-version: '22.22.2'
+      - name: Materialize atomic Family snapshot
+        shell: bash
+        run: node -e "require('fs').writeFileSync('FAMILY_SNAPSHOT.json',process.env.FAMILY_SNAPSHOT_JSON+'\n')"
       - name: Validate Core
         run: npm run ci
-      - name: Clone active consumer repositories
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir family
-          for repo in codex-commit codex-review codex-review-service codex-diagnose; do
-            git clone --quiet --recurse-submodules "https://github.com/jiying2007/${repo}.git" "family/${repo}"
-          done
-      - name: Verify all active consumers pin this Core
+      - name: Checkout exact active consumer snapshot
+        run: node scripts/checkout-family-snapshot.js FAMILY_SNAPSHOT.json family
+      - name: Verify all active consumers pin this released Core
         shell: bash
         run: |
           set -euo pipefail
           core_sha="$(git rev-parse HEAD)"
           for repo in codex-commit codex-review codex-review-service codex-diagnose; do
             pinned="$(git -C "family/${repo}" ls-files --stage src/codex-safe-core | awk '{print $2}')"
-            test -n "$pinned"
             test "$pinned" = "$core_sha" || { echo "${repo} pins ${pinned}, expected ${core_sha}" >&2; exit 1; }
             node scripts/verify-actions-pins.js "family/${repo}/.github/workflows"
             node scripts/verify-non-goals.js "family/${repo}"
+            (cd "family/${repo}" && node src/codex-safe-core/scripts/verify-consumer-product-contract.js "$core_sha")
           done
       - name: Verify consumers do not reimplement Core-owned primitives
         run: node scripts/verify-consumer-boundaries.js family
@@ -75,13 +92,15 @@ jobs:
           done
 
   manifest:
-    needs: family
+    needs: [snapshot, family]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
       contents: write
       id-token: write
       attestations: write
+    env:
+      FAMILY_SNAPSHOT_JSON: ${{ needs.snapshot.outputs.snapshot }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -89,16 +108,13 @@ jobs:
       - uses: actions/setup-node@e51e5fe84fc33b4c73ebe40526b2694712b5b858
         with:
           node-version: '22.22.2'
-      - name: Clone exact active consumer heads
+      - name: Materialize atomic Family snapshot
         shell: bash
-        run: |
-          set -euo pipefail
-          mkdir family
-          for repo in codex-commit codex-review codex-review-service codex-diagnose; do
-            git clone --quiet --recurse-submodules "https://github.com/jiying2007/${repo}.git" "family/${repo}"
-          done
-      - name: Generate canonical Family manifest
-        run: node scripts/generate-family-manifest.js family FAMILY_MANIFEST.json
+        run: node -e "require('fs').writeFileSync('FAMILY_SNAPSHOT.json',process.env.FAMILY_SNAPSHOT_JSON+'\n')"
+      - name: Checkout exact active consumer snapshot
+        run: node scripts/checkout-family-snapshot.js FAMILY_SNAPSHOT.json family
+      - name: Generate canonical Family Manifest v3
+        run: node scripts/generate-family-manifest.js family FAMILY_MANIFEST.json FAMILY_SNAPSHOT.json
       - name: Attest Family manifest
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
@@ -121,7 +137,7 @@ jobs:
           if gh release view "$tag" >/dev/null 2>&1; then
             echo "digest-addressed Family manifest release already exists: $tag"
           else
-            gh release create "$tag" FAMILY_MANIFEST.json --target "$GITHUB_SHA" --title "Codex Safe Family manifest ${version} ${digest:0:12}" --notes "Machine-generated and provenance-attested exact Core/consumer manifest. This release is historical family evidence, not an end-user product release."
+            gh release create "$tag" FAMILY_MANIFEST.json --target "$GITHUB_SHA" --title "Codex Safe Family manifest ${version} ${digest:0:12}" --notes "Machine-generated, snapshot-atomic and provenance-attested exact Core/consumer manifest. This release is historical family evidence, not an end-user product release."
           fi
           immutable=false
           for attempt in {1..12}; do
@@ -129,9 +145,6 @@ jobs:
             [[ "$immutable" == true ]] && break
             sleep 5
           done
-          test "$immutable" = true || {
-            echo "Family manifest release ${tag} is not immutable." >&2
-            exit 1
-          }
+          test "$immutable" = true || { echo "Family manifest release ${tag} is not immutable." >&2; exit 1; }
           gh release verify "$tag"
           gh release verify-asset "$tag" FAMILY_MANIFEST.json

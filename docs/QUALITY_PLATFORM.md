@@ -1,6 +1,6 @@
 # Quality Platform
 
-Codex Safe Core 4.8 extends the shared, deterministic quality platform without moving product-owned GitLab, VS Code, pipeline API, database, analyzer acquisition, or notification concerns into Core.
+Codex Safe Core 4.9.0 / Quality Platform v3 extends the shared, deterministic quality platform without moving product-owned GitLab, VS Code, pipeline API, database, analyzer acquisition, or notification concerns into Core.
 
 ## Review profiles
 
@@ -24,23 +24,34 @@ Core normalizes generic findings and SARIF 2.1 results into one analyzer-finding
 
 ## Diagnosis Contract and Receipt v1
 
-Core 4.8 adds pure diagnosis primitives for the `codex-diagnose` product: bounded failure-log compaction, conservative deterministic classification, a closed structured output schema, normalized diagnosis results, evidence digests, and Diagnosis Receipt v1. Pipeline logs and artifact text are always untrusted evidence. Core never fetches a pipeline, retries a job, executes a command from a log, edits code, creates a merge request, or publishes a diagnosis.
+Core 4.9.0 keeps Diagnosis Contract/Receipt v1 stable: bounded failure-log compaction, conservative deterministic classification, a closed structured output schema, normalized diagnosis results, evidence digests, and Diagnosis Receipt v1. Pipeline logs and artifact text are always untrusted evidence. Core never fetches a pipeline, retries a job, executes a command from a log, edits code, creates a merge request, or publishes a diagnosis.
 
 ## Quality evaluation
 
-`quality/corpus.json` defines critical/high/medium synthetic defect expectations. `scripts/quality-eval.js` computes critical recall, recall, precision, false positives per review, duplicate/invalid-line rates and tokens per true positive. CI fails closed if critical recall drops below 100% or cost/quality regresses beyond the checked baseline. The recorded corpus is a deterministic offline gate; products may supply fresh result files with `--results` for live/model evaluations.
+Quality Platform v3 has two labeled offline gates:
+
+- Review: `quality/corpus.json` covers critical/high/medium defects plus a clean negative case. `scripts/quality-eval.js` gates critical recall, recall, precision, false positives/review, duplicate/invalid-line rates and tokens per true positive.
+- Diagnose: `quality/diagnosis-corpus.json` covers source, test, dependency, infra, flaky, unknown and cascade failures. `scripts/diagnosis-quality-eval.js` gates classification accuracy, root-cause Top-1 accuracy, affected-file recall, retry accuracy, evidence validity, confidence calibration and tokens per diagnosis.
+
+Recorded result files are deterministic regression fixtures, not claims about production model quality. Products or scheduled evaluation infrastructure may supply fresh result files with `--results`; baseline changes must be reviewed with the corpus change that justified them.
 
 ## Patch proposal safety
 
 Core validates candidate unified patches before a product previews or applies them. Binary patches, out-of-evidence paths, NUL bytes and oversized patches are rejected. Core never applies, commits, pushes or merges a patch.
 
+## Token calibration v1
+
+`TokenEstimatorCalibration` starts from the conservative two UTF-8 bytes/token estimate. It learns a bounded provider+model EWMA only from actual input-token usage, activates after a minimum sample count, applies a safety discount, and clamps the learned ratio. A restart returns to the conservative default; calibration never weakens a configured token budget.
+
 ## Performance
 
 Broad absolute budgets remain as catastrophic regression guards. Scheduled performance history additionally compares same-runner snapshots and rejects more than 10% latency or RSS regression.
 
-## Family manifest
+## Atomic Family Snapshot v1 and Manifest v3
 
-The canonical `FAMILY_MANIFEST.json` records exact Core plus `codex-commit`, `codex-review`, `codex-review-service`, and `codex-diagnose` SHAs, protocol versions, runtime versions, package-lock digests and product-contract digests under one manifest digest.
+Family Compatibility first freezes one exact Core/consumer snapshot. Linux, Windows, macOS and the manifest job all checkout those exact SHAs; no job re-resolves moving `main` heads. Every active consumer must carry Product Contract v1 and pin a Core SHA that maps to a final immutable Core `vX.Y.Z` Release.
+
+`FAMILY_MANIFEST.json` v3 records the snapshot digest, exact Core/consumer SHAs, every consumer Product Contract digest, Core contract digest, the complete integer `*Version` protocol map, a protocol fingerprint, runtime versions and package-lock digests under one manifest digest. Adding a new versioned Core protocol therefore changes the protocol fingerprint automatically rather than requiring a second hand-maintained list.
 
 ## Semantic review contracts
 

@@ -1,5 +1,5 @@
 {
-  "coreVersion": "4.8.1",
+  "coreVersion": "4.9.0",
   "safeCoreMajorVersion": 4,
   "safeContractVersion": 2,
   "policySchemaVersion": 3,
@@ -10,14 +10,17 @@
   "diagnosePromptContractVersion": 1,
   "diagnosisContractVersion": 1,
   "diagnosisReceiptVersion": 1,
-  "qualityPlatformVersion": 2,
+  "qualityPlatformVersion": 3,
   "reviewProfileVersion": 1,
   "profilePackVersion": 1,
   "impactEvidenceVersion": 2,
   "testImpactVersion": 1,
   "analyzerFindingVersion": 1,
   "patchProposalVersion": 1,
-  "familyManifestVersion": 2,
+  "familySnapshotVersion": 1,
+  "familyManifestVersion": 3,
+  "productContractVersion": 1,
+  "tokenCalibrationVersion": 1,
   "supportedNodeMajors": [
     22,
     24

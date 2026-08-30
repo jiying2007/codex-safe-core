@@ -1,6 +1,6 @@
 # 质量平台
 
-Codex Safe Core 4.8 扩展统一、确定性的质量平台，同时继续禁止把 GitLab、VS Code、Pipeline API、数据库、Analyzer 获取、通知等产品职责塞进 Core。
+Codex Safe Core 4.9.0 / Quality Platform v3 扩展统一、确定性的质量平台，同时继续禁止把 GitLab、VS Code、Pipeline API、数据库、Analyzer 获取、通知等产品职责塞进 Core。
 
 ## Review Profile
 
@@ -24,23 +24,34 @@ Core 将通用 analyzer finding 和 SARIF 2.1 结果归一成统一 Finding Cont
 
 ## Diagnosis Contract / Receipt v1
 
-Core 4.8 为 `codex-diagnose` 增加纯函数 Diagnosis 原语：失败日志有界压缩、保守的确定性分类、closed structured output schema、Diagnosis Result 归一、Evidence Digest 与 Diagnosis Receipt v1。Pipeline 日志和 Artifact 文本永远是不可信证据。Core 不获取 Pipeline、不重试 Job、不执行日志中的命令、不修改代码、不创建 MR，也不发布 Diagnosis。
+Core 4.9.0 保持 Diagnosis Contract / Receipt v1 不变：失败日志有界压缩、保守确定性分类、closed structured output schema、Diagnosis Result 归一、Evidence Digest 与 Diagnosis Receipt。Pipeline 日志和 Artifact 文本永远是不可信证据。Core 不获取 Pipeline、不重试 Job、不执行日志中的命令、不修改代码、不创建 MR，也不发布 Diagnosis。
 
 ## Quality Eval
 
-`quality/corpus.json` 定义 Critical/High/Medium 合成缺陷期望；`scripts/quality-eval.js` 计算 Critical Recall、Recall、Precision、每次 Review 的 False Positive、重复率、无效行号率和 Token/True Positive。Critical Recall 低于 100%，或质量/成本相对基线越界，CI 直接失败。仓库内 recorded corpus 是确定性离线门禁；也可以通过 `--results` 输入真实模型评测结果。
+Quality Platform v3 提供两套带标签的离线门禁：
+
+- Review：`quality/corpus.json` 覆盖 Critical/High/Medium 缺陷和 clean negative case；`scripts/quality-eval.js` 门禁 Critical Recall、Recall、Precision、False Positive/Review、重复/无效行号率和 Token/True Positive。
+- Diagnose：`quality/diagnosis-corpus.json` 覆盖 source、test、dependency、infra、flaky、unknown、cascade failure；`scripts/diagnosis-quality-eval.js` 门禁 classification accuracy、root-cause Top-1 accuracy、affected-file recall、retry accuracy、evidence validity、confidence calibration 和 tokens/diagnosis。
+
+仓库内 recorded result 是确定性回归 fixture，不代表生产模型效果声明。产品或定时评测可以通过 `--results` 注入新结果；修改 baseline 必须和解释该变化的 corpus 修改一起审计。
 
 ## Patch Proposal Safety
 
 Core 只验证候选 unified patch。二进制补丁、超出已审证据路径、NUL、超预算补丁都会拒绝。Core 永远不会自动 apply、commit、push 或 merge。
 
+## Token Calibration v1
+
+`TokenEstimatorCalibration` 从保守的 2 UTF-8 bytes/token 开始，只根据真实 input-token usage 为 provider+model 维护有界 EWMA；达到最小样本数后才启用，并带安全折扣与上下界。进程重启后重新回到保守默认值；校准不能放宽已配置 Token Budget。
+
 ## Performance
 
 保留宽松绝对预算用于阻断灾难性退化；定时性能历史增加同 Runner 相对比较，Latency 或 RSS 回退超过 10% 直接失败。
 
-## Family Manifest
+## Atomic Family Snapshot v1 / Manifest v3
 
-Canonical `FAMILY_MANIFEST.json` 统一记录 Core 以及 `codex-commit`、`codex-review`、`codex-review-service`、`codex-diagnose` 四个活跃 Consumer 的精确 SHA、协议版本、Runtime、package-lock digest、product-contract digest，并由唯一 manifest digest 锁定。
+Family Compatibility 先冻结一份精确的 Core + Consumer Snapshot。Linux、Windows、macOS 与 Manifest job 都 checkout 同一组 SHA，不再在不同阶段重新解析移动中的 `main`。每个活跃 Consumer 必须包含 Product Contract v1，并且所 pin 的 Core SHA 必须对应 final、immutable 的 Core `vX.Y.Z` Release。
+
+`FAMILY_MANIFEST.json` v3 记录 Snapshot digest、Core/Consumer 精确 SHA、每个 Consumer 的 Product Contract digest、Core Contract digest、完整的整数 `*Version` 协议映射、protocol fingerprint、Runtime 与 package-lock digest，再由 manifest digest 总锁定。以后 Core 新增版本化协议时，不再需要手工维护第二份协议清单。
 
 ## Semantic review contracts
 

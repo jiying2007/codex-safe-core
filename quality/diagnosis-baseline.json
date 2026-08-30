@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "classificationAccuracy": 1,
+  "rootCauseTop1Accuracy": 1,
+  "affectedFileRecall": 1,
+  "retryAccuracy": 1,
+  "evidenceValidityRate": 1,
+  "confidenceCalibrationError": 0.1075,
+  "tokensPerDiagnosis": 797.5
+}

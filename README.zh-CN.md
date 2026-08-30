@@ -30,7 +30,7 @@ git submodule update --init --recursive
 npm run ci
 ```
 
-Core 变更只有在四个活跃 Consumer 都 coordinated-repin 到同一个已审核 Core commit，并通过各自 CI 后才算完成。
+Core 变更只有在四个活跃 Consumer 都 coordinated-repin 到同一个已审核、已正式发布的 Core commit，并通过各自 CI 后才算完成。
 
 ## 机器可验证的 Trust Root 身份
 
@@ -45,7 +45,7 @@ CI 在 Linux、Windows、macOS 上验证两个精确基线，不再用 `>=22` �
 
 ## 职责边界
 
-Core 负责 Codex capability probe/调用、进程生命周期、本地 Git 通用原语、Semantic Context、coverage-preserving Review Evidence Chunking、Policy Schema v3、确定性 Review Rules、指纹以及 Receipt 校验与 provenance。Core 4.8 进一步统一拥有版本化 Review Profile Pack、确定性 Test Impact 排序、Diagnosis Contract / Receipt 纯函数原语。`core-ownership-manifest.json` 固化这条边界。产品仓库只负责 Commit、Review、Diagnose 或 GitLab Service 领域行为，不得自行维护 Core 已拥有的实现。
+Core 负责 Codex capability probe/调用、进程生命周期、本地 Git 通用原语、Semantic Context、coverage-preserving Review Evidence Chunking、Policy Schema v3、确定性 Review Rules、指纹以及 Receipt 校验与 provenance。Core 4.9 进一步统一拥有版本化 Review Profile Pack、确定性 Test Impact、Diagnosis Contract / Receipt 纯函数原语、有界 Token Estimator Calibration、Review/Diagnose Quality Eval、Atomic Family Snapshot v1、Family Manifest v3、Product Contract v1 校验以及 immutable released-Core pin 校验。`core-ownership-manifest.json` 固化这条边界。产品仓库只负责 Commit、Review、Diagnose 或 GitLab Service 领域行为，不得自行维护 Core 已拥有的实现。
 
 Analyzer Artifact 获取/解析编排、GitLab Pipeline/Job API、Diagnosis 发布和 SCM Provider 副作用仍属于产品层。PR/MR Narrative、GitHub Pull Requests Provider、Compare URL、GitHub Fork Topology 以及 SCM 侧 PR/MR 创建明确不属于 Core。
 
@@ -53,15 +53,15 @@ Analyzer Artifact 获取/解析编排、GitLab Pipeline/Job API、Diagnosis 发�
 
 要求 `--ask-for-approval never`、`exec --json`、ephemeral、忽略用户/仓库 Codex 规则、read-only sandbox、Structured Output，并显式关闭 shell/unified exec、web search、apps、multi-agent、plugins、hooks、goals、memories 与 dependency install。缺少能力直接 fail closed，不提供 legacy fallback。
 
-每日 Codex CLI Canary 在 Linux/Windows/macOS 检查最新上游 CLI并记录 Safe Contract digest；配置受保护 OpenAI 凭据时，还会真实尝试被禁止的文件写入与 loopback network side effect，任一成功即失败。永久 adversarial corpus 验证仓库/模型中的恶意指令不能改变 Safe Contract argv。
+每日 Codex CLI Canary 在 Linux/Windows/macOS 检查最新上游 CLI 并记录 Safe Contract digest；配置受保护 OpenAI 凭据时，还会真实尝试被禁止的文件写入与 loopback network side effect，任一成功即失败。永久 adversarial corpus 验证仓库/模型中的恶意指令不能改变 Safe Contract argv。
 
 ## Policy Schema v3
 
 仓库策略文件只有 `.codex-safe.json`。旧 Policy Schema 明确拒绝。当前 closed schema 只包含 Commit、Review、Review Service 三个 section；原 `pr` section 直接拒绝，不保留兼容表面。Diagnose 使用独立产品配置，因为 CI Diagnosis 不属于仓库 Review Policy 表面。
 
-## Core 4.8 Quality Platform 扩展
+## Core 4.9 Quality Platform v3
 
-原有 `quick`、`standard`、`deep`、`security`、`embedded` 五种执行 Profile 保持稳定。Profile Pack v1 新增 `general`、`backend`、`frontend`、`security`、`cpp`、`embedded-linux`、`embedded-mcu`、`driver`、`kernel`、`realtime` 十个版本化工程 Pack。Test Impact v1 根据 changed paths 与语义证据对 Controller 提供的测试候选做确定性排序，但不执行测试。Diagnosis Contract v1 对不可信失败日志做有界压缩、保守确定性分类，并将模型结果绑定到 Diagnosis Receipt v1。
+原有 `quick`、`standard`、`deep`、`security`、`embedded` 五种执行 Profile 保持稳定。Profile Pack v1 提供 `general`、`backend`、`frontend`、`security`、`cpp`、`embedded-linux`、`embedded-mcu`、`driver`、`kernel`、`realtime` 十个版本化工程 Pack。Test Impact v1 根据 changed paths 与语义证据对 Controller 提供的测试候选做确定性排序，但不执行测试。Diagnosis Contract v1 保持不变。Quality Platform v3 增加带标签的 Review / Diagnose 回归语料，包括 clean negative/cascade case 与明确的质量、校准、Token 成本门禁。Token Calibration v1 可从真实 usage 改进预估，但不能削弱 fail-closed budget。
 
 ## Receipt provenance
 
@@ -71,15 +71,16 @@ Core 4.x 的 Trust Root 治理强化**不改变 Review/Commit Receipt v4 schema*
 
 ## 确定性边界
 
-Git evidence identity、Policy evaluation、Receipt validation、coverage/readiness/mechanical gate、severity/confidence filtering、stale publication rejection、Profile Pack 解析、Test Impact 排序和 Diagnosis Evidence Digest 都是确定性逻辑。模型 wording/findings/diagnoses 属于非确定性输入，不能绕过 schema validation、evidence binding 或 deterministic gate。
+Git evidence identity、Policy evaluation、Receipt validation、coverage/readiness/mechanical gate、severity/confidence filtering、stale publication rejection、Profile Pack 解析、Test Impact 排序、Diagnosis Evidence Digest、质量指标、Family Snapshot 身份和 Manifest 身份都是确定性逻辑。模型 wording/findings/diagnoses 属于非确定性输入，不能绕过 schema validation、evidence binding 或 deterministic gate。
 
 ## Family 治理
 
-- **Family Compatibility：** 每周/手动在 Linux、Windows、macOS 重放 Family Golden Corpus，验证四个活跃 Consumer 精确 pin 当前 Core、检查是否重新实现 Core-owned primitive，并运行各自 CI。
-- **Family Manifest Attestation：** coordinated repin 后生成 `FAMILY_MANIFEST.json`，记录精确 Core/Consumer SHA、协议/运行时身份和 manifest digest，并生成 GitHub build provenance。
+- **Atomic Family Compatibility：** 每周/手动先冻结一份精确 Core/Consumer Snapshot，再在 Linux、Windows、macOS checkout 同一组 SHA，验证四个活跃 Consumer 只 pin 已正式发布的 Core、检查是否重新实现 Core-owned primitive，并运行各自 CI。
+- **Family Manifest v3 Attestation：** Manifest job 消费同一冻结 Snapshot，记录 Core/Consumer SHA、Product Contract digest、Core Contract digest、完整版本化 protocol map/fingerprint、Runtime 与 manifest digest，再生成 build provenance 和 immutable digest-addressed Release。
+- **Released Core Gate：** 活跃 Consumer 只能 pin 到 final、immutable `vX.Y.Z` Core Release 精确指向的 SHA。
 - **Codex CLI Canary：** 每天/手动使用最新上游 Codex CLI，在三平台检查 Safe Contract 必需能力；有受保护凭据时执行 live negative behavior check。
 - **Adversarial Corpus：** 持续覆盖 prompt injection、工具提权、网络/文件系统诱导等输入。
-- **Performance Budget：** 使用宽松回归预算阻止数量级退化，不使用脆弱微基准。
+- **Performance / Quality Budget：** 宽松性能门禁阻止数量级退化；带标签 Review/Diagnose corpus 阻止准确率、误报、校准和 Token 成本回退。
 - **OpenSSF Scorecard：** 持续安全回归信号。
 - **Release Supply Chain：** trusted reusable publication workflow、Node 22/24 release gate、可复现 npm package、immutable tag/assets、SHA-256、SPDX SBOM、GitHub build provenance attestation 与消费侧验证。
 

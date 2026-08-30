@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    {"id":"compile-symbol","description":"Compiler failure caused by a missing source symbol","expected":{"classification":"source","rootCauseKey":"missing-symbol","affectedFiles":["src/player.c"],"retryRecommended":false}},
+    {"id":"unit-assertion","description":"Deterministic unit-test assertion regression","expected":{"classification":"test","rootCauseKey":"assertion-regression","affectedFiles":["test/player.test.js"],"retryRecommended":false}},
+    {"id":"registry-resolution","description":"Dependency registry resolution failure","expected":{"classification":"dependency","rootCauseKey":"registry-resolution","affectedFiles":["package-lock.json"],"retryRecommended":true}},
+    {"id":"runner-disk-full","description":"Runner infrastructure out-of-space failure","expected":{"classification":"infra","rootCauseKey":"runner-disk-full","affectedFiles":[],"retryRecommended":true}},
+    {"id":"dns-outage","description":"Transient DNS failure","expected":{"classification":"infra","rootCauseKey":"dns-outage","affectedFiles":[],"retryRecommended":true}},
+    {"id":"intermittent-race","description":"Known intermittent race signature","expected":{"classification":"flaky","rootCauseKey":"intermittent-race","affectedFiles":["test/concurrency.test.js"],"retryRecommended":true}},
+    {"id":"cascade-build","description":"Downstream package/test failures caused by one upstream compile failure","expected":{"classification":"source","rootCauseKey":"upstream-compile","affectedFiles":["src/codec.cpp"],"retryRecommended":false}},
+    {"id":"insufficient-evidence","description":"Bounded log does not support a root cause","expected":{"classification":"unknown","rootCauseKey":"insufficient-evidence","affectedFiles":[],"retryRecommended":false}}
+  ]
+}
