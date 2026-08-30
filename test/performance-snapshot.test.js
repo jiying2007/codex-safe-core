@@ -1,0 +1,10 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const{median,summarizeSamples}=require('../scripts/write-performance-snapshot');
+const{compareSnapshots}=require('../scripts/compare-performance-snapshot');
+const base={elapsedMs:100,rssGrowthBytes:1000,evidenceChunks:8,evidenceInputBytes:4194330,contextInputBytes:4194330,impactNodes:32,impactBytes:39340,estimatedTokens:497856,risk:2,plannedBytes:1046730};
+test('performance snapshots use a stable odd-sample median',()=>{assert.equal(median([180,120,150,140,160,130,170]),150);const samples=[90,100,110,95,105,120,80].map((elapsedMs,index)=>({...base,elapsedMs,rssGrowthBytes:1000+index*10}));const out=summarizeSamples(samples);assert.equal(out.elapsedMs,100);assert.equal(out.rssGrowthBytes,1030);});
+test('performance samples fail closed on structural drift',()=>{const samples=Array.from({length:7},()=>({...base}));samples[3]={...samples[3],plannedBytes:123};assert.throws(()=>summarizeSamples(samples),/structural drift/);});
+test('schema v3 migration does not compare median against legacy single sample',()=>{const current={schemaVersion:3,metrics:{elapsedMs:180,rssGrowthBytes:1000},budgets:{elapsedMs:5000,rssGrowthBytes:100000}},legacy={schemaVersion:2,metrics:{elapsedMs:140,rssGrowthBytes:1000}};assert.deepEqual(compareSnapshots(current,legacy),{ok:true,migration:true,reason:'legacy_single_sample_baseline',result:null});});
+test('schema v3 keeps median-to-median relative regression gate',()=>{const current={schemaVersion:3,metrics:{elapsedMs:112,rssGrowthBytes:1000},budgets:{elapsedMs:5000,rssGrowthBytes:100000}},baseline={schemaVersion:3,metrics:{elapsedMs:100,rssGrowthBytes:1000}};assert.equal(compareSnapshots(current,baseline).ok,false);});
