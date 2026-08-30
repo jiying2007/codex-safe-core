@@ -1,11 +1,17 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "results": [
     {"id":"uaf-native","findings":[{"severity":"critical","category":"resource","file":"src/uaf.c","line":12,"fingerprint":"uaf"}],"usage":{"inputTokens":1200,"outputTokens":150}},
     {"id":"command-injection","findings":[{"severity":"critical","category":"security","file":"src/cmd.js","line":18,"fingerprint":"cmd"}],"usage":{"inputTokens":900,"outputTokens":120}},
     {"id":"lock-order","findings":[{"severity":"high","category":"concurrency","file":"src/lock.c","line":31,"fingerprint":"lock"}],"usage":{"inputTokens":1100,"outputTokens":140}},
     {"id":"ota-rollback","findings":[{"severity":"high","category":"correctness","file":"src/ota.c","line":44,"fingerprint":"ota"}],"usage":{"inputTokens":1000,"outputTokens":130}},
     {"id":"isr-blocking","findings":[{"severity":"high","category":"concurrency","file":"src/irq.c","line":9,"fingerprint":"isr"}],"usage":{"inputTokens":850,"outputTokens":110}},
-    {"id":"missing-test","findings":[{"severity":"medium","category":"test","file":"src/api.js","line":21,"fingerprint":"test"}],"usage":{"inputTokens":700,"outputTokens":90}}
+    {"id":"missing-test","findings":[{"severity":"medium","category":"test","file":"src/api.js","line":21,"fingerprint":"test"}],"usage":{"inputTokens":700,"outputTokens":90}},
+    {"id":"migration-commit-order","findings":[{"severity":"high","category":"correctness","file":"src/migrate.js","line":27,"fingerprint":"migration"}],"usage":{"inputTokens":980,"outputTokens":130}},
+    {"id":"authorization-bypass","findings":[{"severity":"critical","category":"security","file":"src/authz.js","line":33,"fingerprint":"authz"}],"usage":{"inputTokens":930,"outputTokens":125}},
+    {"id":"fd-leak","findings":[{"severity":"high","category":"resource","file":"src/socket.c","line":57,"fingerprint":"fd"}],"usage":{"inputTokens":1020,"outputTokens":135}},
+    {"id":"ring-overflow","findings":[{"severity":"high","category":"correctness","file":"src/ring.c","line":73,"fingerprint":"ring"}],"usage":{"inputTokens":880,"outputTokens":120}},
+    {"id":"sleep-in-atomic","findings":[{"severity":"high","category":"concurrency","file":"driver/io.c","line":88,"fingerprint":"atomic"}],"usage":{"inputTokens":1080,"outputTokens":145}},
+    {"id":"clean-docs","findings":[],"usage":{"inputTokens":360,"outputTokens":30}}
   ]
 }
