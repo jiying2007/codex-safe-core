@@ -1,5 +1,14 @@
 # Changelog
 
+## 4.9.3 - 2026-08-30
+
+### Family release attestation reliability
+
+- Keep Family Manifest publication fail-closed while tolerating GitHub release-attestation eventual consistency: after the digest-addressed Release reaches `immutable=true`, retry `gh release verify` in a bounded 12×5-second window before verifying the manifest asset digest.
+- Preserve the exact atomic Family Snapshot, Manifest v3 generation, build-provenance attestation, immutable Release semantics and consumer validation matrix; no protocol or product behavior changes.
+- Add a workflow regression test that requires bounded release-attestation propagation retry and prevents replacing verification with a skip or fail-open path.
+- Keep Safe Contract v2, Policy Schema v3, Review/Commit Receipt v4, Diagnosis Contract/Receipt v1, Quality Platform v3 and all consumer product/runtime semantics unchanged.
+
 ## 4.9.2 - 2026-08-30
 
 ### Performance evidence reliability
