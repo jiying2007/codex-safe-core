@@ -8,6 +8,7 @@ const root=path.resolve(__dirname,'..');
 const release=fs.readFileSync(path.join(root,'.github','workflows','release.yml'),'utf8');
 const trusted=fs.readFileSync(path.join(root,'.github','workflows','_trusted-release.yml'),'utf8');
 const family=fs.readFileSync(path.join(root,'.github','workflows','family-ci.yml'),'utf8');
+const performanceTrend=fs.readFileSync(path.join(root,'.github','workflows','performance-trend.yml'),'utf8');
 
 test('validation workflow is read-only and covers both LTS runtimes plus reproducibility',()=>{
   assert.match(release,/name: Release Validation/);
@@ -80,4 +81,21 @@ test('Family release verification tolerates bounded release-attestation propagat
   assert.match(family,/Release attestation for \$\{tag\} is not visible yet/);
   assert.match(family,/attestation did not become verifiable/);
   assert.match(family,/test "\$release_verified" = true/);
+});
+
+test('Performance publication is provenance-attested and uses only pinned actions',()=>{
+  assert.match(performanceTrend,/permissions:\r?\n  contents: write\r?\n  id-token: write\r?\n  attestations: write/);
+  assert.match(performanceTrend,/actions\/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4\.2\.2/);
+  assert.match(performanceTrend,/subject-path: \$\{\{ steps\.evidence\.outputs\.asset \}\}/);
+  assert.doesNotMatch(performanceTrend,/actions\/attest-build-provenance@(?:v|main|master)/);
+});
+
+test('Performance immutable release reruns verify the existing canonical asset instead of overwriting it',()=>{
+  assert.match(performanceTrend,/exists=false[\s\S]*gh release view "\$tag"[\s\S]*exists=true/);
+  assert.match(performanceTrend,/if: steps\.evidence\.outputs\.exists != 'true'/);
+  assert.match(performanceTrend,/gh release download "\$PERFORMANCE_TAG" --pattern "\$PERFORMANCE_ASSET" --dir \./);
+  assert.match(performanceTrend,/release_verified=false/);
+  assert.match(performanceTrend,/for attempt in \{1\.\.12\}; do[\s\S]*if gh release verify "\$PERFORMANCE_TAG"; then[\s\S]*release_verified=true/);
+  assert.match(performanceTrend,/gh release verify-asset "\$PERFORMANCE_TAG" "\$PERFORMANCE_ASSET"/);
+  assert.doesNotMatch(performanceTrend,/--clobber/);
 });
