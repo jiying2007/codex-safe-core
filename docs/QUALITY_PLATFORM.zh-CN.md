@@ -1,6 +1,6 @@
 # 质量平台
 
-Codex Safe Core 4.9.2 / Quality Platform v3 扩展统一、确定性的质量平台，同时继续禁止把 GitLab、VS Code、Pipeline API、数据库、Analyzer 获取、通知等产品职责塞进 Core。
+Codex Safe Core 4.9.3 / Quality Platform v3 扩展统一、确定性的质量平台，同时继续禁止把 GitLab、VS Code、Pipeline API、数据库、Analyzer 获取、通知等产品职责塞进 Core。
 
 ## Review Profile
 
@@ -24,7 +24,7 @@ Core 将通用 analyzer finding 和 SARIF 2.1 结果归一成统一 Finding Cont
 
 ## Diagnosis Contract / Receipt v1
 
-Core 4.9.2 保持 Diagnosis Contract / Receipt v1 不变：失败日志有界压缩、保守确定性分类、closed structured output schema、Diagnosis Result 归一、Evidence Digest 与 Diagnosis Receipt。Pipeline 日志和 Artifact 文本永远是不可信证据。Core 不获取 Pipeline、不重试 Job、不执行日志中的命令、不修改代码、不创建 MR，也不发布 Diagnosis。
+Core 4.9.3 保持 Diagnosis Contract / Receipt v1 不变：失败日志有界压缩、保守确定性分类、closed structured output schema、Diagnosis Result 归一、Evidence Digest 与 Diagnosis Receipt。Pipeline 日志和 Artifact 文本永远是不可信证据。Core 不获取 Pipeline、不重试 Job、不执行日志中的命令、不修改代码、不创建 MR，也不发布 Diagnosis。
 
 ## Quality Eval
 
@@ -61,6 +61,8 @@ Core 只验证候选 unified patch。二进制补丁、超出已审证据路径�
 Family Compatibility 先冻结一份精确的 Core + Consumer Snapshot。Linux、Windows、macOS 与 Manifest job 都 checkout 同一组 SHA，不再在不同阶段重新解析移动中的 `main`。每个活跃 Consumer 必须包含 Product Contract v1，并且所 pin 的 Core SHA 必须对应 final、immutable 的 Core `vX.Y.Z` Release。
 
 `FAMILY_MANIFEST.json` v3 记录 Snapshot digest、Core/Consumer 精确 SHA、每个 Consumer 的 Product Contract digest、Core Contract digest、完整的整数 `*Version` 协议映射、protocol fingerprint、Runtime 与 package-lock digest，再由 manifest digest 总锁定。以后 Core 新增版本化协议时，不再需要手工维护第二份协议清单。
+
+Immutable Family Manifest 发布会先等待 Release 进入 `immutable=true`，再在有界窗口内重试 `gh release verify`，给 GitHub 自动生成的 release attestation 留出传播时间。若 release attestation 始终不可验证仍然 fail closed；只有 Release 验证成功后才继续校验 Manifest asset digest。
 
 ## Semantic review contracts
 
