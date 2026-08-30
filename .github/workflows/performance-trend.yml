@@ -7,6 +7,8 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 jobs:
   snapshot:
@@ -39,7 +41,8 @@ jobs:
             test -n "$previous" || { echo "No performance snapshot asset found in ${previous_tag}." >&2; exit 1; }
             node scripts/compare-performance-snapshot.js PERFORMANCE_SNAPSHOT.json "$previous"
           fi
-      - name: Persist one immutable performance snapshot release
+      - id: evidence
+        name: Prepare immutable performance evidence
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -48,19 +51,53 @@ jobs:
           core_version="$(node -p "require('./core-contract.json').coreVersion")"
           short="${GITHUB_SHA:0:12}"
           asset="performance-${short}.json"
-          mv PERFORMANCE_SNAPSHOT.json "$asset"
           tag="codex-safe-performance-v${core_version}-${short}"
+          mv PERFORMANCE_SNAPSHOT.json "$asset"
+          exists=false
           if gh release view "$tag" >/dev/null 2>&1; then
-            echo "immutable performance evidence already exists: $tag"
+            exists=true
+          fi
+          echo "asset=${asset}" >> "$GITHUB_OUTPUT"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "exists=${exists}" >> "$GITHUB_OUTPUT"
+      - name: Attest performance snapshot provenance
+        if: steps.evidence.outputs.exists != 'true'
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: ${{ steps.evidence.outputs.asset }}
+      - name: Persist and verify immutable performance snapshot release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PERFORMANCE_TAG: ${{ steps.evidence.outputs.tag }}
+          PERFORMANCE_ASSET: ${{ steps.evidence.outputs.asset }}
+          PERFORMANCE_EXISTS: ${{ steps.evidence.outputs.exists }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$PERFORMANCE_EXISTS" == true ]]; then
+            echo "immutable performance evidence already exists: $PERFORMANCE_TAG"
+            rm -f "$PERFORMANCE_ASSET"
+            gh release download "$PERFORMANCE_TAG" --pattern "$PERFORMANCE_ASSET" --dir .
           else
-            gh release create "$tag" "$asset" --target "$GITHUB_SHA" --title "Codex Safe performance ${core_version} ${short}" --notes "Immutable broad performance regression snapshot for one exact Core commit."
+            core_version="$(node -p "require('./core-contract.json').coreVersion")"
+            short="${GITHUB_SHA:0:12}"
+            gh release create "$PERFORMANCE_TAG" "$PERFORMANCE_ASSET" --target "$GITHUB_SHA" --title "Codex Safe performance ${core_version} ${short}" --notes "Immutable broad performance regression snapshot for one exact Core commit."
           fi
           immutable=false
           for attempt in {1..12}; do
-            immutable="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${tag}" --jq '.immutable')"
+            immutable="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${PERFORMANCE_TAG}" --jq '.immutable')"
             [[ "$immutable" == true ]] && break
             sleep 5
           done
-          test "$immutable" = true || { echo "Performance release ${tag} is not immutable." >&2; exit 1; }
-          gh release verify "$tag"
-          gh release verify-asset "$tag" "$asset"
+          test "$immutable" = true || { echo "Performance release ${PERFORMANCE_TAG} is not immutable." >&2; exit 1; }
+          release_verified=false
+          for attempt in {1..12}; do
+            if gh release verify "$PERFORMANCE_TAG"; then
+              release_verified=true
+              break
+            fi
+            echo "Performance release attestation for ${PERFORMANCE_TAG} is not visible yet (attempt ${attempt}/12)." >&2
+            sleep 5
+          done
+          test "$release_verified" = true || { echo "Performance release ${PERFORMANCE_TAG} attestation did not become verifiable." >&2; exit 1; }
+          gh release verify-asset "$PERFORMANCE_TAG" "$PERFORMANCE_ASSET"

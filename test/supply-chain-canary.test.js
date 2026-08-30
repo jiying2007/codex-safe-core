@@ -55,13 +55,17 @@ test('compatibility history never mutates an immutable fixed release', () => {
   assert.match(canary, /gh release verify-asset "\$tag" "\$asset"/);
 });
 
-test('performance history uses one immutable release per exact Core snapshot', () => {
+test('performance history uses one provenance-attested immutable release per exact Core snapshot', () => {
   assert.doesNotMatch(performanceTrend, /tag="codex-safe-performance-history"/);
   assert.doesNotMatch(performanceTrend, /gh release upload/);
+  assert.doesNotMatch(performanceTrend, /--clobber/);
   assert.match(performanceTrend, /codex-safe-performance-v\$\{core_version\}-\$\{short\}/);
-  assert.match(performanceTrend, /gh release create "\$tag" "\$asset"/);
+  assert.match(performanceTrend, /actions\/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8/);
+  assert.match(performanceTrend, /gh release create "\$PERFORMANCE_TAG" "\$PERFORMANCE_ASSET"/);
   assert.match(performanceTrend, /\.immutable/);
-  assert.match(performanceTrend, /gh release verify-asset "\$tag" "\$asset"/);
+  assert.match(performanceTrend, /gh release verify "\$PERFORMANCE_TAG"/);
+  assert.match(performanceTrend, /gh release verify-asset "\$PERFORMANCE_TAG" "\$PERFORMANCE_ASSET"/);
+  assert.match(performanceTrend, /gh release download "\$PERFORMANCE_TAG" --pattern "\$PERFORMANCE_ASSET"/);
 });
 
 test('live quality canary stays bounded and includes a clean negative', () => {
