@@ -1,6 +1,6 @@
 # 质量平台
 
-Codex Safe Core 4.9.1 / Quality Platform v3 扩展统一、确定性的质量平台，同时继续禁止把 GitLab、VS Code、Pipeline API、数据库、Analyzer 获取、通知等产品职责塞进 Core。
+Codex Safe Core 4.9.2 / Quality Platform v3 扩展统一、确定性的质量平台，同时继续禁止把 GitLab、VS Code、Pipeline API、数据库、Analyzer 获取、通知等产品职责塞进 Core。
 
 ## Review Profile
 
@@ -24,7 +24,7 @@ Core 将通用 analyzer finding 和 SARIF 2.1 结果归一成统一 Finding Cont
 
 ## Diagnosis Contract / Receipt v1
 
-Core 4.9.1 保持 Diagnosis Contract / Receipt v1 不变：失败日志有界压缩、保守确定性分类、closed structured output schema、Diagnosis Result 归一、Evidence Digest 与 Diagnosis Receipt。Pipeline 日志和 Artifact 文本永远是不可信证据。Core 不获取 Pipeline、不重试 Job、不执行日志中的命令、不修改代码、不创建 MR，也不发布 Diagnosis。
+Core 4.9.2 保持 Diagnosis Contract / Receipt v1 不变：失败日志有界压缩、保守确定性分类、closed structured output schema、Diagnosis Result 归一、Evidence Digest 与 Diagnosis Receipt。Pipeline 日志和 Artifact 文本永远是不可信证据。Core 不获取 Pipeline、不重试 Job、不执行日志中的命令、不修改代码、不创建 MR，也不发布 Diagnosis。
 
 ## Quality Eval
 
@@ -54,7 +54,7 @@ Core 只验证候选 unified patch。二进制补丁、超出已审证据路径�
 
 ## Performance
 
-保留宽松绝对预算用于阻断灾难性退化；定时性能历史增加同 Runner 相对比较，Latency 或 RSS 回退超过 10% 直接失败。
+保留宽松绝对预算用于阻断灾难性退化；定时性能历史增加同 Runner 相对比较，Latency 或 RSS 回退超过 10% 直接失败。每个精确的 Core version/SHA 单独发布一个 immutable performance evidence Release，并在创建 Release 时一次性附带 snapshot asset；同一 SHA 重跑只验证既有 immutable evidence，不再修改固定历史 Release。
 
 ## Atomic Family Snapshot v1 / Manifest v3
 

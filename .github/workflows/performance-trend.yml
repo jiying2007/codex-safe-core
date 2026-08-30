@@ -22,33 +22,45 @@ jobs:
         run: |
           node --test test/performance-budget.test.js
           node scripts/write-performance-snapshot.js PERFORMANCE_SNAPSHOT.json
-      - name: Compare with previous same-runner snapshot
+      - name: Compare with previous immutable snapshot
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          tag="codex-safe-performance-history"
-          if gh release view "$tag" >/dev/null 2>&1; then
-            previous="$(gh release view "$tag" --json assets --jq '.assets | map(select(.name | test("^performance-.*\\.json$"))) | sort_by(.createdAt) | last | .name // ""')"
-            if [[ -n "$previous" ]]; then
-              gh release download "$tag" --pattern "$previous" --dir previous
-              node scripts/compare-performance-snapshot.js PERFORMANCE_SNAPSHOT.json "previous/$previous"
-            fi
+          core_version="$(node -p "require('./core-contract.json').coreVersion")"
+          short="${GITHUB_SHA:0:12}"
+          current_tag="codex-safe-performance-v${core_version}-${short}"
+          previous_tag="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100" --jq '.[] | select(.tag_name | startswith("codex-safe-performance-v")) | .tag_name' | grep -Fvx "$current_tag" | head -n1 || true)"
+          if [[ -n "$previous_tag" ]]; then
+            mkdir -p previous
+            gh release download "$previous_tag" --pattern 'performance-*.json' --dir previous
+            previous="$(find previous -maxdepth 1 -type f -name 'performance-*.json' -print -quit)"
+            test -n "$previous" || { echo "No performance snapshot asset found in ${previous_tag}." >&2; exit 1; }
+            node scripts/compare-performance-snapshot.js PERFORMANCE_SNAPSHOT.json "$previous"
           fi
-      - name: Persist append-only performance snapshot
+      - name: Persist one immutable performance snapshot release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
+          core_version="$(node -p "require('./core-contract.json').coreVersion")"
           short="${GITHUB_SHA:0:12}"
           asset="performance-${short}.json"
           mv PERFORMANCE_SNAPSHOT.json "$asset"
-          tag="codex-safe-performance-history"
-          gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --target "$GITHUB_SHA" --title "Codex Safe performance history" --notes "Append-only broad regression snapshots with relative regression checks."
-          if gh release view "$tag" --json assets --jq '.assets[].name' | grep -Fxq "$asset"; then
-            echo "performance record already exists for $short"
+          tag="codex-safe-performance-v${core_version}-${short}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "immutable performance evidence already exists: $tag"
           else
-            gh release upload "$tag" "$asset"
+            gh release create "$tag" "$asset" --target "$GITHUB_SHA" --title "Codex Safe performance ${core_version} ${short}" --notes "Immutable broad performance regression snapshot for one exact Core commit."
           fi
+          immutable=false
+          for attempt in {1..12}; do
+            immutable="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${tag}" --jq '.immutable')"
+            [[ "$immutable" == true ]] && break
+            sleep 5
+          done
+          test "$immutable" = true || { echo "Performance release ${tag} is not immutable." >&2; exit 1; }
+          gh release verify "$tag"
+          gh release verify-asset "$tag" "$asset"

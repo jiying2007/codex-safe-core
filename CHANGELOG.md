@@ -1,5 +1,15 @@
 # Changelog
 
+## 4.9.2 - 2026-08-30
+
+### Performance evidence reliability
+
+- Replace the future fixed `codex-safe-performance-history` append model with one immutable performance-evidence Release per exact `(Core version, Core SHA)`.
+- Compare a new broad performance snapshot against the newest previous immutable performance Release before publication, while treating a rerun for the same Core SHA as idempotent evidence verification.
+- Create the snapshot asset atomically with the Release, wait for `immutable=true`, and verify both the Release and asset instead of using `gh release upload` against a fixed historical Release.
+- Add a supply-chain regression test that prevents mutable fixed performance-history publication from returning.
+- Keep Safe Contract v2, Policy Schema v3, Review/Commit Receipt v4, Diagnosis Contract/Receipt v1, Quality Platform v3 and all consumer product/runtime semantics unchanged.
+
 ## 4.9.1 - 2026-08-30
 
 ### Reliability and quality evidence
@@ -85,7 +95,7 @@ All notable changes to Codex Safe Core are documented here.
 ### Changed
 
 - Add `core-contract.json` as the machine-readable source of current Core/protocol/runtime identity and derive Safe Contract constants from it.
-- Add a canonical `SAFE_CONTRACT_MANIFEST` and SHA-256 `SAFE_CONTRACT_DIGEST` without changing Receipt v4 schemas or Safe Contract v2 semantics.
+- Add a canonical `SAFE_CONTRACT_MANIFEST` and `SAFE_CONTRACT_DIGEST` (SHA-256). The digest identifies the exact authority/capability surface without silently changing Safe Contract v2 semantics or Receipt v4 schemas.
 - Explicitly support only Node 22 LTS >=22.22.2 and Node 24 LTS >=24.19.0, with Linux/Windows/macOS CI on both exact floors.
 - Correct Security Policy drift from stale Core/Receipt v3 facts to the v4 protocol line and permanently verify documentation against the Core contract.
 - Add an adversarial prompt-injection corpus and deterministic tests proving untrusted repository/model text cannot alter Safe Contract argv or enable authority-bearing capabilities.
@@ -112,7 +122,6 @@ All notable changes to Codex Safe Core are documented here.
 - Added independent Review, Commit and PR Prompt Contract version identities without changing Safe Contract v2 or Policy Schema v3.
 - Added a recurring cross-repository Family Compatibility matrix across Linux, Windows and macOS.
 - Added a daily latest-Codex CLI capability canary across Linux, Windows and macOS.
-- Added a SHA-pinned OpenSSF Scorecard workflow.
 - Hardened releases to immutable assets with SHA-256 checksums, deterministic SPDX 2.3 SBOM and GitHub build-provenance attestation.
 - Documented deterministic versus model-nondeterministic boundaries as a permanent family architecture rule.
 

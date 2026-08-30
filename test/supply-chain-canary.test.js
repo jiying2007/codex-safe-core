@@ -11,6 +11,7 @@ const workflows = fs.readdirSync(workflowDir)
   .filter(name => name.endsWith('.yml') || name.endsWith('.yaml'))
   .map(name => [name, fs.readFileSync(path.join(workflowDir, name), 'utf8')]);
 const canary = fs.readFileSync(path.join(workflowDir, 'codex-canary.yml'), 'utf8');
+const performanceTrend = fs.readFileSync(path.join(workflowDir, 'performance-trend.yml'), 'utf8');
 const canaryScript = fs.readFileSync(path.join(root, 'scripts', 'codex-canary.js'), 'utf8');
 const qualityCanaryScript = fs.readFileSync(path.join(root, 'scripts', 'codex-quality-canary.js'), 'utf8');
 
@@ -52,6 +53,15 @@ test('compatibility history never mutates an immutable fixed release', () => {
   assert.match(canary, /gh release create "\$tag" "\$asset"/);
   assert.match(canary, /\.immutable/);
   assert.match(canary, /gh release verify-asset "\$tag" "\$asset"/);
+});
+
+test('performance history uses one immutable release per exact Core snapshot', () => {
+  assert.doesNotMatch(performanceTrend, /tag="codex-safe-performance-history"/);
+  assert.doesNotMatch(performanceTrend, /gh release upload/);
+  assert.match(performanceTrend, /codex-safe-performance-v\$\{core_version\}-\$\{short\}/);
+  assert.match(performanceTrend, /gh release create "\$tag" "\$asset"/);
+  assert.match(performanceTrend, /\.immutable/);
+  assert.match(performanceTrend, /gh release verify-asset "\$tag" "\$asset"/);
 });
 
 test('live quality canary stays bounded and includes a clean negative', () => {
