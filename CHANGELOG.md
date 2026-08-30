@@ -1,5 +1,14 @@
 # Changelog
 
+## 4.9.4 - 2026-08-30
+
+### Timestamp contract consistency
+
+- Make Diagnosis Receipt v1 require the same canonical UTC ISO-8601 timestamp shape already enforced by Review/Commit receipts; timezone-less or offset-local receipt timestamps now fail closed.
+- Allow deterministic Diagnose Markdown to show the exact receipt time explicitly as UTC without changing the stored receipt schema or diagnosis contract version.
+- Add regression coverage for timezone-less timestamp rejection and UTC-labelled diagnosis output.
+- Keep Safe Contract v2, Policy Schema v3, Review/Commit Receipt v4, Diagnosis Contract/Receipt v1, Quality Platform v3 and all consumer product/runtime semantics unchanged.
+
 ## 4.9.3 - 2026-08-30
 
 ### Family release attestation reliability
