@@ -9,6 +9,7 @@ module.exports = Object.freeze({
   ...require('./context-builder'),
   ...require('./efficiency-planner'),
   ...require('./quality-platform'),
+  ...require('./diagnosis-quality'),
   ...require('./review-profile-pack'),
   ...require('./test-impact'),
   ...require('./diagnosis-platform'),
