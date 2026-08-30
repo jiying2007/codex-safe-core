@@ -89,3 +89,68 @@ All notable changes to Codex Safe Core are documented here.
 - Explicitly support only Node 22 LTS >=22.22.2 and Node 24 LTS >=24.19.0, with Linux/Windows/macOS CI on both exact floors.
 - Correct Security Policy drift from stale Core/Receipt v3 facts to the v4 protocol line and permanently verify documentation against the Core contract.
 - Add an adversarial prompt-injection corpus and deterministic tests proving untrusted repository/model text cannot alter Safe Contract argv or enable authority-bearing capabilities.
+- Extend the latest-Codex canary with Safe Contract digest reporting and an optional credential-backed live filesystem/network negative-behavior probe.
+- Add `core-ownership-manifest.json` plus a Family consumer boundary linter to detect independent reimplementation of Core-owned primitives.
+- Add coordinated `FAMILY_BASELINE.json` generation containing exact Core/consumer SHAs, protocol/runtime facts and a baseline digest, with GitHub provenance attestation after all consumer CIs pass.
+- Add release package reproducibility verification and keep release write/id-token permissions isolated to the final publication job.
+- Preserve provider, SQLite/outbox, notification and product-domain concerns outside Core; no compatibility shim or provider abstraction is introduced.
+
+## 4.0.1
+
+### Changed
+
+- Harden release recovery so an unchanged version is skipped only when its immutable tag already exists; failed pre-tag releases can be retried safely.
+- Update `actions/attest-build-provenance` to the SHA-pinned v4.2.2 release.
+- Add a regression test that locks release recovery and provenance-action pinning semantics.
+
+## 4.0.0
+
+### Changed
+
+- Hard-switched Review Receipt and Commit Receipt to closed schema v4; schema v3 receipts are intentionally rejected.
+- Added canonical Receipt provenance for Safe Core, Safe Contract, Policy Schema, Prompt Contract, requested/resolved model identity and Codex CLI version.
+- Added independent Review, Commit and PR Prompt Contract version identities without changing Safe Contract v2 or Policy Schema v3.
+- Added a recurring cross-repository Family Compatibility matrix across Linux, Windows and macOS.
+- Added a daily latest-Codex CLI capability canary across Linux, Windows and macOS.
+- Added a SHA-pinned OpenSSF Scorecard workflow.
+- Hardened releases to immutable assets with SHA-256 checksums, deterministic SPDX 2.3 SBOM and GitHub build-provenance attestation.
+- Documented deterministic versus model-nondeterministic boundaries as a permanent family architecture rule.
+
+## 3.0.1
+
+### Changed
+
+- Added the canonical deterministic Review rule evaluator used by Review Safe and Review Service.
+- Centralized path-prefix normalization and the `requireTestsForCodeChanges` / forbidden-path semantics so consumers cannot drift while mapping violations to their own UI or provider finding models.
+
+## 3.0.0
+
+### Changed
+
+- Raised the implementation line to Safe Core v3 while keeping Safe Contract v2 unchanged.
+- Replaced Policy Schema v2 with closed Policy Schema v3; v2 documents are intentionally rejected.
+- Added shared Review deterministic rules under `.codex-safe.json.review.rules` and a separate `reviewService` section for server-only context/coverage controls.
+- Replaced Review Receipt v2 with Review Receipt v3 using an explicit subject envelope for local Git-index review and GitLab MR review.
+- Raised Commit Receipt to schema v3 so Commit provenance can bind Review Receipt v3 without compatibility shims.
+- Added coverage-preserving Review Evidence Chunking: changed hunks are either included in bounded review chunks or reported as explicit coverage gaps; review input is never silently middle-truncated.
+- Kept Semantic Context budgeting as the narrative-oriented Commit/PR path, separate from review evidence coverage semantics.
+- Continued fail-closed Codex capability negotiation, read-only execution and immutable public runtime boundaries.
+
+## 2.1.0
+
+### Changed
+
+- Added shared policy-schema provenance and canonical policy fingerprinting primitives.
+- Added shared safe-contract capability probing, strict CLI invocation, process cancellation/timeout bounds and cross-platform process-tree termination.
+- Added shared Git evidence primitives and semantic-context budgeting used across the product family.
+
+## 2.0.0
+
+### Changed
+
+- Established Safe Contract v2 and Policy Schema v2 as the first coordinated family protocol line.
+- Removed legacy Codex CLI argument fallbacks and fail open behavior.
+
+## 1.0.0
+
+- Initial shared runtime extraction for the Codex Safe product family.
