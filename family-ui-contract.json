@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": 1,
+  "surface": "vscode.scm.title",
+  "primarySequence": [
+    {
+      "productId": "codex-review-safe",
+      "command": "safeCodexReview.reviewStaged",
+      "group": "navigation@5"
+    },
+    {
+      "productId": "codex-commit-safe",
+      "command": "safeCodexCommit.generate",
+      "group": "navigation@6"
+    },
+    {
+      "productId": "codex-change-safe",
+      "command": "safeCodexChange.createOrUpdate",
+      "group": "navigation@7"
+    }
+  ],
+  "forbiddenPrimaryCommands": [
+    "safeCodexReview.independentReviewStaged",
+    "safeCodexChange.preflight"
+  ],
+  "requiredWhenTerms": [
+    "scmProvider == git",
+    "isWorkspaceTrusted"
+  ]
+}

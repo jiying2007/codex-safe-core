@@ -14,6 +14,10 @@ Codex Safe Core 是 Codex Safe 产品族唯一的**安全运行时与协议核�
 
 **Codex PR Safe 已退役。** 旧的模型生成 PR 描述身份不会恢复。**Codex Change Safe** 是新的确定性交付产品：默认模型调用为 0，负责 GitHub/GitLab PR/MR 的交付授权与 Merge Readiness。
 
+## Family SCM 一级 UI 契约
+
+VS Code 源代码管理器标题栏的正式一级顺序固定为 **Review → Commit → Change**。三个产品各只占一个一级入口：Review 使用 `navigation@5`，Commit 使用 `navigation@6`，Change 使用 `navigation@7`。Independent Review 与 Delivery Preflight 保留为二级能力，不再占用主 SCM 工具栏。机器真相源为 `family-ui-contract.json`。
+
 当前协议线：**Safe Core v4 / Safe Contract v2 / Policy Schema v4 / Review Receipt v4 / Commit Receipt v4 / Diagnosis Receipt v1 / Review、Commit、Diagnose Prompt Contract v1**。`core-contract.json` 是当前 Core / 协议 / 运行时事实的机器校验唯一来源。
 
 ## 我应该使用哪个仓库？

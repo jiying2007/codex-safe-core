@@ -44,7 +44,8 @@
     "family-snapshot-contract",
     "family-manifest-contract",
     "consumer-product-contract-validation",
-    "released-core-pin-validation"
+    "released-core-pin-validation",
+    "family-scm-ui-contract-validation"
   ],
   "consumerForbiddenImplementations": [
     "SAFE_CODEX_CONFIG_OVERRIDES",
