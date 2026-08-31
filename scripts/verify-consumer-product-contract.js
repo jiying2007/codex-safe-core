@@ -13,7 +13,7 @@ function verify(root=process.cwd(),expectedCoreSha='',expectedProduct=''){
   assert.ok(fs.existsSync(contractPath),'product-contract.json is required for every active consumer');
   const contract=JSON.parse(fs.readFileSync(contractPath,'utf8')),pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
   assert.equal(contract.productContractVersion,Number(core.productContractVersion||1));
-  assert.match(String(contract.productId||''),/^codex-(?:commit-safe|review-safe|review-service|diagnose)$/);
+  assert.match(String(contract.productId||''),/^codex-(?:commit-safe|review-safe|review-service|diagnose|change-safe)$/);
   if(expectedProduct)assert.equal(contract.productId,expectedProduct);
   assert.equal(contract.productVersion,pkg.version);
   assert.equal(contract.safeCoreVersion,core.coreVersion);

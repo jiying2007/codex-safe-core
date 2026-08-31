@@ -1,6 +1,6 @@
 # Quality Platform
 
-Codex Safe Core 4.10.0 / Quality Platform v3 keeps the shared deterministic quality platform stable while Policy Schema v4 adds the `change` repository-policy section. Product-owned GitHub/GitLab provider behavior, VS Code UI, pipeline APIs, databases, analyzer acquisition and notifications remain outside Core.
+Codex Safe Core 4.10.1 / Quality Platform v3 keeps the shared deterministic quality platform stable while Policy Schema v4 adds the `change` repository-policy section. Product-owned GitHub/GitLab provider behavior, VS Code UI, pipeline APIs, databases, analyzer acquisition and notifications remain outside Core.
 
 ## Review profiles and Profile Packs
 
