@@ -13,7 +13,8 @@
     {
       "name": "Codex Commit Safe",
       "path": "codex-commit",
-      "safeCorePath": "src/codex-safe-core"
+      "safeCorePath": "src/codex-safe-core",
+      "contractPath": "product-contract.json"
     },
     {
       "name": "Codex Diagnose Safe",
@@ -24,7 +25,8 @@
     {
       "name": "Codex Review Safe",
       "path": "codex-review",
-      "safeCorePath": "src/codex-safe-core"
+      "safeCorePath": "src/codex-safe-core",
+      "contractPath": "product-contract.json"
     },
     {
       "name": "Codex Review Service",
