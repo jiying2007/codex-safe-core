@@ -6,7 +6,7 @@
   "additionalProperties": false,
   "required": ["schemaVersion"],
   "properties": {
-    "schemaVersion": { "const": 3 },
+    "schemaVersion": { "const": 4 },
     "commit": {
       "type": "object", "additionalProperties": false,
       "properties": {
@@ -44,6 +44,22 @@
         }
       }
     },
+    "change": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "requiredChecks": { "$ref": "#/$defs/stringList" },
+        "requiredApprovals": { "type": "integer", "minimum": 0, "maximum": 20 },
+        "provenancePolicy": { "enum": ["advisory", "require-review", "require-commit", "require-all"] },
+        "blockOnReviewFindings": { "type": "boolean" },
+        "requireCleanWorktree": { "type": "boolean" },
+        "requirePushedHead": { "type": "boolean" },
+        "requireFreshTarget": { "type": "boolean" },
+        "reviewers": { "$ref": "#/$defs/stringList" },
+        "labels": { "$ref": "#/$defs/stringList" },
+        "titlePolicy": { "enum": ["create-only", "preserve", "managed"] },
+        "managedSections": { "type": "boolean" }
+      }
+    },
     "reviewService": {
       "type": "object", "additionalProperties": false,
       "properties": {
@@ -59,6 +75,10 @@
     "pathPrefixes": {
       "type": "array", "maxItems": 100, "uniqueItems": true,
       "items": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "^(?!/)(?!.*[\\u0000-\\u001F\\u007F]).+$" }
+    },
+    "stringList": {
+      "type": "array", "maxItems": 100, "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "^(?!.*[\\u0000-\\u001F\\u007F]).+$" }
     }
   }
 }
