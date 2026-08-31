@@ -1,5 +1,17 @@
 # Changelog
 
+## 4.10.0 - 2026-08-31
+
+### Policy Schema v4 and Change Safe Family convergence
+
+- Hard-switch the single committed `.codex-safe.json` repository policy from Schema v3 to **Policy Schema v4**.
+- Add the closed, deterministic `change` section for Codex Change Safe delivery requirements; the retired `pr` prompt/narrative section remains rejected.
+- Keep Safe Contract v2, Review/Commit Receipt v4, Diagnosis Contract/Receipt v1 and model runtime authority unchanged.
+- Add Codex Change Safe as the fifth active exact-pin Core consumer and remove the `codex-pr` repository path from retired-product governance while keeping the historical `jiying2007.codex-pr-safe` identity retired.
+- Extend Atomic Family Snapshot, Product Contract validation, ownership boundaries, golden replay, cross-platform consumer CI, Family Manifest and coordinated repin orchestration to all five consumers.
+- Make coordinated repin synchronize Core version, Policy Schema, Safe Contract and runtime identity in Product Contracts, not only the gitlink SHA.
+- Permanently forbid parallel `.codex-change-safe.json` policy surfaces; all repository policy parsing/validation/fingerprinting remains Core-owned.
+
 ## 4.9.6 - 2026-08-30
 
 ### Performance evidence provenance

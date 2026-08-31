@@ -10,23 +10,26 @@ const { spawnSync } = require('node:child_process');
 const root = path.resolve(__dirname, '..');
 const contributing = fs.readFileSync(path.join(root, 'CONTRIBUTING.md'), 'utf8');
 
-test('maintenance flow is coordinated across all four active consumers', () => {
-  for (const name of ['Codex Review Safe', 'Codex Commit Safe', 'Codex Review Service', 'Codex Diagnose Safe']) {
+test('maintenance flow is coordinated across all five active consumers', () => {
+  for (const name of ['Codex Change Safe','Codex Review Safe','Codex Commit Safe','Codex Review Service','Codex Diagnose Safe']) {
     assert.match(contributing, new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
-  assert.match(contributing, /Codex PR Safe is retired/i);
+  assert.match(contributing, /Codex PR Safe remains retired/i);
   assert.match(contributing, /one exact Core commit/i);
   assert.match(contributing, /coordinated repin/i);
+  assert.match(contributing, /Policy Schema v4/);
 });
 
-test('obsolete copied-runtime synchronization instructions cannot return', () => {
+test('obsolete copied-runtime and parallel policy instructions cannot return', () => {
   assert.doesNotMatch(contributing, /scripts\/safe-core\.js\s+sync/);
   assert.match(contributing, /Branch tracking and copied-runtime synchronization are forbidden\./);
+  assert.match(contributing,/single repository policy is `\.codex-safe\.json`/i);
+  assert.match(contributing,/Do not add parallel product policy files/i);
 });
 
 test('governance-only Core patches do not force product version churn', () => {
   assert.match(contributing, /does not by itself require consumer product-version bumps/i);
-  assert.match(contributing, /product\/runtime semantics change/i);
+  assert.match(contributing, /product\/runtime semantics change|Policy Schema/i);
 });
 
 test('dependency automation remains review-only and digest-pinned', () => {
@@ -45,7 +48,7 @@ test('released artifacts document consumer-side attestation verification', () =>
 
 test('consumer boundary scan excludes the canonical Core submodule but still rejects consumer reimplementation', () => {
   const family = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-safe-family-boundary-'));
-  const repos = ['codex-commit','codex-review','codex-review-service','codex-diagnose'];
+  const repos = ['codex-pr','codex-commit','codex-review','codex-review-service','codex-diagnose'];
   try {
     for (const repo of repos) {
       const repoRoot = path.join(family, repo);
@@ -57,10 +60,10 @@ test('consumer boundary scan excludes the canonical Core submodule but still rej
     const clean = spawnSync(process.execPath, [verifier, family], { encoding: 'utf8' });
     assert.equal(clean.status, 0, clean.stderr || clean.stdout);
 
-    fs.writeFileSync(path.join(family, 'codex-commit', 'src', 'consumer.js'), 'function buildReviewEvidenceChunks() {}\n');
+    fs.writeFileSync(path.join(family, 'codex-pr', 'src', 'consumer.js'), 'function buildReviewEvidenceChunks() {}\n');
     const violation = spawnSync(process.execPath, [verifier, family], { encoding: 'utf8' });
     assert.notEqual(violation.status, 0);
-    assert.match(violation.stderr, /codex-commit reimplements Core-owned symbol buildReviewEvidenceChunks: src[\\/]consumer\.js/);
+    assert.match(violation.stderr, /codex-pr reimplements Core-owned symbol buildReviewEvidenceChunks: src[\\/]consumer\.js/);
   } finally {
     fs.rmSync(family, { recursive: true, force: true });
   }

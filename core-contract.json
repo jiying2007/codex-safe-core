@@ -1,8 +1,8 @@
 {
-  "coreVersion": "4.9.6",
+  "coreVersion": "4.10.0",
   "safeCoreMajorVersion": 4,
   "safeContractVersion": 2,
-  "policySchemaVersion": 3,
+  "policySchemaVersion": 4,
   "reviewReceiptVersion": 4,
   "commitReceiptVersion": 4,
   "reviewPromptContractVersion": 1,

@@ -59,7 +59,7 @@ jobs:
         run: |
           set -euo pipefail
           core_sha="$(git rev-parse HEAD)"
-          for repo in codex-commit codex-review codex-review-service codex-diagnose; do
+          for repo in codex-pr codex-commit codex-review codex-review-service codex-diagnose; do
             pinned="$(git -C "family/${repo}" ls-files --stage src/codex-safe-core | awk '{print $2}')"
             test "$pinned" = "$core_sha" || { echo "${repo} pins ${pinned}, expected ${core_sha}" >&2; exit 1; }
             node scripts/verify-actions-pins.js "family/${repo}/.github/workflows"
@@ -69,7 +69,7 @@ jobs:
       - name: Verify consumers do not reimplement Core-owned primitives
         run: node scripts/verify-consumer-boundaries.js family
       - name: Replay Family golden corpus through every active consumer Core
-        run: node scripts/family-golden.js family/codex-commit/src/codex-safe-core family/codex-review/src/codex-safe-core family/codex-review-service/src/codex-safe-core family/codex-diagnose/src/codex-safe-core
+        run: node scripts/family-golden.js family/codex-pr/src/codex-safe-core family/codex-commit/src/codex-safe-core family/codex-review/src/codex-safe-core family/codex-review-service/src/codex-safe-core family/codex-diagnose/src/codex-safe-core
       - name: Install Linux Extension Host dependencies
         if: runner.os == 'Linux'
         shell: bash
@@ -81,7 +81,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for repo in codex-commit codex-review codex-review-service codex-diagnose; do
+          for repo in codex-pr codex-commit codex-review codex-review-service codex-diagnose; do
             echo "::group::${repo}"
             if [[ "$RUNNER_OS" == "Linux" ]]; then
               (cd "family/${repo}" && xvfb-run -a npm run ci)

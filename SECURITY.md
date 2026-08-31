@@ -2,25 +2,25 @@
 
 ## Scope
 
-Codex Safe Core is the canonical security/runtime and protocol boundary for Codex Review Safe, Codex Commit Safe, Codex Diagnose Safe and Codex Review Service. A regression here is a product-family regression. Codex PR Safe is retired and outside the active security boundary.
+Codex Safe Core is the canonical security/runtime and protocol boundary for Codex Change Safe, Codex Review Safe, Codex Commit Safe, Codex Diagnose Safe and Codex Review Service. A regression here is a product-family regression. **Codex PR Safe** remains retired only as the former model-generated PR-description identity.
 
-Current protocol line: **Safe Core v4 / Safe Contract v2 / Policy Schema v3 / Review Receipt v4 / Commit Receipt v4 / Diagnosis Receipt v1 / Prompt Contracts v1**. `core-contract.json` is the machine-checked source of these current protocol/runtime facts.
+Current protocol line: **Safe Core v4 / Safe Contract v2 / Policy Schema v4 / Review Receipt v4 / Commit Receipt v4 / Diagnosis Receipt v1 / Prompt Contracts v1**. `core-contract.json` is the machine-checked source of current protocol/runtime facts.
 
 ## Trust boundaries
 
-1. **Repository/provider content** — source, diffs, paths, policy, history, templates, MR metadata and generated text are untrusted input.
+1. **Repository/provider content** — source, diffs, paths, policy, history, templates, PR/MR metadata and generated text are untrusted input.
 2. **Codex executable** — must expose every capability required by Safe Contract v2; missing/rejected capabilities fail closed.
-3. **Git/provider snapshot identity** — products must bind evidence to the correct immutable local or remote snapshot and recheck before external effects.
+3. **Git/provider snapshot identity** — products bind evidence to the correct immutable local/remote snapshot and recheck before external effects.
 4. **AI output** — always untrusted structured data; validate schema, sizes, paths, changed-line evidence and domain constraints.
-5. **Remote/provider boundary** — GitHub/GitLab adapters stay in product code and never increase Codex authority.
+5. **Remote/provider boundary** — GitHub/GitLab adapters and provider credentials stay in product code and never increase Codex authority.
 
 ## Codex invariants
 
 Safe Core constructs the safety-critical argv: `--ask-for-approval never`, `exec --json`, ephemeral execution, ignored user/repository Codex rules, read-only sandbox, Structured Output and explicit disabling of web search, shell/unified execution, shell snapshots, apps, multi-agent, remote plugins, hooks, goals, memories and skill dependency installation.
 
-Unsupported required flags/config fail closed. **There is no legacy fallback.** `SAFE_CONTRACT_MANIFEST` is the canonical capability declaration and `SAFE_CONTRACT_DIGEST` is its SHA-256 identity. The digest supplements protocol versioning; it does not silently redefine Safe Contract v2 semantics.
+Unsupported required flags/config fail closed. **There is no legacy fallback.** `SAFE_CONTRACT_MANIFEST` is the canonical capability declaration and `SAFE_CONTRACT_DIGEST` its SHA-256 identity.
 
-The daily Codex CLI Canary validates current upstream capability syntax. When protected OpenAI credentials are configured for the workflow, the live behavioral canary additionally attempts filesystem and loopback-network side effects under the Safe Contract and fails if either side effect succeeds. Unit adversarial-corpus tests permanently verify that repository/model text cannot alter the constructed safety argv.
+Change Safe performs zero model calls by default; consuming Core policy/fingerprint primitives does not grant it Codex runtime authority.
 
 ## Process invariants
 
@@ -32,46 +32,42 @@ The daily Codex CLI Canary validates current upstream capability syntax. When pr
 
 ## Context and review-evidence invariants
 
-`buildSemanticContext()` is narrative input for Commit/PR and may fairly reduce source context while keeping generated/lock/binary content metadata-only.
+`buildSemanticContext()` is bounded model context. `buildReviewEvidenceChunks()` is Review evidence: changed hunks are never silently middle-truncated; any budget overflow becomes an explicit coverage gap and review products fail closed.
 
-`buildReviewEvidenceChunks()` is review evidence. Changed hunks are never silently middle-truncated: each included hunk must appear in a bounded chunk; any hunk/chunk budget overflow becomes an explicit coverage gap and review products must fail closed.
-
-Provider-specific immutable source windows (for example GitLab `start_sha/head_sha`) remain product-owned evidence acquisition and are treated as untrusted evidence, never instructions.
+Provider-specific immutable source windows remain product-owned evidence acquisition and are treated as untrusted evidence, never instructions.
 
 ## Policy invariants
 
-- only `.codex-safe.json`;
-- `schemaVersion` must be `3`;
-- unknown top-level/section/rule fields fail closed;
-- sections: `commit`, `review`, `reviewService`;
-- `review.rules` contains cross-product deterministic Review rules;
-- `reviewService` contains server-only context/coverage controls;
-- local consumers read policy from captured HEAD; Review Service reads from immutable target `start_sha`;
-- Policy v2 and product-specific legacy policy formats are intentionally unsupported.
+- exactly one repository policy file: `.codex-safe.json`;
+- `schemaVersion` must be `4`;
+- older schema versions and parallel product policy files such as `.codex-change-safe.json` are unsupported;
+- unknown top-level/section/rule fields and wrong field types fail closed;
+- sections are `commit`, `review`, `change`, `reviewService`;
+- `change` contains deterministic delivery requirements only; it never restores the retired PR narrative/prompt surface;
+- all consumers use Core parsing/validation and the same committed policy fingerprint;
+- local Change settings may only tighten validated committed `change` rules; SCM-native requirements are unioned in Change Safe and cannot be weakened locally.
 
 ## Receipt invariants
 
-Review Receipt v4 uses an explicit subject envelope: `git-index` for staged local review or `gitlab-mr` for server review. Commit Receipt v4 may bind a Review Receipt v4 fingerprint. Every receipt must pass the Core closed-schema validator before storage/consumption.
+Review Receipt v4 and Commit Receipt v4 remain closed contracts. Change Receipt v1 is product-owned by Change Safe. Diagnosis Receipt v1 separately binds diagnosis evidence. Receipts are provenance evidence, never authorization, human approval, build evidence or test evidence.
 
-Receipt v4 remains unchanged by Core 4.1 trust-root governance. Safe Contract/prompt/execution digests are maintained as separate machine identities until a future receipt major explicitly adopts them; no maintenance release may add undeclared receipt fields.
-
-Receipts are provenance evidence, never authorization, human approval, build evidence or test evidence.
+Policy Schema v4 does not change Safe Contract v2 or Review/Commit Receipt v4.
 
 ## Consumer pinning and ownership
 
-Consumers use a commit-pinned Git submodule. The gitlink is the Core lock. No branch-following submodule, copied runtime, npm runtime dependency or cross-major compatibility shim is supported.
+All five active consumers use an exact commit-pinned Git submodule. The gitlink is the Core lock. No branch-following submodule, copied runtime, npm runtime dependency or cross-major compatibility shim is supported.
 
-`core-ownership-manifest.json` defines Core-owned primitives and product-owned domains. Family validation checks consumers for forbidden independent declarations of Core-owned safety/process/policy/receipt primitives. A Core update must explicitly move the consumer gitlink and pass that product's complete gate.
+`core-ownership-manifest.json` defines Core-owned primitives and product-owned domains. Core owns Policy Schema/validation; Change Safe owns SCM Provider behavior, topology, readiness and mutations. A Core update must explicitly move every active consumer gitlink and pass each product's complete gate.
 
-## Family baseline evidence
+## Family evidence
 
-After all consumers are coordinated onto a Core SHA, Family Compatibility generates `FAMILY_BASELINE.json` containing the exact Core SHA, consumer SHAs, protocol/runtime identity and a baseline digest. The Linux baseline artifact is attested by GitHub so a historical family state can be verified without inferring it from moving branches.
+After all five consumers converge on one formally released Core SHA, Family Compatibility freezes an Atomic Family Snapshot and generates `FAMILY_MANIFEST.json` containing exact Core/consumer SHAs, Product Contract digests, protocol/runtime identity and a manifest digest. The manifest receives GitHub provenance attestation and immutable digest-addressed publication.
 
 ## Supply chain
 
-Actions must be full-SHA pinned. Release artifacts are checksummed and receive GitHub build-provenance attestations. Release also verifies package reproducibility at the file-manifest level before publication. Only final release jobs receive write/id-token/attestation permissions.
+Actions are full-SHA pinned. Core Release Validation checks supported Node floors and reproducible package output. Trusted release publication emits checksums, SPDX SBOM, contract/ownership manifests and GitHub build-provenance attestations. Existing release identities are never overwritten.
 
-Default-branch governance should require pull requests and required security/CI checks, block force pushes and branch deletion, and keep bypass narrowly restricted. Repository Rulesets are the authoritative server-side control; workflow tests verify the expected governance files but cannot substitute for GitHub-side enforcement.
+Default-branch governance should require pull requests and required security/CI checks, block force pushes and branch deletion, and keep bypass narrowly restricted. Repository Rulesets are the authoritative server-side control; workflow tests cannot substitute for GitHub-side enforcement.
 
 ## Reporting
 

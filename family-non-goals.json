@@ -9,7 +9,7 @@
   },
   "family": {
     "canonicalPolicyFile": ".codex-safe.json",
-    "forbiddenLegacyPolicyFiles": [".codex-review.json", ".codex-commit.json", ".codex-pr.json"],
+    "forbiddenLegacyPolicyFiles": [".codex-review.json", ".codex-commit.json", ".codex-pr.json", ".codex-change-safe.json"],
     "forbidCompatibilityProxy": true,
     "forbidUnpinnedActions": true,
     "forbidModelAutoCommitPushMerge": true,
