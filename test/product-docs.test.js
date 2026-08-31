@@ -15,17 +15,20 @@ for (const name of ['README.md', 'README.zh-CN.md', 'docs/CONSUMER_GUIDE.md', 'd
 test('Core README directs end users to active products rather than pretending Core is standalone', () => {
   const text = `${read('README.md')}\n${read('README.zh-CN.md')}`;
   assert.match(text, /not a standalone end-user application|不是面向最终用户独立安装使用的应用/);
-  for (const product of ['Codex Review Safe', 'Codex Commit Safe', 'Codex Review Service', 'Codex Diagnose Safe']) assert.match(text, new RegExp(product));
-  assert.match(text, /Codex PR Safe[^\n]{0,80}(?:retired|已退役)/i);
+  for (const product of ['Codex Review Safe', 'Codex Commit Safe', 'Codex Change Safe', 'Codex Review Service', 'Codex Diagnose Safe']) assert.match(text, new RegExp(product));
+  assert.match(text, /Codex PR Safe[^\n]{0,160}(?:retired|已退役)/i);
+  assert.match(text, /zero model calls|模型调用为 0/i);
 });
 
 test('current product docs stay on Family v4 semantics', () => {
   const text = [read('README.md'), read('README.zh-CN.md'), read('docs/CONSUMER_GUIDE.md'), read('docs/CONSUMER_GUIDE.zh-CN.md')].join('\n');
   assert.match(text, /Safe Core v4/);
   assert.match(text, /Safe Contract v2/);
-  assert.match(text, /Policy Schema v3/);
+  assert.match(text, /Policy Schema v4/);
   assert.match(text, /Review Receipt v4/);
   assert.match(text, /Diagnosis Receipt v1/);
+  assert.match(text, /\.codex-safe\.json/);
+  assert.doesNotMatch(text, /\.codex-change-safe\.json/);
   assert.doesNotMatch(text, /Safe Core v[123]\b|Review Receipt v[123]\b|Commit Receipt v[123]\b/);
 });
 
