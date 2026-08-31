@@ -3,7 +3,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const manifest=require('../core-ownership-manifest.json');
 const familyDir=path.resolve(process.argv[2]||path.join(__dirname,'..','family'));
-const repos=['codex-commit','codex-review','codex-review-service','codex-diagnose'];
+const repos=['codex-pr','codex-commit','codex-review','codex-review-service','codex-diagnose'];
 function walk(root,dir=root,out=[]){
   for(const e of fs.readdirSync(dir,{withFileTypes:true})){
     const p=path.join(dir,e.name);
