@@ -1,0 +1,77 @@
+name: Prepare Family SCM UI Contract Once
+on:
+  push:
+    branches: [feat/family-scm-ui-contract]
+    paths: [.github/workflows/_prepare-family-ui-contract-once.yml]
+permissions:
+  contents: write
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: feat/family-scm-ui-contract
+      - uses: actions/setup-node@e51e5fe84fc33b4c73ebe40526b2694712b5b858
+        with: { node-version: '22.22.2' }
+      - name: Add canonical UI contract and verifier
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('fs');
+          function writeJson(file,obj){fs.writeFileSync(file,JSON.stringify(obj,null,2)+'\n');}
+          const pkg=require('./package.json');
+          pkg.version='4.10.2';
+          for(const file of ['family-ui-contract.json','scripts/verify-family-ui-contract.js']) if(!pkg.files.includes(file)) pkg.files.splice(pkg.files.indexOf('family-non-goals.json'),0,file);
+          pkg.scripts['check:syntax']=pkg.scripts['check:syntax'].replace('node --check scripts/verify-consumer-product-contract.js','node --check scripts/verify-consumer-product-contract.js && node --check scripts/verify-family-ui-contract.js');
+          pkg.scripts.test=pkg.scripts.test.replace('test/family-contracts.test.js','test/family-contracts.test.js test/family-ui-contract.test.js');
+          writeJson('package.json',pkg);
+
+          const contract=require('./core-contract.json');
+          contract.coreVersion='4.10.2';
+          contract.familyUiContractVersion=1;
+          writeJson('core-contract.json',contract);
+
+          writeJson('family-ui-contract.json',{
+            schemaVersion:1,
+            contractVersion:1,
+            surface:'vscode.scm.title',
+            primarySequence:[
+              {productId:'codex-review-safe',command:'safeCodexReview.reviewStaged',group:'navigation@5'},
+              {productId:'codex-commit-safe',command:'safeCodexCommit.generate',group:'navigation@6'},
+              {productId:'codex-change-safe',command:'safeCodexChange.createOrUpdate',group:'navigation@7'}
+            ],
+            forbiddenPrimaryCommands:[
+              'safeCodexReview.independentReviewStaged',
+              'safeCodexChange.preflight'
+            ],
+            requiredWhenTerms:['scmProvider == git','isWorkspaceTrusted']
+          });
+
+          fs.writeFileSync('scripts/verify-family-ui-contract.js',`'use strict';\nconst fs=require('node:fs');\nconst path=require('node:path');\nconst CONTRACT=require('../family-ui-contract.json');\nfunction validatePackage(pkg,productId,contract=CONTRACT){\n  const expected=(contract.primarySequence||[]).find(x=>x.productId===productId);\n  if(!expected)return [];\n  const errors=[];\n  const items=pkg.contributes?.menus?.['scm/title']||[];\n  if(items.length!==1)errors.push(\\`${'${productId}'} must contribute exactly one primary scm/title command; found ${'${items.length}'}\\`);\n  const item=items[0];\n  if(item){\n    if(item.command!==expected.command)errors.push(\\`${'${productId}'} primary scm/title command must be ${'${expected.command}'}, got ${'${item.command}'}\\`);\n    if(item.group!==expected.group)errors.push(\\`${'${productId}'} primary scm/title group must be ${'${expected.group}'}, got ${'${item.group}'}\\`);\n    const when=String(item.when||'');\n    for(const term of contract.requiredWhenTerms||[])if(!when.includes(term))errors.push(\\`${'${productId}'} primary scm/title when clause must include ${'${term}'}\\`);\n  }\n  for(const forbidden of contract.forbiddenPrimaryCommands||[])if(items.some(x=>x.command===forbidden))errors.push(\\`${'${forbidden}'} must not appear in scm/title\\`);\n  return errors;\n}\nfunction verify(root=process.cwd(),productId){\n  const pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));\n  if(!productId){const pc=JSON.parse(fs.readFileSync(path.join(root,'product-contract.json'),'utf8'));productId=pc.productId;}\n  const errors=validatePackage(pkg,productId);\n  if(errors.length){const error=new Error(errors.join('\\n'));error.code='FAMILY_UI_CONTRACT';throw error;}\n  return {productId,applicable:(CONTRACT.primarySequence||[]).some(x=>x.productId===productId)};\n}\nif(require.main===module){try{const result=verify(process.argv[2]||process.cwd(),process.argv[3]);console.log(result.applicable?\\`Family SCM UI contract verified for ${'${result.productId}'}\\`:\\`Family SCM UI contract not applicable to ${'${result.productId}'}\\`);}catch(error){console.error(error.message);process.exit(2);}}\nmodule.exports={CONTRACT,validatePackage,verify};\n`);
+
+          fs.writeFileSync('test/family-ui-contract.test.js',`'use strict';\nconst test=require('node:test');const assert=require('node:assert/strict');const {CONTRACT,validatePackage}=require('../scripts/verify-family-ui-contract');\nfunction pkg(command,group,extra=[]){return {contributes:{menus:{'scm/title':[{command,group,when:'scmProvider == git && isWorkspaceTrusted'},...extra]}}};}\ntest('Family SCM primary sequence is Review then Commit then Change',()=>{assert.deepEqual(CONTRACT.primarySequence.map(x=>[x.productId,x.group]),[['codex-review-safe','navigation@5'],['codex-commit-safe','navigation@6'],['codex-change-safe','navigation@7']]);});\ntest('canonical primary entries pass',()=>{for(const x of CONTRACT.primarySequence)assert.deepEqual(validatePackage(pkg(x.command,x.group),x.productId),[]);});\ntest('secondary Review and Change commands cannot occupy scm/title',()=>{assert.ok(validatePackage(pkg('safeCodexReview.reviewStaged','navigation@5',[{command:'safeCodexReview.independentReviewStaged',group:'navigation@8',when:'scmProvider == git && isWorkspaceTrusted'}]),'codex-review-safe').length);assert.ok(validatePackage(pkg('safeCodexChange.createOrUpdate','navigation@7',[{command:'safeCodexChange.preflight',group:'navigation@8',when:'scmProvider == git && isWorkspaceTrusted'}]),'codex-change-safe').length);});\ntest('wrong group or trust clause fails',()=>{assert.ok(validatePackage(pkg('safeCodexCommit.generate','navigation@5'),'codex-commit-safe').length);const bad={contributes:{menus:{'scm/title':[{command:'safeCodexCommit.generate',group:'navigation@6',when:'scmProvider == git'}]}}};assert.ok(validatePackage(bad,'codex-commit-safe').length);});\n`);
+
+          let verify=fs.readFileSync('scripts/verify-core-contract.js','utf8');
+          verify=verify.replace("'familySnapshotVersion','familyManifestVersion','productContractVersion'","'familySnapshotVersion','familyManifestVersion','familyUiContractVersion','productContractVersion'");
+          verify=verify.replace("assert.equal(contract.familyManifestVersion,3);","assert.equal(contract.familyManifestVersion,3);\nassert.equal(contract.familyUiContractVersion,1);");
+          fs.writeFileSync('scripts/verify-core-contract.js',verify);
+
+          const ownership=require('./core-ownership-manifest.json');
+          if(!ownership.coreOwned.includes('family-scm-ui-contract-validation')) ownership.coreOwned.push('family-scm-ui-contract-validation');
+          writeJson('core-ownership-manifest.json',ownership);
+
+          for(const file of ['docs/QUALITY_PLATFORM.md','docs/QUALITY_PLATFORM.zh-CN.md','docs/EFFICIENCY_CONTRACT.md','docs/EFFICIENCY_CONTRACT.zh-CN.md']){let s=fs.readFileSync(file,'utf8');s=s.replaceAll('4.10.1','4.10.2');fs.writeFileSync(file,s);}
+          let en=fs.readFileSync('README.md','utf8');
+          if(!en.includes('## Family SCM primary UI contract')) en=en.replace('Current protocol line:',`## Family SCM primary UI contract\n\nFor VS Code Source Control title actions, the canonical primary sequence is **Review → Commit → Change**. Each product owns exactly one primary SCM title command: Review at \`navigation@5\`, Commit at \`navigation@6\`, and Change at \`navigation@7\`. Independent Review and Delivery Preflight remain secondary actions and must not occupy the primary SCM toolbar. The machine source is \`family-ui-contract.json\`.\n\nCurrent protocol line:`);
+          fs.writeFileSync('README.md',en);
+          let zh=fs.readFileSync('README.zh-CN.md','utf8');
+          if(!zh.includes('## Family SCM 一级 UI 契约')) zh=zh.replace('当前协议线：',`## Family SCM 一级 UI 契约\n\nVS Code 源代码管理器标题栏的正式一级顺序固定为 **Review → Commit → Change**。三个产品各只占一个一级入口：Review 使用 \`navigation@5\`，Commit 使用 \`navigation@6\`，Change 使用 \`navigation@7\`。Independent Review 与 Delivery Preflight 保留为二级能力，不再占用主 SCM 工具栏。机器真相源为 \`family-ui-contract.json\`。\n\n当前协议线：`);
+          fs.writeFileSync('README.zh-CN.md',zh);
+          NODE
+          git add package.json core-contract.json family-ui-contract.json scripts/verify-family-ui-contract.js test/family-ui-contract.test.js scripts/verify-core-contract.js core-ownership-manifest.json docs/QUALITY_PLATFORM.md docs/QUALITY_PLATFORM.zh-CN.md docs/EFFICIENCY_CONTRACT.md docs/EFFICIENCY_CONTRACT.zh-CN.md README.md README.zh-CN.md
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git commit -m 'feat(core): add Family SCM UI contract'
+          git push origin HEAD:feat/family-scm-ui-contract
