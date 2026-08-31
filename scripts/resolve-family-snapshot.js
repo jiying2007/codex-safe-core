@@ -8,7 +8,7 @@ const {execFileSync}=require('node:child_process');
 const contract=require('../core-contract.json');
 
 const OWNER='jiying2007';
-const CONSUMERS=Object.freeze(['codex-commit','codex-review','codex-review-service','codex-diagnose']);
+const CONSUMERS=Object.freeze(['codex-pr','codex-commit','codex-review','codex-review-service','codex-diagnose']);
 function git(args,cwd=path.resolve(__dirname,'..')){return execFileSync('git',args,{cwd,encoding:'utf8'}).trim();}
 function sha(value){return crypto.createHash('sha256').update(String(value)).digest('hex');}
 function resolveHead(name){const url=`https://github.com/${OWNER}/${name}.git`,output=git(['ls-remote','--heads',url,'refs/heads/main']);const commit=String(output).trim().split(/\s+/)[0]||'';if(!/^[0-9a-f]{40}$/.test(commit))throw new Error(`Unable to resolve ${name} main head.`);return commit;}
