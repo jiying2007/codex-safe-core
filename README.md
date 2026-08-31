@@ -14,6 +14,10 @@ Codex Safe Core is the **single canonical safety/runtime and protocol core** for
 
 **Codex PR Safe is retired.** Its former model-generated PR-description identity is not restored. **Codex Change Safe** is the deterministic successor delivery product: it authorizes and orchestrates GitHub/GitLab PR/MR delivery with zero model calls by default.
 
+## Family SCM primary UI contract
+
+For VS Code Source Control title actions, the canonical primary sequence is **Review → Commit → Change**. Each product owns exactly one primary SCM title command: Review at `navigation@5`, Commit at `navigation@6`, and Change at `navigation@7`. Independent Review and Delivery Preflight remain secondary actions and must not occupy the primary SCM toolbar. The machine source is `family-ui-contract.json`.
+
 Current protocol line: **Safe Core v4 / Safe Contract v2 / Policy Schema v4 / Review Receipt v4 / Commit Receipt v4 / Diagnosis Receipt v1 / Review, Commit & Diagnose Prompt Contracts v1**. `core-contract.json` is the machine-checked source of current Core/protocol/runtime identity.
 
 ## Which repository should I use?

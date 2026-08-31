@@ -1,6 +1,6 @@
 # Quality Platform
 
-Codex Safe Core 4.10.1 / Quality Platform v3 保持共享确定性质量平台稳定，同时 Policy Schema v4 正式增加 `change` Repository Policy section。GitHub/GitLab Provider、VS Code UI、Pipeline API、数据库、Analyzer 获取与通知仍属于产品层，不进入 Core。
+Codex Safe Core 4.10.2 / Quality Platform v3 保持共享确定性质量平台稳定，同时 Policy Schema v4 正式增加 `change` Repository Policy section。GitHub/GitLab Provider、VS Code UI、Pipeline API、数据库、Analyzer 获取与通知仍属于产品层，不进入 Core。
 
 ## Review Profile 与 Profile Pack
 

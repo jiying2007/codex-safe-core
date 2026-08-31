@@ -24,10 +24,11 @@ assert.equal(safe.REVIEW_PROMPT_CONTRACT_VERSION,contract.reviewPromptContractVe
 assert.equal(safe.COMMIT_PROMPT_CONTRACT_VERSION,contract.commitPromptContractVersion);
 assert.equal(Object.prototype.hasOwnProperty.call(contract,'prPromptContractVersion'),false);
 assert.equal(Object.prototype.hasOwnProperty.call(safe,'PR_PROMPT_CONTRACT_VERSION'),false);
-for(const key of ['qualityPlatformVersion','reviewProfileVersion','profilePackVersion','impactEvidenceVersion','testImpactVersion','analyzerFindingVersion','patchProposalVersion','diagnosePromptContractVersion','diagnosisContractVersion','diagnosisReceiptVersion','semanticReviewVersion','evidenceManifestVersion','reviewKeyVersion','findingLedgerVersion','findingVerificationVersion','familySnapshotVersion','familyManifestVersion','productContractVersion','tokenCalibrationVersion','codexRuntimeVersion','providerContractVersion','diagnosticContractVersion'])assert.ok(Number.isInteger(contract[key])&&contract[key]>=1,`${key} must be a positive integer`);
+for(const key of ['qualityPlatformVersion','reviewProfileVersion','profilePackVersion','impactEvidenceVersion','testImpactVersion','analyzerFindingVersion','patchProposalVersion','diagnosePromptContractVersion','diagnosisContractVersion','diagnosisReceiptVersion','semanticReviewVersion','evidenceManifestVersion','reviewKeyVersion','findingLedgerVersion','findingVerificationVersion','familySnapshotVersion','familyManifestVersion','familyUiContractVersion','productContractVersion','tokenCalibrationVersion','codexRuntimeVersion','providerContractVersion','diagnosticContractVersion'])assert.ok(Number.isInteger(contract[key])&&contract[key]>=1,`${key} must be a positive integer`);
 assert.equal(contract.qualityPlatformVersion,3);
 assert.equal(contract.familySnapshotVersion,1);
 assert.equal(contract.familyManifestVersion,3);
+assert.equal(contract.familyUiContractVersion,1);
 assert.equal(contract.productContractVersion,1);
 assert.equal(contract.tokenCalibrationVersion,1);
 assert.equal(contract.profilePackVersion,profiles.PROFILE_PACK_VERSION);
