@@ -5,6 +5,12 @@
   },
   "activeConsumers": [
     {
+      "name": "Codex Change Safe",
+      "path": "codex-pr",
+      "safeCorePath": "src/codex-safe-core",
+      "contractPath": "product-contract.json"
+    },
+    {
       "name": "Codex Commit Safe",
       "path": "codex-commit",
       "safeCorePath": "src/codex-safe-core"
@@ -30,7 +36,7 @@
   "retiredProducts": [
     {
       "name": "Codex PR Safe",
-      "path": "codex-pr"
+      "extensionId": "jiying2007.codex-pr-safe"
     }
   ]
 }
