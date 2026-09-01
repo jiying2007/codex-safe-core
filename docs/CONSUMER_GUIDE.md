@@ -13,7 +13,7 @@ git -C src/codex-safe-core rev-parse HEAD
 
 Do not use branch tracking, copied runtime files, npm runtime dependencies, or compatibility proxies.
 
-The current machine contract is `core-contract.json`: **Safe Core v4 / Safe Contract v2 / Policy Schema v4 / Review Receipt v4 / Commit Receipt v4 / Diagnosis Receipt v1 / Review, Commit & Diagnose Prompt Contracts v1**. Consumers use Node 22 >=22.22.2 <23 or Node 24 >=24.19.0 <25.
+The current machine contract is `core-contract.json`: **Safe Core v4 / Safe Contract v2 / Policy Schema v4 / Review Receipt v5 / Commit Receipt v4 / Diagnosis Receipt v2 / Review, Commit & Diagnose Prompt Contracts v1 / Codex Runtime v2 / Provider Contract v2**. Consumers use Node 22 >=22.22.2 <23 or Node 24 >=24.19.0 <25.
 
 Active consumers are **Codex Change Safe, Codex Review Safe, Codex Commit Safe, Codex Review Service and Codex Diagnose Safe**. Codex PR Safe is retired as the former model-generated PR-description identity; Change Safe is a distinct deterministic delivery product and does not restore that narrative generator.
 
@@ -52,9 +52,13 @@ SCM provider adapters, pipeline/job APIs, analyzer artifact acquisition/parsing 
 
 Model-generated PR/MR narrative remains a Family non-goal. SCM-side PR/MR delivery authorization is owned by Codex Change Safe and remains outside Core runtime ownership; only its repository policy schema/validation is Core-owned.
 
-## Codex Runtime / Provider Contract
+## Codex Runtime / Provider Contract v2
 
-Core owns one explicit runtime contract for every Codex invocation while Safe Contract v2 remains unchanged. Supported provider modes are `openai` and explicit `openai-compatible`. Compatible providers accept only an HTTPS `baseUrl` and API-key environment-variable name; the secret value is never accepted as configuration, argv or receipt metadata. Core keeps user config, repository rules, tools, network authority and write authority disabled.
+Core owns one explicit runtime contract for every Codex invocation while Safe Contract v2 remains unchanged. Supported provider modes are `openai` and explicit `openai-compatible`.
+
+Compatible providers support `credentialSource=auto|env|auth-json`. `auto` first uses the configured API-key environment variable and, if it is absent, reads `${CODEX_HOME}/auth.json` or `~/.codex/auth.json`. Only API-key authentication is accepted from that file: `auth_mode=apikey` with a non-empty `OPENAI_API_KEY`. ChatGPT/session tokens are not reused as relay credentials. The secret value is injected only into the child Codex environment and never appears in argv, product settings, receipts or diagnostics.
+
+HTTPS remains the default. Loopback HTTP is allowed for local development. Non-loopback HTTP is supported only when the product/machine runtime explicitly sets `allowInsecureHttp=true`; repository policy cannot enable it. URL credentials, query parameters and fragments remain rejected. Compatible providers continue to require Responses HTTP/SSE and structured output, with WebSockets disabled.
 
 Change Safe has zero model calls by default; it consumes deterministic Core primitives without acquiring Codex runtime authority.
 
@@ -64,13 +68,13 @@ Core owns generic token usage normalization, request estimation, risk-aware budg
 
 Efficiency is subordinate to correctness: a budget-induced evidence omission must remain explicit. Products must never convert incomplete evidence into a successful verdict to save tokens.
 
-## Diagnosis Contract / Receipt v1
+## Diagnosis Contract / Receipt v2
 
-Codex Diagnose Safe acquires CI/job evidence under its own trust boundary, then passes failure logs to Core. Model output must satisfy the Core diagnosis schema/normalization before Diagnosis Receipt v1 is created. Pipeline logs are untrusted evidence; neither Core nor Diagnose executes instructions found in logs.
+Codex Diagnose Safe acquires CI/job evidence under its own trust boundary, then passes failure logs to Core. Model output must satisfy the Core diagnosis schema/normalization before Diagnosis Receipt v2 is created. Pipeline logs are untrusted evidence; neither Core nor Diagnose executes instructions found in logs.
 
 ## Safe Contract identity
 
-Safe Contract v2 exposes `SAFE_CONTRACT_MANIFEST` and its SHA-256 `SAFE_CONTRACT_DIGEST`. The digest is evidence of the exact authority/capability manifest and does not replace semantic protocol versioning. Review/Commit Receipt v4 and Diagnosis Receipt v1 remain independently versioned closed contracts.
+Safe Contract v2 exposes `SAFE_CONTRACT_MANIFEST` and its SHA-256 `SAFE_CONTRACT_DIGEST`. The digest is evidence of the exact authority/capability manifest and does not replace semantic protocol versioning. Review Receipt v5, Commit Receipt v4 and Diagnosis Receipt v2 remain independently versioned closed contracts.
 
 ## Verification
 
@@ -80,4 +84,4 @@ Run:
 npm run ci
 ```
 
-Core CI covers contract/runtime identity, Policy Schema v4, provider safety, deterministic review rules, adversarial fixtures, quality/Profile/Test-Impact/Diagnosis primitives, golden behavior, cost planning, broad performance budgets and supply-chain gates. Family Compatibility additionally validates the five active exact consumer pins, ownership boundaries and every active consumer CI before producing the attested Family manifest.
+Core CI covers contract/runtime identity, Policy Schema v4, Provider Contract v2 credential/transport safety, deterministic review rules, adversarial fixtures, quality/Profile/Test-Impact/Diagnosis primitives, golden behavior, cost planning, broad performance budgets and supply-chain gates. Family Compatibility additionally validates the five active exact consumer pins, ownership boundaries and every active consumer CI before producing the attested Family manifest.
