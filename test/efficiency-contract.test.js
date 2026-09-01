@@ -7,13 +7,15 @@ const pkg=require('../package.json');
 test('Core v4 efficiency line preserves active protocol identities while allowing feature releases',()=>{
   const [major,minor]=String(contract.coreVersion).split('.').map(Number);
   assert.equal(major,4);
-  assert.ok(minor>=10,'Policy Schema v4 requires Core 4.10 or newer');
+  assert.ok(minor>=11,'Judgment Lifecycle v1 requires Core 4.11 or newer');
   assert.equal(pkg.version,contract.coreVersion);
   assert.equal(contract.safeCoreMajorVersion,4);
   assert.equal(contract.safeContractVersion,2);
   assert.equal(contract.policySchemaVersion,4);
-  assert.equal(contract.reviewReceiptVersion,4);
+  assert.equal(contract.reviewReceiptVersion,5);
   assert.equal(contract.commitReceiptVersion,4);
+  assert.equal(contract.judgmentLifecycleVersion,1);
+  assert.equal(contract.diagnosisReceiptVersion,2);
   assert.equal(contract.reviewPromptContractVersion,1);
   assert.equal(contract.commitPromptContractVersion,1);
   assert.equal(Object.prototype.hasOwnProperty.call(contract,'prPromptContractVersion'),false);
