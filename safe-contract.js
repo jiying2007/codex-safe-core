@@ -37,8 +37,8 @@ const SAFE_CONTRACT_MANIFEST = Object.freeze({
 const SAFE_CONTRACT_DIGEST = crypto.createHash('sha256').update(JSON.stringify(SAFE_CONTRACT_MANIFEST),'utf8').digest('hex');
 
 const REVIEW_RECEIPT_KEYS = Object.freeze([
-  'schemaVersion','kind','subject','diffFingerprint','policyFingerprint','qualityVerdict','readinessVerdict',
-  'mechanicalGate','coverageVerdict','safeCoreVersion','safeContractVersion','policySchemaVersion','promptContractVersion',
+  'schemaVersion','kind','subject','diffFingerprint','policyFingerprint','reviewSubjectFingerprint','evidenceManifestDigest',
+  'qualityVerdict','readinessVerdict','mechanicalGate','coverageVerdict','safeCoreVersion','safeContractVersion','policySchemaVersion','promptContractVersion',
   'model','requestedModel','resolvedModel','codexVersion','createdAt'
 ]);
 const COMMIT_RECEIPT_KEYS = Object.freeze([
@@ -110,6 +110,7 @@ function validateReviewReceipt(value) {
   if (value.schemaVersion !== REVIEW_RECEIPT_SCHEMA_VERSION || value.kind !== 'codex-review') return null;
   const subject = validateReviewSubject(value.subject); if (!subject) return null;
   if (!validHash(value.diffFingerprint) || !validHash(value.policyFingerprint, true)) return null;
+  if (!validHash(value.reviewSubjectFingerprint) || !validHash(value.evidenceManifestDigest)) return null;
   if (!['no_findings','findings_open','blocked'].includes(value.qualityVerdict)) return null;
   if (!['needs_evidence','blocked','ready'].includes(value.readinessVerdict)) return null;
   if (!['not_run','pass','fail'].includes(value.mechanicalGate)) return null;
