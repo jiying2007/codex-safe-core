@@ -8,18 +8,15 @@ const EXECUTION_MODES = Object.freeze(['fresh', 'replay']);
 
 function canonicalize(value) {
   if (Array.isArray(value)) return value.map(canonicalize);
-  if (value && typeof value === 'object') {
-    return Object.fromEntries(Object.keys(value).sort().map(key => [key, canonicalize(value[key])]));
-  }
+  if (value && typeof value === 'object') return Object.fromEntries(Object.keys(value).sort().map(key => [key, canonicalize(value[key])]));
   return value;
 }
-
-function digest(value) {
-  return crypto.createHash('sha256').update(JSON.stringify(canonicalize(value)), 'utf8').digest('hex');
-}
-
-function validDigest(value) {
-  return /^[0-9a-f]{64}$/i.test(String(value || ''));
+function digest(value) { return crypto.createHash('sha256').update(JSON.stringify(canonicalize(value)), 'utf8').digest('hex'); }
+function validDigest(value) { return /^[0-9a-f]{64}$/i.test(String(value || '')); }
+function optionalDigest(value, name) {
+  if (value === undefined || value === null || value === '' || value === '<none>') return '<none>';
+  if (!validDigest(value)) throw new TypeError(`${name} must be <none> or a SHA-256 digest.`);
+  return String(value).toLowerCase();
 }
 
 function computeReviewSubjectFingerprint({
@@ -29,7 +26,9 @@ function computeReviewSubjectFingerprint({
   evidenceManifestDigest,
   promptContractVersion = Number(CORE_CONTRACT.reviewPromptContractVersion),
   reviewProfile = '',
-  model = ''
+  model = '',
+  scopeFingerprint = '<none>',
+  optionsFingerprint = '<none>'
 } = {}) {
   if (!subject || typeof subject !== 'object') throw new TypeError('Review subject is required.');
   for (const [name, value] of [['diffFingerprint', diffFingerprint], ['evidenceManifestDigest', evidenceManifestDigest]]) {
@@ -39,12 +38,14 @@ function computeReviewSubjectFingerprint({
   return digest({
     judgmentLifecycleVersion: JUDGMENT_LIFECYCLE_VERSION,
     subject,
-    diffFingerprint,
-    policyFingerprint,
-    evidenceManifestDigest,
+    diffFingerprint: String(diffFingerprint).toLowerCase(),
+    policyFingerprint: policyFingerprint === '<none>' ? '<none>' : String(policyFingerprint).toLowerCase(),
+    evidenceManifestDigest: String(evidenceManifestDigest).toLowerCase(),
     promptContractVersion: Number(promptContractVersion),
     reviewProfile: String(reviewProfile || ''),
-    model: String(model || '')
+    model: String(model || ''),
+    scopeFingerprint: optionalDigest(scopeFingerprint, 'scopeFingerprint'),
+    optionsFingerprint: optionalDigest(optionsFingerprint, 'optionsFingerprint')
   });
 }
 
@@ -52,26 +53,16 @@ function shouldPersistJudgmentReceipt({ executionMode = 'fresh', inference = tru
   if (!EXECUTION_MODES.includes(executionMode)) throw new TypeError(`Unsupported execution mode: ${executionMode}`);
   return executionMode === 'fresh' && inference !== false;
 }
-
 function reviewReceiptMatchesIdentity(receipt, identity = {}) {
   if (!receipt || typeof receipt !== 'object') return false;
   if (!validDigest(identity.reviewSubjectFingerprint) || !validDigest(identity.evidenceManifestDigest)) return false;
-  return receipt.reviewSubjectFingerprint === identity.reviewSubjectFingerprint &&
-    receipt.evidenceManifestDigest === identity.evidenceManifestDigest;
+  return receipt.reviewSubjectFingerprint === identity.reviewSubjectFingerprint && receipt.evidenceManifestDigest === identity.evidenceManifestDigest;
 }
-
 function reviewReceiptQualifiesForDelivery(receipt) {
-  return Boolean(receipt &&
-    receipt.coverageVerdict === 'complete' &&
-    receipt.mechanicalGate !== 'fail' &&
-    receipt.qualityVerdict !== 'blocked');
+  return Boolean(receipt && receipt.coverageVerdict === 'complete' && receipt.mechanicalGate !== 'fail' && receipt.qualityVerdict !== 'blocked');
 }
 
 module.exports = Object.freeze({
-  JUDGMENT_LIFECYCLE_VERSION,
-  EXECUTION_MODES,
-  computeReviewSubjectFingerprint,
-  shouldPersistJudgmentReceipt,
-  reviewReceiptMatchesIdentity,
-  reviewReceiptQualifiesForDelivery
+  JUDGMENT_LIFECYCLE_VERSION, EXECUTION_MODES, computeReviewSubjectFingerprint,
+  shouldPersistJudgmentReceipt, reviewReceiptMatchesIdentity, reviewReceiptQualifiesForDelivery
 });
