@@ -1,6 +1,12 @@
 # Quality Platform
 
-Codex Safe Core 4.10.2 / Quality Platform v3 keeps the shared deterministic quality platform stable while Policy Schema v4 adds the `change` repository-policy section. Product-owned GitHub/GitLab provider behavior, VS Code UI, pipeline APIs, databases, analyzer acquisition and notifications remain outside Core.
+Codex Safe Core 4.11.0 / Quality Platform v3 keeps the shared deterministic quality platform stable while Policy Schema v4 includes the `change` repository-policy section. Product-owned GitHub/GitLab provider behavior, VS Code UI, pipeline APIs, databases, analyzer acquisition and notifications remain outside Core.
+
+## Judgment Lifecycle v1
+
+Core owns the Family-wide AI Judgment Lifecycle contract. ReviewSubject identity now binds the code subject, diff, policy, Evidence Manifest, prompt contract, review profile and resolved model. A Review Receipt is emitted only for a fresh inference; replay never creates a new receipt. Consumers may cache deterministic structural evidence, but persisted model judgment may not be reused as a new judgment or verdict.
+
+Review Receipt v5 therefore requires both `reviewSubjectFingerprint` and `evidenceManifestDigest`. Delivery products qualify Review evidence from quality, coverage and mechanical gates; merge readiness remains a Change Safe responsibility.
 
 ## Review profiles and Profile Packs
 
@@ -14,9 +20,9 @@ Core builds deterministic bounded Impact Evidence from controller-provided text 
 
 Core normalizes generic analyzer findings and SARIF 2.1 into a bounded deterministic contract. Analyzer text is untrusted evidence, never instructions. Repository policy cannot define executable analyzer commands.
 
-## Diagnosis Contract / Receipt v1
+## Diagnosis Contract / Receipt v2
 
-Diagnosis primitives compact and redact failure logs, derive a conservative classification prior, validate structured model output and bind evidence into Diagnosis Receipt v1. Products own pipeline/job retrieval and publication. Diagnosis never retries CI, edits source, commits, pushes or merges.
+Diagnosis primitives compact and redact failure logs, derive a conservative classification prior, validate structured model output and bind the full model-visible Diagnosis Input Manifest into Diagnosis Receipt v2. The manifest covers failure evidence, deterministic prior, changed-path metadata, artifact text digests, prompt contract and model identity. Products own pipeline/job retrieval and publication. Diagnosis never retries CI, edits source, commits, pushes or merges.
 
 Quality evaluation tracks classification accuracy, false positives, calibration and token cost against labeled Review/Diagnose corpora.
 
@@ -32,4 +38,4 @@ Patch proposals are evidence only. Core **never applies, commits, pushes or merg
 
 Atomic Family Snapshot v1 freezes one exact Core SHA and the five active consumer SHAs before cross-platform validation. Family Manifest v3 then records exact Core/consumer pins, Product Contract digests, Core Contract digest, runtime/protocol identity and the snapshot digest in `FAMILY_MANIFEST.json` before provenance attestation and immutable publication.
 
-Change Safe participates as the fifth active Core consumer for deterministic policy/fingerprint primitives. Its SCM Provider and Delivery Authorization behavior remains product-owned; its `change` policy schema/validation is Core-owned through the same `.codex-safe.json` Policy Schema v4 used by Review, Commit and Review Service.
+Change Safe participates as an active Core consumer for deterministic policy/fingerprint and Judgment Lifecycle primitives. Its SCM Provider and Delivery Authorization behavior remains product-owned; its `change` policy schema/validation is Core-owned through the same `.codex-safe.json` Policy Schema v4 used by Review, Commit and Review Service.
