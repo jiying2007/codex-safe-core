@@ -1,6 +1,6 @@
 # Family Efficiency Contract
 
-Codex Safe Core v4.10.2 centralizes generic model-cost and execution-efficiency primitives for all Family consumers.
+Codex Safe Core v4.11.0 centralizes generic model-cost and execution-efficiency primitives for all Family consumers.
 
 The contract is intentionally product-neutral:
 
@@ -18,4 +18,4 @@ The contract is intentionally product-neutral:
 
 `TokenEstimatorCalibration` defaults to two UTF-8 bytes/token. Calibration is deliberately ephemeral and contains only numeric ratios/sample counts; it does not retain prompts or source text. A process restart returns to the conservative default.
 
-Products remain responsible for deciding their budgets, quality thresholds, persistence and UI. A product must surface budget-induced evidence omissions rather than silently claim complete coverage. Codex Change Safe uses zero model calls by default, so these model-efficiency primitives do not add a Change-stage model request.
+Products remain responsible for deciding their budgets, quality thresholds, deterministic evidence persistence and UI. A product must surface budget-induced evidence omissions rather than silently claim complete coverage. Persisted model judgment is not an efficiency primitive: Judgment Lifecycle v1 forbids treating historical model findings as fresh results or verdict input. Codex Change Safe uses zero model calls by default, so these model-efficiency primitives do not add a Change-stage model request.

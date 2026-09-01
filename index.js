@@ -2,6 +2,7 @@
 
 module.exports = Object.freeze({
   ...require('./safe-contract'),
+  ...require('./judgment-lifecycle'),
   ...require('./codex-runtime'),
   ...require('./process-runner'),
   ...require('./codex-cli'),
