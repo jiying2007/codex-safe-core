@@ -2,10 +2,16 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const {
   normalizeCodexRuntimeOptions,
   providerConfigOverrides,
   appendProviderArgs,
+  resolveAuthJsonPath,
+  readAuthJsonApiKey,
+  resolveProviderCredential,
   assertProviderCredential,
   providerMetadata,
   redactDiagnosticText,
@@ -31,6 +37,7 @@ test('OpenAI-compatible provider is explicit, HTTP/SSE-only, and secret-by-refer
   });
   assert.equal(runtime.provider.baseUrl, 'https://relay.example.com/v1');
   assert.equal(runtime.provider.supportsWebsockets, false);
+  assert.equal(runtime.provider.credentialSource, 'auto');
   const overrides = providerConfigOverrides(runtime);
   assert.ok(overrides.some(value => value === 'model_provider="codex_safe_compatible"'));
   assert.ok(overrides.some(value => value.includes('base_url="https://relay.example.com/v1"')));
@@ -45,11 +52,21 @@ test('OpenAI-compatible provider is explicit, HTTP/SSE-only, and secret-by-refer
   assert.ok(args.indexOf('--config') < args.length - 1);
 });
 
-test('provider config rejects unsafe URLs, inline credentials, and invalid env names', () => {
+test('provider config rejects unsafe URLs by default but supports explicit HTTP opt-in', () => {
   assert.throws(
-    () => normalizeCodexRuntimeOptions({ provider: { mode: 'openai-compatible', baseUrl: 'http://relay.example.com/v1', apiKeyEnv: 'KEY' } }),
+    () => normalizeCodexRuntimeOptions({ provider: { mode: 'openai-compatible', baseUrl: 'http://192.168.2.109:3000/v1', apiKeyEnv: 'KEY' } }),
     error => error?.code === 'ECODEX_PROVIDER_CONFIG'
   );
+  const insecure = normalizeCodexRuntimeOptions({
+    provider: {
+      mode: 'openai-compatible',
+      baseUrl: 'http://192.168.2.109:3000/v1',
+      apiKeyEnv: 'KEY',
+      allowInsecureHttp: true
+    }
+  });
+  assert.equal(insecure.provider.baseUrl, 'http://192.168.2.109:3000/v1');
+  assert.equal(insecure.provider.allowInsecureHttp, true);
   assert.throws(
     () => normalizeCodexRuntimeOptions({ provider: { mode: 'openai-compatible', baseUrl: 'https://user:pass@relay.example.com/v1', apiKeyEnv: 'KEY' } }),
     error => error?.code === 'ECODEX_PROVIDER_CONFIG'
@@ -66,15 +83,79 @@ test('provider config rejects unsafe URLs, inline credentials, and invalid env n
   assert.equal(local.provider.baseUrl, 'http://localhost:11434/v1');
 });
 
-test('missing compatible-provider credential fails before Codex execution', () => {
+test('compatible provider resolves environment credential before auth.json', () => {
   const runtime = {
-    provider: { mode: 'openai-compatible', baseUrl: 'https://relay.example.com/v1', apiKeyEnv: 'RELAY_API_KEY' }
+    provider: {
+      mode: 'openai-compatible',
+      baseUrl: 'https://relay.example.com/v1',
+      apiKeyEnv: 'RELAY_API_KEY',
+      credentialSource: 'auto'
+    }
+  };
+  const resolved = resolveProviderCredential(runtime, { env: { RELAY_API_KEY: 'env-secret' }, homeDir: '/not-used' });
+  assert.equal(resolved.source, 'env');
+  assert.equal(resolved.environment.RELAY_API_KEY, 'env-secret');
+  assert.equal(assertProviderCredential(runtime, { RELAY_API_KEY: 'env-secret' }).provider.mode, 'openai-compatible');
+});
+
+test('compatible provider can read API key directly from Codex auth.json', () => {
+  const homeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-runtime-auth-'));
+  try {
+    const codexHome = path.join(homeDir, '.codex');
+    fs.mkdirSync(codexHome, { recursive: true });
+    fs.writeFileSync(path.join(codexHome, 'auth.json'), JSON.stringify({
+      auth_mode: 'apikey',
+      OPENAI_API_KEY: 'auth-json-secret'
+    }), { mode: 0o600 });
+    const runtime = {
+      provider: {
+        mode: 'openai-compatible',
+        baseUrl: 'https://relay.example.com/v1',
+        apiKeyEnv: 'RELAY_API_KEY',
+        credentialSource: 'auth-json'
+      }
+    };
+    const credential = readAuthJsonApiKey({ env: {}, homeDir });
+    assert.equal(credential.value, 'auth-json-secret');
+    assert.equal(credential.path, path.join(codexHome, 'auth.json'));
+    const resolved = resolveProviderCredential(runtime, { env: {}, homeDir });
+    assert.equal(resolved.source, 'auth-json');
+    assert.equal(resolved.environment.RELAY_API_KEY, 'auth-json-secret');
+    assert.equal(resolveAuthJsonPath({}, homeDir), path.join(codexHome, 'auth.json'));
+  } finally {
+    fs.rmSync(homeDir, { recursive: true, force: true });
+  }
+});
+
+test('CODEX_HOME controls auth.json discovery and non-apikey auth is rejected', () => {
+  const homeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-runtime-home-'));
+  try {
+    const codexHome = path.join(homeDir, 'custom-codex');
+    fs.mkdirSync(codexHome, { recursive: true });
+    fs.writeFileSync(path.join(codexHome, 'auth.json'), JSON.stringify({ auth_mode: 'chatgpt', OPENAI_API_KEY: 'must-not-use' }));
+    assert.equal(resolveAuthJsonPath({ CODEX_HOME: codexHome }, homeDir), path.join(codexHome, 'auth.json'));
+    assert.throws(
+      () => readAuthJsonApiKey({ env: { CODEX_HOME: codexHome }, homeDir }),
+      error => error?.code === 'ECODEX_CREDENTIAL'
+    );
+  } finally {
+    fs.rmSync(homeDir, { recursive: true, force: true });
+  }
+});
+
+test('missing compatible-provider credential fails with bounded metadata', () => {
+  const runtime = {
+    provider: {
+      mode: 'openai-compatible',
+      baseUrl: 'https://relay.example.com/v1',
+      apiKeyEnv: 'RELAY_API_KEY',
+      credentialSource: 'env'
+    }
   };
   assert.throws(
     () => assertProviderCredential(runtime, {}),
     error => error?.code === 'ECODEX_CREDENTIAL' && error.credentialEnv === 'RELAY_API_KEY'
   );
-  assert.equal(assertProviderCredential(runtime, { RELAY_API_KEY: 'secret-value' }).provider.mode, 'openai-compatible');
 });
 
 test('diagnostics classify provider failures and redact credentials', () => {
@@ -94,6 +175,9 @@ test('diagnostics classify provider failures and redact credentials', () => {
     mode: 'openai-compatible',
     endpointHost: 'relay.example.com',
     credentialEnv: 'RELAY_API_KEY',
+    credentialSource: 'auto',
+    transport: 'https',
+    allowInsecureHttp: false,
     wireApi: 'responses',
     supportsWebsockets: false
   });

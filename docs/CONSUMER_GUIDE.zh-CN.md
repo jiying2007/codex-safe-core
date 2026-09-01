@@ -13,7 +13,7 @@ git -C src/codex-safe-core rev-parse HEAD
 
 禁止 branch tracking、复制 runtime、npm runtime dependency 或兼容代理。
 
-当前机器契约由 `core-contract.json` 管理：**Safe Core v4 / Safe Contract v2 / Policy Schema v4 / Review Receipt v4 / Commit Receipt v4 / Diagnosis Receipt v1 / Review、Commit、Diagnose Prompt Contract v1**。Consumer 只支持 Node 22 >=22.22.2 <23 或 Node 24 >=24.19.0 <25。
+当前机器契约由 `core-contract.json` 管理：**Safe Core v4 / Safe Contract v2 / Policy Schema v4 / Review Receipt v5 / Commit Receipt v4 / Diagnosis Receipt v2 / Review、Commit、Diagnose Prompt Contract v1 / Codex Runtime v2 / Provider Contract v2**。Consumer 只支持 Node 22 >=22.22.2 <23 或 Node 24 >=24.19.0 <25。
 
 当前五个活跃 Consumer 是 **Codex Change Safe、Codex Review Safe、Codex Commit Safe、Codex Review Service、Codex Diagnose Safe**。Codex PR Safe 仅作为旧的模型生成 PR 描述身份退役；Change Safe 是独立的确定性交付产品，不恢复旧 Narrative Generator。
 
@@ -52,9 +52,13 @@ SCM Provider adapter、Pipeline/Job API、Analyzer Artifact 获取与解析编�
 
 模型生成 PR/MR Narrative 仍是明确非目标。SCM 侧 PR/MR 交付授权由 Codex Change Safe 拥有，并保持在 Core runtime 边界之外；只有其 Repository Policy schema/validation 由 Core 统一拥有。
 
-## Codex Runtime / Provider 契约
+## Codex Runtime / Provider Contract v2
 
-Core 统一拥有全产品族 Codex Runtime Contract，同时保持 Safe Contract v2 不变。只支持 `openai` 与显式 `openai-compatible` 两种 Provider 模式。兼容 Provider 只接受 HTTPS `baseUrl` 与 API Key 环境变量名，secret 值不进入配置、argv、Receipt 或日志。Core 始终保持用户 config、仓库 rules、tools、network authority 与 write authority 关闭。
+Core 统一拥有全产品族 Codex Runtime Contract，同时保持 Safe Contract v2 不变。只支持 `openai` 与显式 `openai-compatible` 两种 Provider 模式。
+
+兼容 Provider 支持 `credentialSource=auto|env|auth-json`。`auto` 优先读取配置的 API Key 环境变量；环境变量不存在时，读取 `${CODEX_HOME}/auth.json` 或 `~/.codex/auth.json`。`auth.json` 只接受 API Key 身份：`auth_mode=apikey` 且存在非空 `OPENAI_API_KEY`；不会把 ChatGPT/session token 当作中转站凭据。解析出的 Secret 仅注入 Codex 子进程环境，不进入 argv、产品 Settings、Receipt 或诊断日志。
+
+HTTPS 继续作为默认 Transport。Loopback HTTP 可用于本机开发；非 Loopback HTTP 仅在产品/机器 Runtime 显式设置 `allowInsecureHttp=true` 时允许，Repository Policy 无权开启。URL 中的 credentials、query、fragment 继续拒绝。兼容 Provider 继续强制 Responses HTTP/SSE 与 Structured Output，并关闭 WebSocket。
 
 Change Safe 默认模型调用为 0；它只消费确定性的 Core primitive，不获得 Codex Runtime Authority。
 
@@ -64,13 +68,13 @@ Core 统一拥有 Token usage 归一、request estimate、risk-aware budget、mo
 
 效率必须服从正确性：只要预算导致证据遗漏，就必须显式降级 coverage；不得为了省 Token 把 incomplete 结果包装为成功质量结论。
 
-## Diagnosis Contract / Receipt v1
+## Diagnosis Contract / Receipt v2
 
-Codex Diagnose Safe 在自身 trust boundary 获取 CI/job evidence，再把 failure log 交给 Core。模型输出必须经过 Core schema/normalization 后才可创建 Diagnosis Receipt v1。Pipeline log 是不可信 Evidence，Core 与 Diagnose 都不会执行日志里的指令。
+Codex Diagnose Safe 在自身 trust boundary 获取 CI/job evidence，再把 failure log 交给 Core。模型输出必须经过 Core schema/normalization 后才可创建 Diagnosis Receipt v2。Pipeline log 是不可信 Evidence，Core 与 Diagnose 都不会执行日志里的指令。
 
 ## Safe Contract 身份
 
-Safe Contract v2 暴露 `SAFE_CONTRACT_MANIFEST` 与 SHA-256 `SAFE_CONTRACT_DIGEST`。Digest 代表精确 Authority/Capability Manifest，不替代语义协议版本。Review/Commit Receipt v4 与 Diagnosis Receipt v1 继续独立版本化。
+Safe Contract v2 暴露 `SAFE_CONTRACT_MANIFEST` 与 SHA-256 `SAFE_CONTRACT_DIGEST`。Digest 代表精确 Authority/Capability Manifest，不替代语义协议版本。Review Receipt v5、Commit Receipt v4 与 Diagnosis Receipt v2 继续独立版本化。
 
 ## 验证
 
@@ -80,4 +84,4 @@ Safe Contract v2 暴露 `SAFE_CONTRACT_MANIFEST` 与 SHA-256 `SAFE_CONTRACT_DIGE
 npm run ci
 ```
 
-Core CI 覆盖 contract/runtime identity、Policy Schema v4、Provider safety、确定性 Review Rules、adversarial fixtures、Quality/Profile/Test-Impact/Diagnosis primitive、golden behavior、成本规划、性能预算与供应链门禁。Family Compatibility 还会验证五个活跃 Consumer 的精确 Core pin、ownership boundary 和完整 CI，再生成带 attestation 的 Family Manifest。
+Core CI 覆盖 contract/runtime identity、Policy Schema v4、Provider Contract v2 Credential/Transport safety、确定性 Review Rules、adversarial fixtures、Quality/Profile/Test-Impact/Diagnosis primitive、golden behavior、成本规划、性能预算与供应链门禁。Family Compatibility 还会验证五个活跃 Consumer 的精确 Core pin、ownership boundary 和完整 CI，再生成带 attestation 的 Family Manifest。

@@ -18,7 +18,7 @@ const {
 const {
   normalizeCodexRuntimeOptions,
   appendProviderArgs,
-  assertProviderCredential,
+  resolveProviderCredential,
   providerMetadata,
   classifyCodexFailure
 } = require('./codex-runtime');
@@ -209,8 +209,10 @@ function createCodexCli({ runPreparedProcess, tempPrefix = 'codex-safe-', capabi
       throw new TypeError('processOptions must be an object.');
     }
 
-    const environment = processOptions.env || process.env;
-    const normalizedRuntime = assertProviderCredential(runtime, environment);
+    const baseEnvironment = processOptions.env || process.env;
+    const credential = resolveProviderCredential(runtime, { env: baseEnvironment });
+    const normalizedRuntime = credential.runtime;
+    const environment = credential.environment;
     const effectiveTimeoutMs = timeoutMs === undefined
       ? normalizedRuntime.timeouts.requestMs
       : Math.min(Math.max(0, Math.floor(timeoutMs)), normalizedRuntime.timeouts.requestMs);
@@ -233,7 +235,7 @@ function createCodexCli({ runPreparedProcess, tempPrefix = 'codex-safe-', capabi
         processResult = await runPreparedProcess(
           resolved.executable,
           buildCodexArgs(schemaPath, model, normalizedRuntime),
-          { ...processOptions, cwd: tempDir, timeoutMs: effectiveTimeoutMs, maxStdoutBytes, maxStderrBytes },
+          { ...processOptions, env: environment, cwd: tempDir, timeoutMs: effectiveTimeoutMs, maxStdoutBytes, maxStderrBytes },
           input,
           token
         );
@@ -245,7 +247,7 @@ function createCodexCli({ runPreparedProcess, tempPrefix = 'codex-safe-', capabi
             error
           );
         }
-        throw classifyCodexFailure(error, normalizedRuntime, { phase, env: environment });
+        throw classifyCodexFailure(error, normalizedRuntime, { phase, env: environment, credential });
       }
 
       const agentText = parseCodexJsonl(processResult.stdout);
@@ -258,7 +260,7 @@ function createCodexCli({ runPreparedProcess, tempPrefix = 'codex-safe-', capabi
         processResult,
         usage: extractCodexUsage(processResult.stdout),
         requestEstimate,
-        provider: providerMetadata(normalizedRuntime),
+        provider: providerMetadata(normalizedRuntime, credential),
         durationMs: Math.max(0, Date.now() - started)
       };
     });

@@ -1,6 +1,12 @@
 # Quality Platform
 
-Codex Safe Core 4.11.0 / Quality Platform v3 保持共享确定性质量平台稳定，同时 Policy Schema v4 包含 `change` Repository Policy section。GitHub/GitLab Provider、VS Code UI、Pipeline API、数据库、Analyzer 获取与通知仍属于产品层，不进入 Core。
+Codex Safe Core 4.12.0 / Quality Platform v3 保持共享确定性质量平台稳定，同时 Policy Schema v4 包含 `change` Repository Policy section。GitHub/GitLab Provider、VS Code UI、Pipeline API、数据库、Analyzer 获取与通知仍属于产品层，不进入 Core。
+
+## Runtime / Provider Contract v2
+
+Core 统一拥有 compatible Provider 的 Credential 与 Transport 解析。`openai-compatible` Runtime 支持 `credentialSource=auto|env|auth-json`；`auto` 优先读取配置的环境变量，缺失时读取 `${CODEX_HOME}/auth.json` 或 `~/.codex/auth.json`，仅在 `auth_mode` 为 `apikey` 时使用其中的 `OPENAI_API_KEY`。解析出的 Secret 只注入 Codex 子进程环境，绝不会进入 argv、Settings、Receipt 或诊断日志。
+
+HTTPS 继续是默认 Transport 要求；Loopback HTTP 继续允许用于开发，非 Loopback HTTP 必须由机器/产品 Runtime 显式设置 `allowInsecureHttp=true`。Repository Policy 不能开启明文 HTTP。Provider Contract v2 与 Codex Runtime v2 继续强制 Responses HTTP/SSE 与 Structured Output。
 
 ## Judgment Lifecycle v1
 

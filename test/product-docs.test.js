@@ -25,15 +25,19 @@ test('current product docs stay on Family v4 semantics', () => {
   assert.match(text, /Safe Core v4/);
   assert.match(text, /Safe Contract v2/);
   assert.match(text, /Policy Schema v4/);
-  assert.match(text, /Review Receipt v4/);
-  assert.match(text, /Diagnosis Receipt v1/);
+  assert.match(text, /Review Receipt v5/);
+  assert.match(text, /Diagnosis Receipt v2/);
+  assert.match(text, /Codex Runtime v2/);
+  assert.match(text, /Provider Contract v2/);
+  assert.match(text, /auth-json/);
+  assert.match(text, /allowInsecureHttp/);
   assert.match(text, /\.codex-safe\.json/);
   assert.doesNotMatch(text, /\.codex-change-safe\.json/);
-  assert.doesNotMatch(text, /Safe Core v[123]\b|Review Receipt v[123]\b|Commit Receipt v[123]\b/);
+  assert.doesNotMatch(text, /Safe Core v[123]\b|Review Receipt v[1234]\b|Diagnosis Receipt v1\b|Commit Receipt v[123]\b/);
 });
 
-test('quality platform docs define profiles analyzer test-impact diagnosis and safe patch boundaries bilingually',()=>{
+test('quality platform docs define profiles analyzer test-impact diagnosis provider-v2 and safe patch boundaries bilingually',()=>{
   const text=`${read('docs/QUALITY_PLATFORM.md')}\n${read('docs/QUALITY_PLATFORM.zh-CN.md')}`;
-  for(const value of ['quick','standard','deep','security','embedded','embedded-linux','embedded-mcu','driver','kernel','realtime','SARIF','Test Impact','Diagnosis','FAMILY_MANIFEST.json'])assert.match(text,new RegExp(value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i'));
+  for(const value of ['quick','standard','deep','security','embedded','embedded-linux','embedded-mcu','driver','kernel','realtime','SARIF','Test Impact','Diagnosis','FAMILY_MANIFEST.json','Runtime / Provider Contract v2','auth-json','allowInsecureHttp'])assert.match(text,new RegExp(value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i'));
   assert.match(text,/never applies, commits, pushes or merges|永远不会自动 apply、commit、push 或 merge/);
 });

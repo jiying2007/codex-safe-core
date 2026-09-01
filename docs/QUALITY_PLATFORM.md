@@ -1,6 +1,12 @@
 # Quality Platform
 
-Codex Safe Core 4.11.0 / Quality Platform v3 keeps the shared deterministic quality platform stable while Policy Schema v4 includes the `change` repository-policy section. Product-owned GitHub/GitLab provider behavior, VS Code UI, pipeline APIs, databases, analyzer acquisition and notifications remain outside Core.
+Codex Safe Core 4.12.0 / Quality Platform v3 keeps the shared deterministic quality platform stable while Policy Schema v4 includes the `change` repository-policy section. Product-owned GitHub/GitLab provider behavior, VS Code UI, pipeline APIs, databases, analyzer acquisition and notifications remain outside Core.
+
+## Runtime / Provider Contract v2
+
+Core owns compatible-provider credential and transport resolution. `openai-compatible` runtimes may use `credentialSource=auto|env|auth-json`; `auto` prefers the configured environment variable and otherwise reads `OPENAI_API_KEY` from `${CODEX_HOME}/auth.json` or `~/.codex/auth.json` when `auth_mode` is `apikey`. The resolved secret is injected only into the child Codex process environment and is never placed in argv, settings, receipts or diagnostics.
+
+HTTPS remains the default transport requirement. Loopback HTTP remains allowed for development, while non-loopback HTTP requires the explicit machine/product runtime opt-in `allowInsecureHttp=true`. Repository policy cannot enable insecure transport. Provider Contract v2 and Codex Runtime v2 keep Responses HTTP/SSE and structured-output requirements unchanged.
 
 ## Judgment Lifecycle v1
 
