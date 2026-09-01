@@ -2,6 +2,9 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const { createCodexCli, parseCodexJsonl } = require('../codex-cli');
 const { REQUIRED_CODEX_TOP_LEVEL_FLAGS, REQUIRED_CODEX_EXEC_FLAGS } = require('../safe-contract');
 
@@ -91,7 +94,7 @@ test('structured execution returns usage, request estimate, provider metadata, a
 test('structured execution injects a safe HTTP-only compatible provider before stdin marker', async () => {
   const fake = createRunner();
   const cli = createCodexCli({ runPreparedProcess: fake.runPreparedProcess });
-  await cli.runStructuredCodex({
+  const result = await cli.runStructuredCodex({
     codexPath: 'codex',
     runtime: {
       provider: { mode: 'openai-compatible', baseUrl: 'https://relay.example.com/v1', apiKeyEnv: 'RELAY_API_KEY' },
@@ -107,7 +110,41 @@ test('structured execution injects a safe HTTP-only compatible provider before s
   assert.ok(exec.args.includes('model_providers.codex_safe_compatible.supports_websockets=false'));
   assert.ok(exec.args.includes('model_providers.codex_safe_compatible.wire_api="responses"'));
   assert.equal(exec.options.timeoutMs, 120000);
+  assert.equal(exec.options.env.RELAY_API_KEY, 'secret');
+  assert.equal(result.provider.credentialSource, 'env');
   assert.ok(!exec.args.join(' ').includes('secret'));
+});
+
+test('structured execution reads auth.json and injects only the selected provider env variable', async () => {
+  const fake = createRunner();
+  const cli = createCodexCli({ runPreparedProcess: fake.runPreparedProcess });
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-cli-auth-'));
+  try {
+    fs.writeFileSync(path.join(root, 'auth.json'), JSON.stringify({ auth_mode: 'apikey', OPENAI_API_KEY: 'auth-secret' }), { mode: 0o600 });
+    const result = await cli.runStructuredCodex({
+      codexPath: 'codex',
+      runtime: {
+        provider: {
+          mode: 'openai-compatible',
+          baseUrl: 'http://192.168.2.109:3000/v1',
+          apiKeyEnv: 'RELAY_API_KEY',
+          credentialSource: 'auth-json',
+          allowInsecureHttp: true
+        }
+      },
+      processOptions: { env: { CODEX_HOME: root } },
+      schema: { type: 'object', additionalProperties: false, properties: { ok: { type: 'boolean' } }, required: ['ok'] },
+      input: 'x'
+    });
+    const exec = fake.calls.find(call => call.args.includes('exec') && call.args.includes('--output-schema'));
+    assert.equal(exec.options.env.RELAY_API_KEY, 'auth-secret');
+    assert.equal(result.provider.credentialSource, 'auth-json');
+    assert.equal(result.provider.transport, 'http');
+    assert.equal(result.provider.allowInsecureHttp, true);
+    assert.ok(!exec.args.join(' ').includes('auth-secret'));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test('live runtime probe uses the same structured provider path', async () => {
@@ -135,7 +172,7 @@ test('missing compatible-provider credential fails before Codex probing', async 
   const cli = createCodexCli({ runPreparedProcess: fake.runPreparedProcess });
   await assert.rejects(
     cli.runStructuredCodex({
-      runtime: { provider: { mode: 'openai-compatible', baseUrl: 'https://relay.example.com/v1', apiKeyEnv: 'RELAY_API_KEY' } },
+      runtime: { provider: { mode: 'openai-compatible', baseUrl: 'https://relay.example.com/v1', apiKeyEnv: 'RELAY_API_KEY', credentialSource: 'env' } },
       processOptions: { env: {} },
       schema: { type: 'object' },
       input: 'x'
