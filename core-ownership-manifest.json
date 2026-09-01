@@ -82,6 +82,8 @@
     "shouldPersistJudgmentReceipt",
     "reviewReceiptMatchesIdentity",
     "reviewReceiptQualifiesForDelivery",
+    "carryForwardFindings",
+    "mergeCarriedFindings",
     "buildEvidenceManifest",
     "computeReviewKey",
     "computeStableFindingId",
