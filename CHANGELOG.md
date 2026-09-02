@@ -4,8 +4,10 @@
 
 ### Release-aware Family freshness
 
-- Add one lightweight Core-owned `Family Freshness` watcher that checks the exact `main` SHA, current package version, tag target and immutable final Release for Core and all five active consumers before considering a refresh.
-- Compare only fully released heads with the newest immutable Family Manifest for the current released Core; dispatch the full `Family Compatibility` workflow only when that released snapshot is missing or stale.
+- Add one lightweight Core-owned `Family Freshness` watcher. Core `main` must be the exact target of the current immutable final Core Release before any Family refresh can be considered.
+- Preserve governance-only consumer repins without product-version churn: each active consumer is checked at `main` for matching package/Product Contract identity plus an exact `safeCoreVersion`, `safeCoreCommit` and `src/codex-safe-core` gitlink to the released Core; consumer product Release tags are not repurposed as governance readiness markers.
+- Compare those fully aligned active consumer heads with the newest immutable Family Manifest for the released Core and dispatch the full `Family Compatibility` workflow only when that snapshot is missing or stale. A queued/running Family validation suppresses duplicate dispatch.
+- Route the coordinated Family Upgrade completion path through the same freshness decision point instead of directly launching Family Compatibility, leaving one canonical trigger policy for automated maintenance.
 - Keep the watcher credential-minimal and CI-lightweight: it uses only the current Core repository `GITHUB_TOKEN`, does not distribute cross-repository PATs, does not checkout consumers, does not run product CI itself and never invokes a model.
 - Preserve the existing Atomic Family Snapshot v1, three-platform consumer matrix, Family Manifest v3, provenance attestation and digest-addressed immutable Family Release as the only authoritative validation path.
 - Keep Safe Contract v2, Policy Schema v4, Runtime/Provider Contract v2, Review Receipt v5, Commit Receipt v4, Diagnosis Receipt v2 and all consumer product behavior unchanged; this patch changes Family release orchestration only.
