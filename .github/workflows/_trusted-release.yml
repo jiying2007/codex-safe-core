@@ -65,7 +65,19 @@ jobs:
               echo "Existing formal release ${tag} is not immutable." >&2
               exit 1
             }
-            gh release verify "$tag"
+            release_verified=false
+            for attempt in {1..12}; do
+              if gh release verify "$tag"; then
+                release_verified=true
+                break
+              fi
+              echo "Release attestation for ${tag} is not visible yet (attempt ${attempt}/12); retrying."
+              sleep 5
+            done
+            test "$release_verified" = true || {
+              echo "Existing formal release ${tag} attestation did not become verifiable." >&2
+              exit 1
+            }
             echo "Formal release ${tag} already exists, points to validated main, and is immutable; no new publication is required."
             echo "publish=false" >> "$GITHUB_OUTPUT"
             exit 0
@@ -146,7 +158,25 @@ jobs:
             echo "Published release ${RELEASE_TAG} did not become immutable." >&2
             exit 1
           }
-          gh release verify "$RELEASE_TAG"
-          for asset in "$ARTIFACT" SBOM.spdx.json CORE_CONTRACT.json CORE_OWNERSHIP_MANIFEST.json SHA256SUMS; do
-            gh release verify-asset "$RELEASE_TAG" "$asset"
+          release_verified=false
+          for attempt in {1..12}; do
+            assets_verified=true
+            if gh release verify "$RELEASE_TAG"; then
+              for asset in "$ARTIFACT" SBOM.spdx.json CORE_CONTRACT.json CORE_OWNERSHIP_MANIFEST.json SHA256SUMS; do
+                if ! gh release verify-asset "$RELEASE_TAG" "$asset"; then
+                  assets_verified=false
+                  break
+                fi
+              done
+              if [[ "$assets_verified" == true ]]; then
+                release_verified=true
+                break
+              fi
+            fi
+            echo "Release/asset attestation for ${RELEASE_TAG} is not fully visible yet (attempt ${attempt}/12); retrying."
+            sleep 5
           done
+          test "$release_verified" = true || {
+            echo "Published release ${RELEASE_TAG} attestation did not become fully verifiable." >&2
+            exit 1
+          }
