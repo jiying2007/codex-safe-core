@@ -18,7 +18,7 @@ Codex Safe Core 是 Codex Safe 产品族唯一的**安全运行时与协议核�
 
 VS Code 源代码管理器标题栏的正式一级顺序固定为 **Review → Commit → Change**。三个产品各只占一个一级入口：Review 使用 `navigation@5`，Commit 使用 `navigation@6`，Change 使用 `navigation@7`。Independent Review 与 Delivery Preflight 保留为二级能力，不再占用主 SCM 工具栏。机器真相源为 `family-ui-contract.json`。
 
-当前协议线：**Safe Core v4 / Safe Contract v2 / Policy Schema v4 / Review Receipt v5 / Commit Receipt v4 / Diagnosis Receipt v2 / Codex Runtime v2 / Provider Contract v2 / Review、Commit、Diagnose Prompt Contract v1**。`core-contract.json` 是当前 Core / 协议 / 运行时事实的机器校验唯一来源。
+当前协议线：**Safe Core v4 / Safe Contract v2 / Policy Schema v4 / Review Receipt v5 / Commit Receipt v4 / Diagnosis Receipt v2 / Codex Runtime v3 / Provider Contract v3 / Review、Commit、Diagnose Prompt Contract v1**。`core-contract.json` 是当前 Core / 协议 / 运行时事实的机器校验唯一来源。
 
 ## 我应该使用哪个仓库？
 
@@ -50,7 +50,7 @@ CI 在 Linux、Windows、macOS 上验证两个精确基线，不再用 `>=22` �
 
 ## 职责边界
 
-Core 负责 Codex capability probe/调用、进程生命周期、本地 Git 通用原语、Semantic Context、coverage-preserving Review Evidence Chunking、**Policy Schema v4**、确定性 Review Rules、指纹以及 Receipt 校验与 provenance。Core 4.x 还统一拥有 Runtime/Provider Contract v2 的 Credential/Transport 解析、版本化 Review Profile Pack、确定性 Test Impact、Diagnosis Contract / Receipt 纯函数原语、有界 Token Estimator Calibration、Review/Diagnose Quality Eval、Atomic Family Snapshot v1、Family Manifest v3、Product Contract v1 校验以及 immutable released-Core pin 校验。
+Core 负责 Codex capability probe/调用、进程生命周期、本地 Git 通用原语、Semantic Context、coverage-preserving Review Evidence Chunking、**Policy Schema v4**、确定性 Review Rules、指纹以及 Receipt 校验与 provenance。Core 4.x 还统一拥有 Runtime/Provider Contract v3 的 Credential/Transport 解析、版本化 Review Profile Pack、确定性 Test Impact、Diagnosis Contract / Receipt 纯函数原语、有界 Token Estimator Calibration、Review/Diagnose Quality Eval、Atomic Family Snapshot v1、Family Manifest v3、Product Contract v1 校验以及 immutable released-Core pin 校验。
 
 产品领域继续由产品自己负责：Change Safe 拥有 SCM Provider、source/target topology、SCM 原生 policy 发现、PR/MR mutation、Merge Readiness 与 Delivery Authorization；Review Service 拥有 webhook/queue/publication/audit；Diagnose 拥有 CI Evidence 获取与诊断编排。Core 不执行 Provider 副作用。
 
@@ -62,11 +62,11 @@ Core 负责 Codex capability probe/调用、进程生命周期、本地 Git 通�
 
 每日 Codex CLI Canary 在 Linux/Windows/macOS 检查最新上游 CLI 并记录 Safe Contract digest；配置受保护 OpenAI 凭据时，还会真实尝试被禁止的文件写入与 loopback network side effect，任一成功即失败。永久 adversarial corpus 验证仓库/模型中的恶意指令不能改变 Safe Contract argv。
 
-## Runtime / Provider Contract v2
+## Runtime / Provider Contract v3
 
 `openai-compatible` Consumer 可以从配置的环境变量，或直接从 `${CODEX_HOME}/auth.json` / `~/.codex/auth.json` 解析中转站 API Key。`credentialSource=auto` 优先环境变量，缺失时回退到 `auth.json`；只有 `auth_mode=apikey` 且包含 `OPENAI_API_KEY` 才会被接受。Secret 只注入 Codex 子进程环境，不进入 argv、产品 Settings、Receipt 或诊断日志。
 
-HTTPS 继续是默认 Transport。Loopback HTTP 可用于本机开发；非 Loopback HTTP 必须由产品/机器 Runtime 显式设置 `allowInsecureHttp=true`。Repository Policy 无权开启明文 Transport。兼容 Provider 继续固定使用 Responses HTTP/SSE + Structured Output，并关闭 WebSocket。
+Consumer 默认使用零配置机器 Runtime 解析：产品显式 Override → `~/.codex-safe/runtime.json` / `CODEX_SAFE_RUNTIME_FILE` → `${CODEX_HOME}/config.toml` / `~/.codex/config.toml` → 内置 OpenAI。Provider 路由绝不继承仓库内 `.codex/config.toml`。HTTPS 仍为首选；机器配置中的字面量私网 IP HTTP 可直接继承并显示明文风险，公网/非 IP HTTP 默认 fail-closed，除非机器级 Family Runtime 显式信任。兼容 Provider 继续固定使用 Responses HTTP/SSE + Structured Output，并关闭 WebSocket。
 
 ## Policy Schema v4
 
@@ -85,7 +85,7 @@ HTTPS 继续是默认 Transport。Loopback HTTP 可用于本机开发；非 Loop
 
 Diagnose 继续使用独立产品配置，因为 CI Diagnosis 不属于 repository review/delivery policy surface。
 
-## Core 4.12 Quality Platform v3
+## Core 4.13 Quality Platform v3
 
 原有 `quick`、`standard`、`deep`、`security`、`embedded` 五种执行 Profile 保持稳定。Profile Pack v1 提供 `general`、`backend`、`frontend`、`security`、`cpp`、`embedded-linux`、`embedded-mcu`、`driver`、`kernel`、`realtime` 十个版本化工程 Pack。Test Impact v1 根据 changed paths 与语义证据对 Controller 提供的测试候选做确定性排序，但不执行测试。Diagnosis Contract v1 保持不变。Quality Platform v3 增加带标签的 Review / Diagnose 回归语料，包括 clean negative/cascade case 与明确的质量、校准、Token 成本门禁。Token Calibration v1 可从真实 usage 改进预估，但不能削弱 fail-closed budget。
 
@@ -121,7 +121,7 @@ npm run ci
 
 ## 版本治理
 
-Core Major 是实现/产品族协议边界；各协议版本独立，只在自身语义变化时升级。Policy Schema v4、Safe Contract v2、Review Receipt v5、Commit Receipt v4、Diagnosis Receipt v2、Codex Runtime v2 与 Provider Contract v2 分别独立版本化。Policy/Core breaking change 必须硬切所有活跃 Consumer，不维护永久兼容层。
+Core Major 是实现/产品族协议边界；各协议版本独立，只在自身语义变化时升级。Policy Schema v4、Safe Contract v2、Review Receipt v5、Commit Receipt v4、Diagnosis Receipt v2、Codex Runtime v3 与 Provider Contract v3 分别独立版本化。Policy/Core breaking change 必须硬切所有活跃 Consumer，不维护永久兼容层。
 
 ## 安全
 

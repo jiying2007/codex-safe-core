@@ -1,12 +1,14 @@
 # Quality Platform
 
-Codex Safe Core 4.12.5 / Quality Platform v3 保持共享确定性质量平台稳定，同时 Policy Schema v4 包含 `change` Repository Policy section。GitHub/GitLab Provider、VS Code UI、Pipeline API、数据库、Analyzer 获取与通知仍属于产品层，不进入 Core。
+Codex Safe Core 4.13.0 / Quality Platform v3 保持共享确定性质量平台稳定，同时 Policy Schema v4 包含 `change` Repository Policy section。GitHub/GitLab Provider、VS Code UI、Pipeline API、数据库、Analyzer 获取与通知仍属于产品层，不进入 Core。
 
-## Runtime / Provider Contract v2
+## Runtime / Provider Contract v3
 
-Core 统一拥有 compatible Provider 的 Credential 与 Transport 解析。`openai-compatible` Runtime 支持 `credentialSource=auto|env|auth-json`；`auto` 优先读取配置的环境变量，缺失时读取 `${CODEX_HOME}/auth.json` 或 `~/.codex/auth.json`，仅在 `auth_mode` 为 `apikey` 时使用其中的 `OPENAI_API_KEY`。解析出的 Secret 只注入 Codex 子进程环境，绝不会进入 argv、Settings、Receipt 或诊断日志。
+Core 统一拥有 compatible Provider 的 Credential、Transport 与机器级 Runtime 解析。Consumer 默认应使用 `provider.mode=auto`：优先尊重产品显式 Override，其次读取机器级 Family Runtime `~/.codex-safe/runtime.json`（或 `CODEX_SAFE_RUNTIME_FILE`），再读取 `${CODEX_HOME}/config.toml` / `~/.codex/config.toml`，最后回退到内置 OpenAI Runtime。出于凭据安全，Provider 自动继承**不会读取仓库内 `.codex/config.toml`**，防止 Repository 内容把机器凭据重定向到其他 Endpoint。
 
-HTTPS 继续是默认 Transport 要求；Loopback HTTP 继续允许用于开发，非 Loopback HTTP 必须由机器/产品 Runtime 显式设置 `allowInsecureHttp=true`。Repository Policy 不能开启明文 HTTP。Provider Contract v2 与 Codex Runtime v2 继续强制 Responses HTTP/SSE 与 Structured Output。
+继承 OpenAI-compatible Provider 时，`credentialSource=auto|env|auth-json` 继续保持 Secret-by-reference。`auto` 优先使用 Provider 配置的环境变量，否则沿用现有有界 `auth.json` 解析。Secret 只注入 Codex 子进程环境，绝不会进入 argv、Settings、Receipt、Family Runtime profile 或诊断日志。
+
+HTTPS 仍是首选。机器拥有的 Codex / Family Runtime 中，如果 Endpoint 是 Loopback 或字面量私网 HTTP（RFC1918、link-local、loopback、IPv6 ULA/link-local），各产品可以直接继承，不再重复要求每个插件单独打开 insecure HTTP；Doctor 必须明确显示明文传输风险。公网/非 IP HTTP 默认继续拒绝，只有机器级 Family Runtime 显式 `trustedPrivateHttp=true` 才可信任。Repository Policy 永远不能开启或信任明文 HTTP。Provider Contract v3 与 Codex Runtime v3 继续强制 Responses HTTP/SSE 与 Structured Output。
 
 ## Judgment Lifecycle v1
 

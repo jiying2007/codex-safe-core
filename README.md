@@ -18,7 +18,7 @@ Codex Safe Core is the **single canonical safety/runtime and protocol core** for
 
 For VS Code Source Control title actions, the canonical primary sequence is **Review → Commit → Change**. Each product owns exactly one primary SCM title command: Review at `navigation@5`, Commit at `navigation@6`, and Change at `navigation@7`. Independent Review and Delivery Preflight remain secondary actions and must not occupy the primary SCM toolbar. The machine source is `family-ui-contract.json`.
 
-Current protocol line: **Safe Core v4 / Safe Contract v2 / Policy Schema v4 / Review Receipt v5 / Commit Receipt v4 / Diagnosis Receipt v2 / Codex Runtime v2 / Provider Contract v2 / Review, Commit & Diagnose Prompt Contracts v1**. `core-contract.json` is the machine-checked source of current Core/protocol/runtime identity.
+Current protocol line: **Safe Core v4 / Safe Contract v2 / Policy Schema v4 / Review Receipt v5 / Commit Receipt v4 / Diagnosis Receipt v2 / Codex Runtime v3 / Provider Contract v3 / Review, Commit & Diagnose Prompt Contracts v1**. `core-contract.json` is the machine-checked source of current Core/protocol/runtime identity.
 
 ## Which repository should I use?
 
@@ -50,7 +50,7 @@ CI validates both exact floors on Linux, Windows and macOS. Untested odd/future 
 
 ## Ownership
 
-Core owns Codex capability probing/invocation, process lifecycle, generic Git primitives, Semantic Context, coverage-preserving Review Evidence Chunking, **Policy Schema v4**, deterministic review rules, fingerprints and Receipt validation/provenance. Core 4.x also owns Runtime/Provider Contract v2 credential and transport resolution, versioned Review Profile Packs, deterministic Test Impact selection, pure Diagnosis Contract/Receipt primitives, bounded token-estimator calibration, Review/Diagnose quality evaluation, Atomic Family Snapshot v1, Family Manifest v3, Product Contract v1 validation and immutable released-Core pin validation. `core-ownership-manifest.json` records this boundary.
+Core owns Codex capability probing/invocation, process lifecycle, generic Git primitives, Semantic Context, coverage-preserving Review Evidence Chunking, **Policy Schema v4**, deterministic review rules, fingerprints and Receipt validation/provenance. Core 4.x also owns Runtime/Provider Contract v3 credential and transport resolution, versioned Review Profile Packs, deterministic Test Impact selection, pure Diagnosis Contract/Receipt primitives, bounded token-estimator calibration, Review/Diagnose quality evaluation, Atomic Family Snapshot v1, Family Manifest v3, Product Contract v1 validation and immutable released-Core pin validation. `core-ownership-manifest.json` records this boundary.
 
 Product domains remain product-owned. Change Safe owns SCM provider adapters, source/target topology, native SCM policy discovery, PR/MR mutations, merge readiness and Delivery Authorization. Review Service owns webhook/queue/publication/audit. Diagnose owns CI evidence acquisition and diagnosis orchestration. Core never performs provider side effects.
 
@@ -62,11 +62,11 @@ Required capabilities include `--ask-for-approval never`, `exec --json`, ephemer
 
 The daily Codex CLI Canary checks the latest upstream CLI on Linux/Windows/macOS and records the Safe Contract digest. When protected OpenAI credentials are configured, a live behavioral canary additionally attempts forbidden filesystem and loopback-network side effects and fails if either succeeds. A permanent adversarial corpus verifies that untrusted repository/model text cannot mutate Safe Contract argv.
 
-## Runtime / Provider Contract v2
+## Runtime / Provider Contract v3
 
 `openai-compatible` consumers may resolve a relay API key from the configured environment variable or directly from `${CODEX_HOME}/auth.json` / `~/.codex/auth.json`. `credentialSource=auto` prefers the environment and falls back to `auth.json`; only `auth_mode=apikey` with `OPENAI_API_KEY` is accepted. Secrets are injected only into the child Codex environment and are never placed in argv, settings, receipts or diagnostics.
 
-HTTPS remains the default transport. Loopback HTTP remains available for local development; non-loopback HTTP requires the explicit product/machine runtime opt-in `allowInsecureHttp=true`. Repository policy cannot enable insecure transport. Compatible providers continue to use Responses HTTP/SSE with Structured Output and WebSockets disabled.
+Consumers default to zero-config machine runtime resolution: explicit product override → `~/.codex-safe/runtime.json` / `CODEX_SAFE_RUNTIME_FILE` → `${CODEX_HOME}/config.toml` / `~/.codex/config.toml` → built-in OpenAI. Repository-local `.codex/config.toml` is never inherited for provider routing. HTTPS remains preferred; machine-configured literal private-IP HTTP is inherited with a plaintext warning, while public/non-IP HTTP remains fail-closed unless explicitly trusted by the machine-scoped Family Runtime profile. Compatible providers continue to use Responses HTTP/SSE with Structured Output and WebSockets disabled.
 
 ## Policy Schema v4
 
@@ -85,7 +85,7 @@ All products consume their section through the same Core parser/validator and th
 
 Diagnose continues to use separate product configuration because CI diagnosis is not a repository delivery/review policy surface.
 
-## Core 4.12 Quality Platform v3
+## Core 4.13 Quality Platform v3
 
 The existing `quick`, `standard`, `deep`, `security`, and `embedded` execution profiles remain stable. Profile Pack v1 provides versioned engineering packs for `general`, `backend`, `frontend`, `security`, `cpp`, `embedded-linux`, `embedded-mcu`, `driver`, `kernel`, and `realtime`. Test Impact v1 ranks controller-provided test candidates from changed paths and semantic evidence without executing tests. Diagnosis Contract v1 remains stable. Quality Platform v3 adds labeled Review and Diagnose regression corpora, including clean negative/cascade cases and explicit cost/accuracy gates. Token Calibration v1 can improve preflight estimates from actual usage without weakening fail-closed budgets.
 
@@ -121,7 +121,7 @@ Use a supported Node 22/24 LTS range from `core-contract.json`.
 
 ## Versioning
 
-Core major versions are implementation/protocol-family boundaries. Protocol numbers remain independent and change only when their semantics change. Policy Schema v4, Safe Contract v2, Review Receipt v5, Commit Receipt v4, Diagnosis Receipt v2, Codex Runtime v2 and Provider Contract v2 are independently versioned. Breaking policy/Core changes require a coordinated hard switch across active consumers; permanent compatibility shims are forbidden.
+Core major versions are implementation/protocol-family boundaries. Protocol numbers remain independent and change only when their semantics change. Policy Schema v4, Safe Contract v2, Review Receipt v5, Commit Receipt v4, Diagnosis Receipt v2, Codex Runtime v3 and Provider Contract v3 are independently versioned. Breaking policy/Core changes require a coordinated hard switch across active consumers; permanent compatibility shims are forbidden.
 
 ## Security
 

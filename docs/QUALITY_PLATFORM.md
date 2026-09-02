@@ -1,12 +1,14 @@
 # Quality Platform
 
-Codex Safe Core 4.12.5 / Quality Platform v3 keeps the shared deterministic quality platform stable while Policy Schema v4 includes the `change` repository-policy section. Product-owned GitHub/GitLab provider behavior, VS Code UI, pipeline APIs, databases, analyzer acquisition and notifications remain outside Core.
+Codex Safe Core 4.13.0 / Quality Platform v3 keeps the shared deterministic quality platform stable while Policy Schema v4 includes the `change` repository-policy section. Product-owned GitHub/GitLab provider behavior, VS Code UI, pipeline APIs, databases, analyzer acquisition and notifications remain outside Core.
 
-## Runtime / Provider Contract v2
+## Runtime / Provider Contract v3
 
-Core owns compatible-provider credential and transport resolution. `openai-compatible` runtimes may use `credentialSource=auto|env|auth-json`; `auto` prefers the configured environment variable and otherwise reads `OPENAI_API_KEY` from `${CODEX_HOME}/auth.json` or `~/.codex/auth.json` when `auth_mode` is `apikey`. The resolved secret is injected only into the child Codex process environment and is never placed in argv, settings, receipts or diagnostics.
+Core owns compatible-provider credential, transport and machine-runtime resolution. Consumers should default to `provider.mode=auto`: Core first honors an explicit product override, then a machine-scoped Family Runtime profile at `~/.codex-safe/runtime.json` (or `CODEX_SAFE_RUNTIME_FILE`), then the user Codex configuration at `${CODEX_HOME}/config.toml` / `~/.codex/config.toml`, and finally the built-in OpenAI runtime. Repository-local `.codex/config.toml` is deliberately not used for provider inheritance, preventing repository content from redirecting machine credentials.
 
-HTTPS remains the default transport requirement. Loopback HTTP remains allowed for development, while non-loopback HTTP requires the explicit machine/product runtime opt-in `allowInsecureHttp=true`. Repository policy cannot enable insecure transport. Provider Contract v2 and Codex Runtime v2 keep Responses HTTP/SSE and structured-output requirements unchanged.
+For an inherited OpenAI-compatible provider, `credentialSource=auto|env|auth-json` remains secret-by-reference. `auto` prefers the provider's configured environment variable and otherwise follows the existing bounded `auth.json` path. Secrets are injected only into the child Codex process environment and never enter argv, settings, receipts, Family Runtime profiles or diagnostics.
+
+HTTPS remains preferred. Loopback and literal private-network HTTP endpoints (RFC1918/link-local/loopback and IPv6 ULA/link-local) configured in machine-owned Codex or Family Runtime state may be inherited without repeating a per-product insecure-HTTP switch; diagnostics must surface the plaintext transport warning. Public/non-IP HTTP is still rejected unless it is explicitly trusted in the machine-scoped Family Runtime profile. Repository policy can never enable or trust insecure transport. Provider Contract v3 and Codex Runtime v3 continue to require Responses HTTP/SSE and structured output.
 
 ## Judgment Lifecycle v1
 

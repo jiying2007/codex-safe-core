@@ -13,7 +13,7 @@ git -C src/codex-safe-core rev-parse HEAD
 
 禁止 branch tracking、复制 runtime、npm runtime dependency 或兼容代理。
 
-当前机器契约由 `core-contract.json` 管理：**Safe Core v4 / Safe Contract v2 / Policy Schema v4 / Review Receipt v5 / Commit Receipt v4 / Diagnosis Receipt v2 / Review、Commit、Diagnose Prompt Contract v1 / Codex Runtime v2 / Provider Contract v2**。Consumer 只支持 Node 22 >=22.22.2 <23 或 Node 24 >=24.19.0 <25。
+当前机器契约由 `core-contract.json` 管理：**Safe Core v4 / Safe Contract v2 / Policy Schema v4 / Review Receipt v5 / Commit Receipt v4 / Diagnosis Receipt v2 / Review、Commit、Diagnose Prompt Contract v1 / Codex Runtime v3 / Provider Contract v3**。Consumer 只支持 Node 22 >=22.22.2 <23 或 Node 24 >=24.19.0 <25。
 
 当前五个活跃 Consumer 是 **Codex Change Safe、Codex Review Safe、Codex Commit Safe、Codex Review Service、Codex Diagnose Safe**。Codex PR Safe 仅作为旧的模型生成 PR 描述身份退役；Change Safe 是独立的确定性交付产品，不恢复旧 Narrative Generator。
 
@@ -52,7 +52,7 @@ SCM Provider adapter、Pipeline/Job API、Analyzer Artifact 获取与解析编�
 
 模型生成 PR/MR Narrative 仍是明确非目标。SCM 侧 PR/MR 交付授权由 Codex Change Safe 拥有，并保持在 Core runtime 边界之外；只有其 Repository Policy schema/validation 由 Core 统一拥有。
 
-## Codex Runtime / Provider Contract v2
+## Codex Runtime / Provider Contract v3
 
 Core 统一拥有全产品族 Codex Runtime Contract，同时保持 Safe Contract v2 不变。只支持 `openai` 与显式 `openai-compatible` 两种 Provider 模式。
 
@@ -84,4 +84,7 @@ Safe Contract v2 暴露 `SAFE_CONTRACT_MANIFEST` 与 SHA-256 `SAFE_CONTRACT_DIGE
 npm run ci
 ```
 
-Core CI 覆盖 contract/runtime identity、Policy Schema v4、Provider Contract v2 Credential/Transport safety、确定性 Review Rules、adversarial fixtures、Quality/Profile/Test-Impact/Diagnosis primitive、golden behavior、成本规划、性能预算与供应链门禁。Family Compatibility 还会验证五个活跃 Consumer 的精确 Core pin、ownership boundary 和完整 CI，再生成带 attestation 的 Family Manifest。
+Core CI 覆盖 contract/runtime identity、Policy Schema v4、Provider Contract v3 Credential/Transport safety、确定性 Review Rules、adversarial fixtures、Quality/Profile/Test-Impact/Diagnosis primitive、golden behavior、成本规划、性能预算与供应链门禁。Family Compatibility 还会验证五个活跃 Consumer 的精确 Core pin、ownership boundary 和完整 CI，再生成带 attestation 的 Family Manifest。
+
+
+Runtime Contract v3 允许所有 Consumer 共享机器级 `~/.codex-safe/runtime.json`，因此 Review、Commit、Diagnose 与 Review Service 不需要重复录入同一个中转站地址。该文件只保存非 Secret Runtime 元数据；API Key 仍来自环境变量或 Codex `auth.json`。
