@@ -66,8 +66,8 @@ jobs:
             gh pr checks "$pr" --repo "jiying2007/$repo" --watch --fail-fast
             gh pr merge "$pr" --repo "jiying2007/$repo" --squash --delete-branch
           done
-      - name: Trigger immutable Family baseline
+      - name: Trigger release-aware Family freshness
         env:
           GH_TOKEN: ${{ secrets.FAMILY_BOT_TOKEN }}
         shell: bash
-        run: gh workflow run "Family Compatibility" --repo jiying2007/codex-safe-core --ref main
+        run: gh workflow run "Family Freshness" --repo jiying2007/codex-safe-core --ref main
