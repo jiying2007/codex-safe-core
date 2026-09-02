@@ -25,7 +25,7 @@ jobs:
         with:
           node-version: '22.22.2'
       - id: evaluate
-        name: Compare released Family heads with immutable manifest
+        name: Compare released Core and aligned consumer heads with immutable manifest
         env:
           GITHUB_TOKEN: ${{ github.token }}
         shell: bash
