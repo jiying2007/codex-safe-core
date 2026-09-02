@@ -1,5 +1,15 @@
 # Changelog
 
+## 4.12.2 - 2026-09-02
+
+### Coordinated repin and release reliability
+
+- Make `repin-consumer.js` identity-complete for all five active consumer shapes: synchronize exact Core gitlinks and Product Contracts together with current Change verifier constants, current Diagnose contract assertions, Family Release Guard pins, schema provenance and a bounded allowlist of current product/operations documentation.
+- Preserve historical release facts by excluding CHANGELOG/MIGRATION history from maintenance identity replacement; governance-only repins still do not force consumer product-version churn.
+- Add regression coverage for the current Change, Commit/Review documentation, Review Service operations and Diagnose contract-test failure modes exposed by the 4.12.1 coordinated repin attempt.
+- Make Trusted Core Release tolerate GitHub attestation eventual consistency with bounded 12×5-second verification of both the immutable Release and every published asset; verification still fails closed if propagation never completes.
+- Keep Safe Contract v2, Policy Schema v4, Runtime/Provider Contract v2, Review Receipt v5, Commit Receipt v4, Diagnosis Receipt v2, Quality Platform v3, Family Manifest v3 and all consumer runtime/product semantics unchanged.
+
 ## 4.12.1 - 2026-09-02
 
 ### Release-aware Family freshness
