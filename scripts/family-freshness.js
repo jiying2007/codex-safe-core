@@ -15,6 +15,13 @@ function releaseIsExact(release,{tag,headSha,tagSha}){
   if(release.draft||release.prerelease||release.immutable!==true) return false;
   return isSha(headSha)&&headSha===tagSha;
 }
+function consumerHeadIsAligned(state,core){
+  if(!state||!core||!isSha(state.sha)||!isSha(core.sha)||!state.version) return false;
+  if(state.corePin?.type!=='submodule'||state.corePin.sha!==core.sha) return false;
+  const product=state.productContract;
+  if(!product||product.safeCoreCommit!==core.sha||product.safeCoreVersion!==core.version) return false;
+  return product.productVersion===state.version;
+}
 function manifestMatches(manifest,{core,consumers}){
   if(!manifest||Number(manifest.schemaVersion)!==Number(contract.familyManifestVersion||3)) return false;
   if(manifest.core?.version!==core.version||manifest.core?.sha!==core.sha) return false;
@@ -29,7 +36,7 @@ function evaluateFreshness({core,consumers,manifest}){
   if(!core?.releaseReady) reasons.push(`core:${core?.reason||'release-not-ready'}`);
   for(const name of CONSUMERS){
     const state=consumers?.[name];
-    if(!state?.releaseReady) reasons.push(`${name}:${state?.reason||'release-not-ready'}`);
+    if(!state?.aligned) reasons.push(`${name}:${state?.reason||'core-alignment-incomplete'}`);
   }
   if(reasons.length) return {ready:false,dispatch:false,reason:reasons.join(',')};
   if(manifestMatches(manifest,{core,consumers})) return {ready:true,dispatch:false,reason:'family-manifest-current'};
@@ -57,21 +64,34 @@ async function resolveTagCommit(repo,tag,token=process.env.GITHUB_TOKEN){
   }
   return object?.type==='commit'&&isSha(object.sha)?object.sha:null;
 }
-async function inspectReleasedHead(repo,{expectedVersion=null,token=process.env.GITHUB_TOKEN}={}){
-  const commit=await githubJson(`/repos/${OWNER}/${repo}/commits/main`,{token});
+async function inspectReleasedCore({token=process.env.GITHUB_TOKEN}={}){
+  const commit=await githubJson(`/repos/${OWNER}/${CORE_REPO}/commits/main`,{token});
   const sha=commit.sha;
-  if(!isSha(sha)) throw new Error(`${repo} main did not resolve to an exact SHA.`);
-  const pkg=await rawJson(repo,sha,'package.json');
-  const version=String(expectedVersion||pkg.version||'');
+  if(!isSha(sha)) throw new Error(`${CORE_REPO} main did not resolve to an exact SHA.`);
+  const pkg=await rawJson(CORE_REPO,sha,'package.json');
+  const version=String(pkg.version||'');
   if(!version) return {sha,version:null,releaseReady:false,reason:'missing-version'};
-  if(expectedVersion&&pkg.version!==expectedVersion) return {sha,version:pkg.version||null,releaseReady:false,reason:'version-contract-drift'};
+  if(version!==contract.coreVersion) return {sha,version,releaseReady:false,reason:'version-contract-drift'};
   const tag=`v${version}`;
   const [release,tagSha]=await Promise.all([
-    githubJson(`/repos/${OWNER}/${repo}/releases/tags/${encodeURIComponent(tag)}`,{token,allow404:true}),
-    resolveTagCommit(repo,tag,token)
+    githubJson(`/repos/${OWNER}/${CORE_REPO}/releases/tags/${encodeURIComponent(tag)}`,{token,allow404:true}),
+    resolveTagCommit(CORE_REPO,tag,token)
   ]);
   const releaseReady=releaseIsExact(release,{tag,headSha:sha,tagSha});
   return {sha,version,releaseReady,reason:releaseReady?'exact-immutable-release':'main-not-exact-immutable-release'};
+}
+async function inspectConsumerHead(repo,core,{token=process.env.GITHUB_TOKEN}={}){
+  const commit=await githubJson(`/repos/${OWNER}/${repo}/commits/main`,{token});
+  const sha=commit.sha;
+  if(!isSha(sha)) throw new Error(`${repo} main did not resolve to an exact SHA.`);
+  const [pkg,productContract,corePin]=await Promise.all([
+    rawJson(repo,sha,'package.json'),
+    rawJson(repo,sha,'product-contract.json'),
+    githubJson(`/repos/${OWNER}/${repo}/contents/src/codex-safe-core?ref=${encodeURIComponent(sha)}`,{token})
+  ]);
+  const state={sha,version:String(pkg.version||''),productContract,corePin};
+  const aligned=consumerHeadIsAligned(state,core);
+  return {sha,stateVersion:state.version,version:state.version,aligned,reason:aligned?'exact-core-alignment':'core-alignment-incomplete',corePinSha:corePin?.sha||null,productCoreVersion:productContract?.safeCoreVersion||null,productCoreCommit:productContract?.safeCoreCommit||null};
 }
 async function latestFamilyManifest(core,{token=process.env.GITHUB_TOKEN}={}){
   const releases=await githubJson(`/repos/${OWNER}/${CORE_REPO}/releases?per_page=100`,{token});
@@ -85,10 +105,10 @@ async function latestFamilyManifest(core,{token=process.env.GITHUB_TOKEN}={}){
   return response.json();
 }
 async function collectState({token=process.env.GITHUB_TOKEN}={}){
-  const core=await inspectReleasedHead(CORE_REPO,{expectedVersion:contract.coreVersion,token});
+  const core=await inspectReleasedCore({token});
   const consumers={};
-  for(const name of CONSUMERS) consumers[name]=await inspectReleasedHead(name,{token});
-  const manifest=await latestFamilyManifest(core,{token});
+  for(const name of CONSUMERS) consumers[name]=await inspectConsumerHead(name,core,{token});
+  const manifest=core.releaseReady?await latestFamilyManifest(core,{token}):null;
   const decision=evaluateFreshness({core,consumers,manifest});
   return {schemaVersion:1,core,consumers,manifestDigest:manifest?.manifestDigest||null,...decision};
 }
@@ -103,4 +123,4 @@ async function main(){
   }else process.stdout.write(`${JSON.stringify(state,null,2)}\n`);
 }
 if(require.main===module) main().catch(error=>{console.error(error.stack||error.message||String(error));process.exitCode=1;});
-module.exports={collectState,evaluateFreshness,inspectReleasedHead,latestFamilyManifest,manifestMatches,releaseIsExact,resolveTagCommit};
+module.exports={collectState,consumerHeadIsAligned,evaluateFreshness,inspectConsumerHead,inspectReleasedCore,latestFamilyManifest,manifestMatches,releaseIsExact,resolveTagCommit};
