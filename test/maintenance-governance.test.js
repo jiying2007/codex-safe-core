@@ -6,6 +6,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
+const {CURRENT_CONTRACT_TESTS,CURRENT_STATE_DOCS,syncContractTestText,syncCurrentIdentityText,syncVerifierText}=require('../scripts/repin-consumer');
 
 const root = path.resolve(__dirname, '..');
 const contributing = fs.readFileSync(path.join(root, 'CONTRIBUTING.md'), 'utf8');
@@ -37,6 +38,32 @@ test('coordinated repin routes Family validation through the freshness decision 
   assert.match(workflow,/gh workflow run "Family Freshness"/);
   assert.doesNotMatch(workflow,/gh workflow run "Family Compatibility"/);
   assert.match(workflow,/No compatibility shim or product-version change/);
+});
+
+test('repin synchronizes current Change verifier constants across Core patches',()=>{
+  const sha='b'.repeat(40),text="const core='a"+'a'.repeat(39)+"';const safeCoreVersion='4.12.1';";
+  const out=syncVerifierText(text,{sha,version:'4.12.2'});
+  assert.match(out,new RegExp(`const core='${sha}'`));
+  assert.match(out,/safeCoreVersion='4\.12\.2'/);
+  assert.doesNotMatch(out,/4\.12\.1/);
+});
+
+test('repin synchronizes current docs without rewriting unrelated historical versions',()=>{
+  const oldSha='a'.repeat(40),newSha='b'.repeat(40);
+  const text=`Codex Safe Core v4.12.1 current ${oldSha}; migration from Core 4.9.0 stays historical.`;
+  const out=syncCurrentIdentityText(text,{oldSha,newSha,oldVersion:'4.12.1',newVersion:'4.12.2'});
+  assert.match(out,/Codex Safe Core v4\.12\.2/);
+  assert.match(out,new RegExp(newSha));
+  assert.match(out,/Core 4\.9\.0 stays historical/);
+  assert.ok(CURRENT_STATE_DOCS.includes('docs/DEPLOYMENT.md'));
+  assert.ok(CURRENT_STATE_DOCS.includes('docs/OPERATIONS.md'));
+  assert.ok(CURRENT_STATE_DOCS.includes('docs/GETTING_STARTED.md'));
+});
+
+test('repin synchronizes Diagnose current Core contract assertion',()=>{
+  const out=syncContractTestText("assert.equal(contract.safeCoreVersion,'4.12.1');",{oldVersion:'4.12.1',newVersion:'4.12.2'});
+  assert.equal(out,"assert.equal(contract.safeCoreVersion,'4.12.2');");
+  assert.ok(CURRENT_CONTRACT_TESTS.includes('test/input-manifest-contract.test.js'));
 });
 
 test('dependency automation remains review-only and digest-pinned', () => {
