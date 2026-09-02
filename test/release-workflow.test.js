@@ -33,7 +33,8 @@ test('trusted publication is workflow_run gated to successful main validation',(
 test('formal release is skipped only when immutable and still exact-head',()=>{
   assert.match(trusted,/gh release view "\$tag"[\s\S]*tag_sha=.*git ls-remote origin[\s\S]*VALIDATED_SHA/);
   assert.match(trusted,/Existing formal release \$\{tag\} is not immutable/);
-  assert.match(trusted,/gh release verify "\$tag"/);
+  assert.match(trusted,/release_verified=false[\s\S]*for attempt in \{1\.\.12\}; do[\s\S]*gh release verify "\$tag"/);
+  assert.match(trusted,/Existing formal release \$\{tag\} attestation did not become verifiable/);
   assert.match(trusted,/publish=false/);
   assert.match(trusted,/git ls-remote --exit-code --refs origin "refs\/tags\/\$\{tag\}"/);
   assert.match(trusted,/git rev-list -n 1 "\$tag"[\s\S]*VALIDATED_SHA/);
@@ -51,6 +52,14 @@ test('trusted release verifies actual immutable state without repository-admin p
   assert.match(trusted,/did not become immutable/);
   assert.match(trusted,/gh release verify "\$RELEASE_TAG"/);
   assert.match(trusted,/gh release verify-asset "\$RELEASE_TAG"/);
+});
+
+test('trusted release tolerates bounded release and asset attestation propagation delay',()=>{
+  assert.match(trusted,/release_verified=false/);
+  assert.match(trusted,/for attempt in \{1\.\.12\}; do[\s\S]*if gh release verify "\$RELEASE_TAG"; then[\s\S]*gh release verify-asset "\$RELEASE_TAG" "\$asset"[\s\S]*sleep 5/);
+  assert.match(trusted,/Release\/asset attestation for \$\{RELEASE_TAG\} is not fully visible yet/);
+  assert.match(trusted,/attestation did not become fully verifiable/);
+  assert.match(trusted,/test "\$release_verified" = true/);
 });
 
 test('trusted release remains reproducible and provenance-complete',()=>{
