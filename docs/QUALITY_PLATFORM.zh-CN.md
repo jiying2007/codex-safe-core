@@ -44,6 +44,6 @@ Patch Proposal 只是 Evidence。Core **永远不会自动 apply、commit、push
 
 Atomic Family Snapshot v1 在跨平台验证前冻结一个精确 Core SHA 与五个活跃 Consumer SHA。Family Manifest v3 随后把精确 Core/Consumer pin、Product Contract digest、Core Contract digest、Runtime/Protocol identity 与 Snapshot digest 写入 `FAMILY_MANIFEST.json`，再进行 provenance attestation 与 immutable 发布。
 
-Family Freshness 是 Core 拥有的维护 Watcher，不属于 Runtime 能力。它只检查 Core 与五个 Consumer 当前版本的 immutable Release 以及精确 tag/main identity，再与该已发布 Core 最新的 immutable Family Manifest 对比；只有发布快照缺失或落后时才触发 Family Compatibility。它不会向五个 Consumer 分发跨仓凭证，不 checkout Consumer、不调用模型，也不会绕过完整的三平台 Family Gate。
+Family Freshness 是 Core 拥有的维护 Watcher，不属于 Runtime 能力。Core `main` 必须先与当前 immutable final Release 的 tag 精确一致。治理型 Core repin 不要求五个 Consumer 提升产品版本；Watcher 改为检查每个 Consumer 当前 `main` 的 package/Product Contract identity 是否一致，并要求 `safeCoreVersion`、`safeCoreCommit` 以及 `src/codex-safe-core` gitlink 全部精确指向已发布 Core。五仓全部收敛后，它才把当前 active heads 与该 Core 最新 immutable Family Manifest 比较；Snapshot 缺失或落后才触发 Family Compatibility。若同一 Core 已有 queued/in-progress Family validation，则禁止重复 dispatch。Watcher 不向 Consumer 分发跨仓凭证、不调用模型，也绝不会替代完整的三平台 Family Gate。
 
 Change Safe 作为活跃 Core Consumer 消费确定性的 Policy/Fingerprint 与 Judgment Lifecycle primitive。其 SCM Provider 与 Delivery Authorization 继续由产品拥有；`change` Policy schema/validation 通过与 Review、Commit、Review Service 相同的 `.codex-safe.json` Policy Schema v4 由 Core 统一拥有。
