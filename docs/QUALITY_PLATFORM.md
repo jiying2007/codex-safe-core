@@ -1,6 +1,6 @@
 # Quality Platform
 
-Codex Safe Core 4.12.0 / Quality Platform v3 keeps the shared deterministic quality platform stable while Policy Schema v4 includes the `change` repository-policy section. Product-owned GitHub/GitLab provider behavior, VS Code UI, pipeline APIs, databases, analyzer acquisition and notifications remain outside Core.
+Codex Safe Core 4.12.1 / Quality Platform v3 keeps the shared deterministic quality platform stable while Policy Schema v4 includes the `change` repository-policy section. Product-owned GitHub/GitLab provider behavior, VS Code UI, pipeline APIs, databases, analyzer acquisition and notifications remain outside Core.
 
 ## Runtime / Provider Contract v2
 
@@ -43,5 +43,7 @@ Patch proposals are evidence only. Core **never applies, commits, pushes or merg
 ## Family evidence
 
 Atomic Family Snapshot v1 freezes one exact Core SHA and the five active consumer SHAs before cross-platform validation. Family Manifest v3 then records exact Core/consumer pins, Product Contract digests, Core Contract digest, runtime/protocol identity and the snapshot digest in `FAMILY_MANIFEST.json` before provenance attestation and immutable publication.
+
+Family Freshness is a Core-owned maintenance watcher, not a runtime capability. It checks only immutable current-version Core/consumer releases and their exact tag/main identity, compares them with the newest immutable Family Manifest for the released Core, and dispatches Family Compatibility only when that released snapshot is missing or stale. It does not distribute cross-repository credentials, checkout consumers, run models, or bypass the full three-platform Family gate.
 
 Change Safe participates as an active Core consumer for deterministic policy/fingerprint and Judgment Lifecycle primitives. Its SCM Provider and Delivery Authorization behavior remains product-owned; its `change` policy schema/validation is Core-owned through the same `.codex-safe.json` Policy Schema v4 used by Review, Commit and Review Service.
