@@ -1,0 +1,43 @@
+name: Family Freshness
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17,47 * * * *'
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: family-freshness-main
+  cancel-in-progress: true
+
+jobs:
+  freshness:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@e51e5fe84fc33b4c73ebe40526b2694712b5b858
+        with:
+          node-version: '22.22.2'
+      - id: evaluate
+        name: Compare released Core and aligned consumer heads with immutable manifest
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: node scripts/family-freshness.js --github-output "$GITHUB_OUTPUT"
+      - name: Dispatch fresh Family Compatibility
+        if: steps.evaluate.outputs.dispatch == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: gh workflow run family-ci.yml --repo "${GITHUB_REPOSITORY}" --ref main
+      - name: Report current Family state
+        env:
+          DECISION: ${{ steps.evaluate.outputs.decision }}
+        shell: bash
+        run: printf '%s\n' "$DECISION"

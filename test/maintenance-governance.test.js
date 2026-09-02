@@ -32,6 +32,13 @@ test('governance-only Core patches do not force product version churn', () => {
   assert.match(contributing, /product\/runtime semantics change|Policy Schema/i);
 });
 
+test('coordinated repin routes Family validation through the freshness decision point', () => {
+  const workflow=fs.readFileSync(path.join(root,'.github','workflows','family-upgrade.yml'),'utf8');
+  assert.match(workflow,/gh workflow run "Family Freshness"/);
+  assert.doesNotMatch(workflow,/gh workflow run "Family Compatibility"/);
+  assert.match(workflow,/No compatibility shim or product-version change/);
+});
+
 test('dependency automation remains review-only and digest-pinned', () => {
   const renovate=JSON.parse(fs.readFileSync(path.join(root,'renovate.json'),'utf8'));
   assert.ok(renovate.extends.includes('config:best-practices'));
