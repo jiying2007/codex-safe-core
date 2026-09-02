@@ -130,3 +130,7 @@ Core Major 是实现/产品族协议边界；各协议版本独立，只在自�
 ## License
 
 MIT
+
+## 用户可见时区
+
+机器可读 Receipt、Evidence 与持久化审计时间继续使用 canonical UTC。用户可见时间默认跟随运行环境系统时区；如果服务器或容器运行在 UTC、但运维希望显示业务本地时间，可设置 `CODEX_SAFE_DISPLAY_TIME_ZONE` 为 IANA 时区，例如 `Asia/Singapore`、`Asia/Shanghai` 或 `America/New_York`。展示时区永远不参与 fingerprint、Receipt 或 Evidence digest。

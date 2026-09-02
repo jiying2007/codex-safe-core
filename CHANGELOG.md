@@ -1,5 +1,9 @@
 # Changelog
 
+## 4.12.5 - 2026-09-02
+
+- Add a Family-wide user-visible time formatter: displays follow the runtime local time zone or `CODEX_SAFE_DISPLAY_TIME_ZONE`, while receipts, evidence, persisted audit timestamps, fingerprints and digests remain canonical UTC. Diagnose Markdown now uses localized display time.
+
 ## 4.12.4 - 2026-09-02
 
 ### Review Service current-document repin paths
