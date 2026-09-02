@@ -8,7 +8,7 @@ const CURRENT_STATE_DOCS=[
   'README.md','README.zh-CN.md',
   'docs/GETTING_STARTED.md','docs/GETTING_STARTED.zh-CN.md',
   'SUPPORT.md','SECURITY.md','PUBLISHING.md','VERIFY_RELEASE.md',
-  'docs/DEPLOYMENT.md','docs/OPERATIONS.md','ARCHITECTURE.md'
+  'docs/DEPLOYMENT.md','docs/DEPLOYMENT.zh-CN.md','OPERATIONS.md','ARCHITECTURE.md'
 ];
 const CURRENT_CONTRACT_TESTS=['test/input-manifest-contract.test.js'];
 
