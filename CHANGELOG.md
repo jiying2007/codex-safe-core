@@ -1,5 +1,14 @@
 # Changelog
 
+## 4.12.3 - 2026-09-02
+
+### Change verifier repin completeness
+
+- Extend `repin-consumer.js` to synchronize inline `contract.safeCoreVersion` equality/inequality assertions in addition to named Core version constants.
+- Add a regression sample matching the current one-line Codex Change Safe verifier shape so a coordinated governance-only Core repin cannot update the SHA while leaving the version assertion stale.
+- Keep the 4.12.2 identity-complete documentation/test synchronization and bounded Trusted Release attestation retry unchanged.
+- Keep Safe Contract v2, Policy Schema v4, Runtime/Provider Contract v2, Review Receipt v5, Commit Receipt v4, Diagnosis Receipt v2, Quality Platform v3, Family Manifest v3 and all consumer runtime/product semantics unchanged.
+
 ## 4.12.2 - 2026-09-02
 
 ### Coordinated repin and release reliability

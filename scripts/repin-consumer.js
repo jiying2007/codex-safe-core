@@ -21,7 +21,11 @@ function syncVerifierText(text,{sha,version}){
     .replace(/const EXPECTED_CORE_COMMIT\s*=\s*['"][0-9a-f]{40}['"];?/i,`const EXPECTED_CORE_COMMIT = '${sha}';`)
     .replace(/const expectedCore\s*=\s*['"][0-9a-f]{40}['"];?/i,`const expectedCore='${sha}';`)
     .replace(/const core\s*=\s*['"][0-9a-f]{40}['"];?/i,`const core='${sha}';`);
-  if(version) out=out.replace(/const safeCoreVersion\s*=\s*['"][0-9]+\.[0-9]+\.[0-9]+['"];?/i,`const safeCoreVersion='${version}';`);
+  if(version){
+    out=out
+      .replace(/const safeCoreVersion\s*=\s*['"][0-9]+\.[0-9]+\.[0-9]+['"];?/i,`const safeCoreVersion='${version}';`)
+      .replace(/(contract\.safeCoreVersion\s*(?:!==|===|!=|==)\s*['"])[0-9]+\.[0-9]+\.[0-9]+(['"])/g,`$1${version}$2`);
+  }
   return out;
 }
 function syncCurrentIdentityText(text,{oldSha,newSha,oldVersion,newVersion}){
