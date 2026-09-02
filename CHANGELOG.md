@@ -1,5 +1,14 @@
 # Changelog
 
+## 4.12.4 - 2026-09-02
+
+### Review Service current-document repin paths
+
+- Fix the coordinated repin current-state allowlist to use Review Service's real root `OPERATIONS.md` path instead of the nonexistent `docs/OPERATIONS.md` shadow path.
+- Add `docs/DEPLOYMENT.zh-CN.md` so English and Chinese production deployment guides remain bound to the same exact released Core SHA.
+- Add regression coverage that requires both real Service paths and explicitly rejects the nonexistent operations shadow path.
+- Keep the 4.12.3 Change inline-version synchronization, 4.12.2 bounded Trusted Release attestation retry, all runtime/protocol contracts and all consumer product versions unchanged.
+
 ## 4.12.3 - 2026-09-02
 
 ### Change verifier repin completeness
