@@ -1,5 +1,5 @@
 {
-  "coreVersion": "4.12.5",
+  "coreVersion": "4.13.0",
   "safeCoreMajorVersion": 4,
   "safeContractVersion": 2,
   "policySchemaVersion": 4,
@@ -23,10 +23,7 @@
   "familyManifestVersion": 3,
   "productContractVersion": 1,
   "tokenCalibrationVersion": 1,
-  "supportedNodeMajors": [
-    22,
-    24
-  ],
+  "supportedNodeMajors": [22, 24],
   "minimumNodeVersion": "22.22.2",
   "canonicalNodeVersion": "24.19.0",
   "semanticReviewVersion": 1,
@@ -34,8 +31,8 @@
   "reviewKeyVersion": 1,
   "findingLedgerVersion": 1,
   "findingVerificationVersion": 1,
-  "codexRuntimeVersion": 2,
-  "providerContractVersion": 2,
+  "codexRuntimeVersion": 3,
+  "providerContractVersion": 3,
   "diagnosticContractVersion": 1,
   "familyUiContractVersion": 1
 }

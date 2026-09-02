@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.13.0 - 2026-09-02
+
+- Introduce Runtime / Provider Contract v3 and a Core-owned zero-config machine runtime resolver: explicit override → Family Runtime profile → user Codex config → built-in OpenAI.
+- Add machine-scoped `~/.codex-safe/runtime.json` / `CODEX_SAFE_RUNTIME_FILE` for one-time non-secret relay configuration shared by Review, Commit, Diagnose and Review Service.
+- Inherit literal private-network HTTP relay endpoints from machine-owned Codex/Family configuration without repeating per-product insecure-HTTP switches, while surfacing plaintext risk and keeping public/non-IP HTTP fail-closed unless explicitly machine-trusted.
+- Keep repository-local Codex configuration out of provider inheritance so repository content cannot redirect machine credentials; secrets remain environment/auth.json references only.
+- Add bounded TOML/profile parsing, redacted runtime inspection, private-network classification and regression tests for LAN HTTP + IP, public-HTTP rejection, resolution priority and secret non-persistence.
+
 ## 4.12.5 - 2026-09-02
 
 - Add a Family-wide user-visible time formatter: displays follow the runtime local time zone or `CODEX_SAFE_DISPLAY_TIME_ZONE`, while receipts, evidence, persisted audit timestamps, fingerprints and digests remain canonical UTC. Diagnose Markdown now uses localized display time.

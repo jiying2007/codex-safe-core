@@ -13,7 +13,7 @@ git -C src/codex-safe-core rev-parse HEAD
 
 Do not use branch tracking, copied runtime files, npm runtime dependencies, or compatibility proxies.
 
-The current machine contract is `core-contract.json`: **Safe Core v4 / Safe Contract v2 / Policy Schema v4 / Review Receipt v5 / Commit Receipt v4 / Diagnosis Receipt v2 / Review, Commit & Diagnose Prompt Contracts v1 / Codex Runtime v2 / Provider Contract v2**. Consumers use Node 22 >=22.22.2 <23 or Node 24 >=24.19.0 <25.
+The current machine contract is `core-contract.json`: **Safe Core v4 / Safe Contract v2 / Policy Schema v4 / Review Receipt v5 / Commit Receipt v4 / Diagnosis Receipt v2 / Review, Commit & Diagnose Prompt Contracts v1 / Codex Runtime v3 / Provider Contract v3**. Consumers use Node 22 >=22.22.2 <23 or Node 24 >=24.19.0 <25.
 
 Active consumers are **Codex Change Safe, Codex Review Safe, Codex Commit Safe, Codex Review Service and Codex Diagnose Safe**. Codex PR Safe is retired as the former model-generated PR-description identity; Change Safe is a distinct deterministic delivery product and does not restore that narrative generator.
 
@@ -52,7 +52,7 @@ SCM provider adapters, pipeline/job APIs, analyzer artifact acquisition/parsing 
 
 Model-generated PR/MR narrative remains a Family non-goal. SCM-side PR/MR delivery authorization is owned by Codex Change Safe and remains outside Core runtime ownership; only its repository policy schema/validation is Core-owned.
 
-## Codex Runtime / Provider Contract v2
+## Codex Runtime / Provider Contract v3
 
 Core owns one explicit runtime contract for every Codex invocation while Safe Contract v2 remains unchanged. Supported provider modes are `openai` and explicit `openai-compatible`.
 
@@ -84,4 +84,7 @@ Run:
 npm run ci
 ```
 
-Core CI covers contract/runtime identity, Policy Schema v4, Provider Contract v2 credential/transport safety, deterministic review rules, adversarial fixtures, quality/Profile/Test-Impact/Diagnosis primitives, golden behavior, cost planning, broad performance budgets and supply-chain gates. Family Compatibility additionally validates the five active exact consumer pins, ownership boundaries and every active consumer CI before producing the attested Family manifest.
+Core CI covers contract/runtime identity, Policy Schema v4, Provider Contract v3 credential/transport safety, deterministic review rules, adversarial fixtures, quality/Profile/Test-Impact/Diagnosis primitives, golden behavior, cost planning, broad performance budgets and supply-chain gates. Family Compatibility additionally validates the five active exact consumer pins, ownership boundaries and every active consumer CI before producing the attested Family manifest.
+
+
+Runtime Contract v3 lets every consumer share machine-scoped `~/.codex-safe/runtime.json`, so Review, Commit, Diagnose and Review Service do not need the same relay endpoint configured repeatedly. The profile stores no secret; API keys remain environment/auth.json references.
