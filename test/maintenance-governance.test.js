@@ -42,28 +42,27 @@ test('coordinated repin routes Family validation through the freshness decision 
 
 test('repin synchronizes current Change verifier constants across Core patches',()=>{
   const oldSha='a'.repeat(40),sha='b'.repeat(40);
-  const text=`const core='${oldSha}';if(contract.safeCoreVersion!=='4.12.2'||contract.safeCoreCommit!==core)fail('family Core pin must remain exact');`;
-  const out=syncVerifierText(text,{sha,version:'4.12.3'});
+  const text=`const core='${oldSha}';if(contract.safeCoreVersion!=='4.12.3'||contract.safeCoreCommit!==core)fail('family Core pin must remain exact');`;
+  const out=syncVerifierText(text,{sha,version:'4.12.4'});
   assert.match(out,new RegExp(`const core='${sha}'`));
-  assert.match(out,/contract\.safeCoreVersion!=='4\.12\.3'/);
-  assert.doesNotMatch(out,/4\.12\.2/);
+  assert.match(out,/contract\.safeCoreVersion!=='4\.12\.4'/);
+  assert.doesNotMatch(out,/4\.12\.3/);
 });
 
 test('repin synchronizes current docs without rewriting unrelated historical versions',()=>{
   const oldSha='a'.repeat(40),newSha='b'.repeat(40);
-  const text=`Codex Safe Core v4.12.2 current ${oldSha}; migration from Core 4.9.0 stays historical.`;
-  const out=syncCurrentIdentityText(text,{oldSha,newSha,oldVersion:'4.12.2',newVersion:'4.12.3'});
-  assert.match(out,/Codex Safe Core v4\.12\.3/);
+  const text=`Codex Safe Core v4.12.3 current ${oldSha}; migration from Core 4.9.0 stays historical.`;
+  const out=syncCurrentIdentityText(text,{oldSha,newSha,oldVersion:'4.12.3',newVersion:'4.12.4'});
+  assert.match(out,/Codex Safe Core v4\.12\.4/);
   assert.match(out,new RegExp(newSha));
   assert.match(out,/Core 4\.9\.0 stays historical/);
-  assert.ok(CURRENT_STATE_DOCS.includes('docs/DEPLOYMENT.md'));
-  assert.ok(CURRENT_STATE_DOCS.includes('docs/OPERATIONS.md'));
-  assert.ok(CURRENT_STATE_DOCS.includes('docs/GETTING_STARTED.md'));
+  for(const required of ['docs/DEPLOYMENT.md','docs/DEPLOYMENT.zh-CN.md','OPERATIONS.md','docs/GETTING_STARTED.md']) assert.ok(CURRENT_STATE_DOCS.includes(required),`missing current-state repin path: ${required}`);
+  assert.equal(CURRENT_STATE_DOCS.includes('docs/OPERATIONS.md'),false,'nonexistent Service docs/OPERATIONS.md path must not return');
 });
 
 test('repin synchronizes Diagnose current Core contract assertion',()=>{
-  const out=syncContractTestText("assert.equal(contract.safeCoreVersion,'4.12.2');",{oldVersion:'4.12.2',newVersion:'4.12.3'});
-  assert.equal(out,"assert.equal(contract.safeCoreVersion,'4.12.3');");
+  const out=syncContractTestText("assert.equal(contract.safeCoreVersion,'4.12.3');",{oldVersion:'4.12.3',newVersion:'4.12.4'});
+  assert.equal(out,"assert.equal(contract.safeCoreVersion,'4.12.4');");
   assert.ok(CURRENT_CONTRACT_TESTS.includes('test/input-manifest-contract.test.js'));
 });
 

@@ -1,6 +1,6 @@
 # Quality Platform
 
-Codex Safe Core 4.12.3 / Quality Platform v3 保持共享确定性质量平台稳定，同时 Policy Schema v4 包含 `change` Repository Policy section。GitHub/GitLab Provider、VS Code UI、Pipeline API、数据库、Analyzer 获取与通知仍属于产品层，不进入 Core。
+Codex Safe Core 4.12.4 / Quality Platform v3 保持共享确定性质量平台稳定，同时 Policy Schema v4 包含 `change` Repository Policy section。GitHub/GitLab Provider、VS Code UI、Pipeline API、数据库、Analyzer 获取与通知仍属于产品层，不进入 Core。
 
 ## Runtime / Provider Contract v2
 
@@ -46,6 +46,6 @@ Atomic Family Snapshot v1 在跨平台验证前冻结一个精确 Core SHA 与�
 
 Family Freshness 是 Core 拥有的维护 Watcher，不属于 Runtime 能力。Core `main` 必须先与当前 immutable final Release 的 tag 精确一致。治理型 Core repin 不要求五个 Consumer 提升产品版本；Watcher 改为检查每个 Consumer 当前 `main` 的 package/Product Contract identity 是否一致，并要求 `safeCoreVersion`、`safeCoreCommit` 以及 `src/codex-safe-core` gitlink 全部精确指向已发布 Core。五仓全部收敛后，它才把当前 active heads 与该 Core 最新 immutable Family Manifest 比较；Snapshot 缺失或落后才触发 Family Compatibility。若同一 Core 已有 queued/in-progress Family validation，则禁止重复 dispatch。Watcher 不向 Consumer 分发跨仓凭证、不调用模型，也绝不会替代完整的三平台 Family Gate。
 
-Coordinated repin 现在要求身份同步完整：除了精确 Core gitlink 与 Product Contract，还同步当前 verifier 常量（包括 inline `contract.safeCoreVersion` 比较）、当前 contract test 与有界 current-state 文档白名单；历史 CHANGELOG / MIGRATION 记录明确不参与替换。Trusted Core 发布同样对 Release/Asset attestation 的传播延迟进行有界重试，最终仍保持 fail closed。
+Coordinated repin 现在要求身份同步完整：除了精确 Core gitlink 与 Product Contract，还同步当前 verifier 常量、当前 contract test 与有界 current-state 文档白名单。对 Review Service，该白名单按仓库真实路径覆盖根目录 `OPERATIONS.md` 以及中英文 Deployment，禁止用不存在的影子路径冒充覆盖。历史 CHANGELOG / MIGRATION 记录继续不参与替换。Trusted Core 发布仍对 Release/Asset attestation 的传播延迟进行有界重试并最终 fail closed。
 
 Change Safe 作为活跃 Core Consumer 消费确定性的 Policy/Fingerprint 与 Judgment Lifecycle primitive。其 SCM Provider 与 Delivery Authorization 继续由产品拥有；`change` Policy schema/validation 通过与 Review、Commit、Review Service 相同的 `.codex-safe.json` Policy Schema v4 由 Core 统一拥有。
