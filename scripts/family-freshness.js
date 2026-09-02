@@ -31,7 +31,7 @@ function manifestMatches(manifest,{core,consumers}){
   }
   return true;
 }
-function evaluateFreshness({core,consumers,manifest}){
+function evaluateFreshness({core,consumers,manifest,validationActive=false}){
   const reasons=[];
   if(!core?.releaseReady) reasons.push(`core:${core?.reason||'release-not-ready'}`);
   for(const name of CONSUMERS){
@@ -40,6 +40,7 @@ function evaluateFreshness({core,consumers,manifest}){
   }
   if(reasons.length) return {ready:false,dispatch:false,reason:reasons.join(',')};
   if(manifestMatches(manifest,{core,consumers})) return {ready:true,dispatch:false,reason:'family-manifest-current'};
+  if(validationActive) return {ready:true,dispatch:false,reason:'family-validation-active'};
   return {ready:true,dispatch:true,reason:manifest?'family-manifest-stale':'family-manifest-missing'};
 }
 function headers(token){return {'accept':'application/vnd.github+json','user-agent':'codex-safe-family-freshness',...(token?{'authorization':`Bearer ${token}`}:{})};}
@@ -91,12 +92,15 @@ async function inspectConsumerHead(repo,core,{token=process.env.GITHUB_TOKEN}={}
   ]);
   const state={sha,version:String(pkg.version||''),productContract,corePin};
   const aligned=consumerHeadIsAligned(state,core);
-  return {sha,stateVersion:state.version,version:state.version,aligned,reason:aligned?'exact-core-alignment':'core-alignment-incomplete',corePinSha:corePin?.sha||null,productCoreVersion:productContract?.safeCoreVersion||null,productCoreCommit:productContract?.safeCoreCommit||null};
+  return {sha,version:state.version,aligned,reason:aligned?'exact-core-alignment':'core-alignment-incomplete',corePinSha:corePin?.sha||null,productCoreVersion:productContract?.safeCoreVersion||null,productCoreCommit:productContract?.safeCoreCommit||null};
 }
 async function latestFamilyManifest(core,{token=process.env.GITHUB_TOKEN}={}){
   const releases=await githubJson(`/repos/${OWNER}/${CORE_REPO}/releases?per_page=100`,{token});
   const prefix=`family-manifest-v${core.version}-`;
-  const release=releases.find(item=>item?.tag_name?.startsWith(prefix)&&item.draft===false&&item.prerelease===false&&item.immutable===true&&item.target_commitish===core.sha);
+  const candidates=releases
+    .filter(item=>item?.tag_name?.startsWith(prefix)&&item.draft===false&&item.prerelease===false&&item.immutable===true&&item.target_commitish===core.sha)
+    .sort((a,b)=>Date.parse(b.published_at||b.updated_at||0)-Date.parse(a.published_at||a.updated_at||0));
+  const release=candidates[0];
   if(!release) return null;
   const asset=(release.assets||[]).find(item=>item.name==='FAMILY_MANIFEST.json');
   if(!asset?.browser_download_url) return null;
@@ -104,12 +108,20 @@ async function latestFamilyManifest(core,{token=process.env.GITHUB_TOKEN}={}){
   if(!response.ok) throw new Error(`Unable to download ${release.tag_name}/FAMILY_MANIFEST.json: ${response.status}`);
   return response.json();
 }
+async function familyValidationActive(core,{token=process.env.GITHUB_TOKEN}={}){
+  const data=await githubJson(`/repos/${OWNER}/${CORE_REPO}/actions/runs?branch=main&per_page=20`,{token});
+  return (data.workflow_runs||[]).some(run=>run.path==='.github/workflows/family-ci.yml'&&run.head_sha===core.sha&&(run.status==='queued'||run.status==='in_progress'));
+}
 async function collectState({token=process.env.GITHUB_TOKEN}={}){
   const core=await inspectReleasedCore({token});
   const consumers={};
   for(const name of CONSUMERS) consumers[name]=await inspectConsumerHead(name,core,{token});
   const manifest=core.releaseReady?await latestFamilyManifest(core,{token}):null;
-  const decision=evaluateFreshness({core,consumers,manifest});
+  let decision=evaluateFreshness({core,consumers,manifest});
+  if(decision.dispatch){
+    const validationActive=await familyValidationActive(core,{token});
+    decision=evaluateFreshness({core,consumers,manifest,validationActive});
+  }
   return {schemaVersion:1,core,consumers,manifestDigest:manifest?.manifestDigest||null,...decision};
 }
 async function main(){
@@ -123,4 +135,4 @@ async function main(){
   }else process.stdout.write(`${JSON.stringify(state,null,2)}\n`);
 }
 if(require.main===module) main().catch(error=>{console.error(error.stack||error.message||String(error));process.exitCode=1;});
-module.exports={collectState,consumerHeadIsAligned,evaluateFreshness,inspectConsumerHead,inspectReleasedCore,latestFamilyManifest,manifestMatches,releaseIsExact,resolveTagCommit};
+module.exports={collectState,consumerHeadIsAligned,evaluateFreshness,familyValidationActive,inspectConsumerHead,inspectReleasedCore,latestFamilyManifest,manifestMatches,releaseIsExact,resolveTagCommit};
