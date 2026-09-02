@@ -91,11 +91,11 @@ test('consumer boundary scan excludes the canonical Core submodule but still rej
       fs.writeFileSync(path.join(repoRoot, 'src', 'consumer.js'), 'module.exports = {};\n');
     }
     const verifier = path.join(root, 'scripts', 'verify-consumer-boundaries.js');
-    const clean = spawnSync(process.execPath, [verifier, family], { encoding:'utf8' });
+    const clean = spawnSync(process.execPath, [verifier, family], { encoding: 'utf8' });
     assert.equal(clean.status, 0, clean.stderr || clean.stdout);
 
     fs.writeFileSync(path.join(family, 'codex-pr', 'src', 'consumer.js'), 'function buildReviewEvidenceChunks() {}\n');
-    const violation = spawnSync(process.execPath, [verifier, family], { encoding:'utf8' });
+    const violation = spawnSync(process.execPath, [verifier, family], { encoding: 'utf8' });
     assert.notEqual(violation.status, 0);
     assert.match(violation.stderr, /codex-pr reimplements Core-owned symbol buildReviewEvidenceChunks: src[\\/]consumer\.js/);
   } finally {
