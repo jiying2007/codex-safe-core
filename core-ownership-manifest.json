@@ -51,7 +51,8 @@
     "family-freshness-orchestration",
     "consumer-product-contract-validation",
     "released-core-pin-validation",
-    "family-scm-ui-contract-validation"
+    "family-scm-ui-contract-validation",
+    "user-visible-time-formatting"
   ],
   "consumerForbiddenImplementations": [
     "SAFE_CODEX_CONFIG_OVERRIDES",

@@ -13,6 +13,7 @@ module.exports = Object.freeze({
   ...require('./diagnosis-quality'),
   ...require('./review-profile-pack'),
   ...require('./test-impact'),
+  ...require('./display-time'),
   ...require('./diagnosis-platform'),
   ...require('./semantic-review'),
   ...require('./policy'),

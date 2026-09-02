@@ -1,0 +1,10 @@
+'use strict';
+const DISPLAY_TIME_ZONE_ENV='CODEX_SAFE_DISPLAY_TIME_ZONE';
+function displayTimeError(message,code='EDISPLAYTIME'){return Object.assign(new Error(message),{code});}
+function parseDisplayDate(value=new Date()){const date=value instanceof Date?new Date(value.getTime()):new Date(value);if(Number.isNaN(date.getTime()))throw displayTimeError('Display time value is invalid.');return date;}
+function resolveDisplayTimeZone(value=process.env[DISPLAY_TIME_ZONE_ENV]){const raw=String(value??'').trim();if(!raw||raw==='system'||raw==='local')return undefined;try{new Intl.DateTimeFormat('en-US',{timeZone:raw}).format(0);}catch{throw displayTimeError(`Invalid IANA display time zone: ${raw}`,'EDISPLAYTIMEZONE');}return raw;}
+function partsMap(formatter,date){return Object.fromEntries(formatter.formatToParts(date).filter(part=>part.type!=='literal').map(part=>[part.type,part.value]));}
+function offsetLabel(date,timeZone){const options={hour:'2-digit',timeZoneName:'longOffset',hourCycle:'h23'};if(timeZone)options.timeZone=timeZone;const zone=partsMap(new Intl.DateTimeFormat('en-US',options),date).timeZoneName||'GMT';if(zone==='GMT'||zone==='UTC')return'UTC+00:00';const match=zone.match(/^(?:GMT|UTC)([+-])(\d{2}):(\d{2})$/);if(!match)return zone.replace(/^GMT/,'UTC');return`UTC${match[1]}${match[2]}:${match[3]}`;}
+function formatDisplayTime(value=new Date(),{timeZone,includeUtc=false}={}){const date=parseDisplayDate(value),zone=resolveDisplayTimeZone(timeZone),options={year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'};if(zone)options.timeZone=zone;const parts=partsMap(new Intl.DateTimeFormat('en-CA',options),date),local=`${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second} ${offsetLabel(date,zone)}`;return includeUtc?`${local} (UTC: ${date.toISOString()})`:local;}
+function formatLogTimestamp(value=new Date(),options={}){return formatDisplayTime(value,options);}
+module.exports=Object.freeze({DISPLAY_TIME_ZONE_ENV,resolveDisplayTimeZone,formatDisplayTime,formatLogTimestamp});

@@ -132,3 +132,7 @@ The invariant is: **AI output is untrusted data and never gains authority to mut
 ## License
 
 MIT
+
+## User-visible time zone
+
+Machine-readable receipts, evidence and persisted audit timestamps remain canonical UTC. User-visible timestamps use the runtime system time zone by default. When a server or container runs in UTC but operators need a business-local display, set `CODEX_SAFE_DISPLAY_TIME_ZONE` to an IANA zone such as `Asia/Singapore`, `Asia/Shanghai`, or `America/New_York`. The display time zone never participates in fingerprints, receipts or evidence digests.
