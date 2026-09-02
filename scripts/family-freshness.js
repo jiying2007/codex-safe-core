@@ -7,6 +7,7 @@ const {CONSUMERS}=require('./resolve-family-snapshot');
 
 const OWNER='jiying2007';
 const CORE_REPO='codex-safe-core';
+const CORE_URL=`https://github.com/${OWNER}/${CORE_REPO}.git`;
 const API='https://api.github.com';
 
 function isSha(value){return /^[0-9a-f]{40}$/.test(String(value||''));}
@@ -17,9 +18,10 @@ function releaseIsExact(release,{tag,headSha,tagSha}){
 }
 function consumerHeadIsAligned(state,core){
   if(!state||!core||!isSha(state.sha)||!isSha(core.sha)||!state.version) return false;
-  if(state.corePin?.type!=='submodule'||state.corePin.sha!==core.sha) return false;
+  if(state.corePin?.type!=='submodule'||state.corePin.sha!==core.sha||state.corePin.submodule_git_url!==CORE_URL) return false;
   const product=state.productContract;
-  if(!product||product.safeCoreCommit!==core.sha||product.safeCoreVersion!==core.version) return false;
+  if(!product||Number(product.productContractVersion)!==Number(contract.productContractVersion)) return false;
+  if(product.safeCoreCommit!==core.sha||product.safeCoreVersion!==core.version) return false;
   return product.productVersion===state.version;
 }
 function manifestMatches(manifest,{core,consumers}){
@@ -109,8 +111,8 @@ async function latestFamilyManifest(core,{token=process.env.GITHUB_TOKEN}={}){
   return response.json();
 }
 async function familyValidationActive(core,{token=process.env.GITHUB_TOKEN}={}){
-  const data=await githubJson(`/repos/${OWNER}/${CORE_REPO}/actions/runs?branch=main&per_page=20`,{token});
-  return (data.workflow_runs||[]).some(run=>run.path==='.github/workflows/family-ci.yml'&&run.head_sha===core.sha&&(run.status==='queued'||run.status==='in_progress'));
+  const data=await githubJson(`/repos/${OWNER}/${CORE_REPO}/actions/workflows/family-ci.yml/runs?branch=main&per_page=10`,{token});
+  return (data.workflow_runs||[]).some(run=>run.head_sha===core.sha&&(run.status==='queued'||run.status==='in_progress'));
 }
 async function collectState({token=process.env.GITHUB_TOKEN}={}){
   const core=await inspectReleasedCore({token});
