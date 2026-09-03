@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.14.4 - 2026-09-03
+
+- Align the shared release-bearing Consumer Guard with canonical repin Changelog behavior: consumers may use either `# Changelog` followed immediately by the current release heading or a current release heading at byte zero.
+- Continue failing closed when an older release heading precedes the current version or the current version is buried later in the file.
+- Add deterministic regression coverage for titled and titleless consumer Changelog shapes. Family Registry v1, Snapshot v2, Manifest v4, Status v1 and Distribution Receipt v1 remain unchanged.
+
 ## 4.14.3 - 2026-09-03
 
 - Fix the shared release-bearing Consumer Guard so product versions are read from the consumer workspace rather than the Core submodule package identity.
