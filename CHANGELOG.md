@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.13.1 - 2026-09-03
+
+- Separate Codex structured-execution transcript production from retained stdout: keep a bounded in-memory JSONL tail while enforcing an independent 64 MiB total transcript ceiling.
+- Prevent long Review hypothesis/verification runs from being killed solely because intermediate `codex exec --json` events exceed the previous 4 MiB capture budget; generic process calls keep their existing fail-closed output-limit semantics.
+- Allow only the first JSONL fragment to be ignored when Core itself reports bounded-tail truncation, while malformed retained events, missing final agent messages, total-output overflow, stderr overflow, timeout and cancellation remain fail closed.
+- Add process and structured-Codex regression coverage for bounded tail retention, total-output enforcement, truncated-leading-fragment parsing and long-transcript execution.
+- Keep Safe Contract v2, Policy Schema v4, Runtime/Provider Contract v3, Review Receipt v5, Commit Receipt v4, Diagnosis Receipt v2, Quality Platform v3 and Family Manifest v3 unchanged.
+
 ## 4.13.0 - 2026-09-02
 
 - Introduce Runtime / Provider Contract v3 and a Core-owned zero-config machine runtime resolver: explicit override → Family Runtime profile → user Codex config → built-in OpenAI.
@@ -59,7 +67,7 @@
 - Add one Core-owned compatible-provider credential resolver for the whole Codex Safe Family. `credentialSource=auto` prefers the configured environment variable and otherwise reads `${CODEX_HOME}/auth.json` or `~/.codex/auth.json`; explicit `env` and `auth-json` modes are also supported.
 - Accept only API-key authentication from Codex `auth.json`: `auth_mode=apikey` with non-empty `OPENAI_API_KEY`. ChatGPT/session credentials are never repurposed as relay API keys.
 - Inject resolved relay secrets only into the child Codex process environment. Secret values remain absent from argv, product settings, receipts, provider metadata and bounded diagnostics.
-- Keep HTTPS as the default compatible-provider transport while allowing non-loopback HTTP only through explicit product/machine runtime opt-in `allowInsecureHttp=true`; loopback HTTP remains available for development and repository policy cannot enable insecure transport.
+- Keep HTTPS as the default compatible-provider transport while allowing non-loopback HTTP only through explicit product/machine runtime opt-in `allowInsecureHttp=true`; loopback HTTP remains available for development and repository policy cannot enable insecure HTTP.
 - Keep URL credentials/query/fragment rejection, Responses HTTP/SSE, Structured Output and `supports_websockets=false` unchanged for compatible providers.
 - Promote `codexRuntimeVersion` and `providerContractVersion` to v2, add cross-platform regression coverage for `auth.json`, `CODEX_HOME`, environment precedence and LAN HTTP opt-in, and hard-cut current product docs to Review Receipt v5 / Diagnosis Receipt v2.
 - Keep Safe Contract v2, Policy Schema v4, Judgment Lifecycle v1, Review Receipt v5, Commit Receipt v4, Diagnosis Contract v1 / Receipt v2, Quality Platform v3 and Family Manifest v3 semantics unchanged.
