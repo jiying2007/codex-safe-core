@@ -1,0 +1,41 @@
+name: Stage Core 4.14.3
+on:
+  push:
+    branches: [fix/consumer-release-guard-workspace-4.14.3]
+    paths: [.github/workflows/_stage-core-4.14.3.yml]
+permissions:
+  contents: write
+jobs:
+  sync:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with: { persist-credentials: true, fetch-depth: 0 }
+      - uses: actions/setup-node@e51e5fe84fc33b4c73ebe40526b2694712b5b858
+        with: { node-version: '24.19.0' }
+      - name: Prepare 4.14.3 and validate
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
+          pkg.version='4.14.3';
+          if(!pkg.scripts.test.includes('test/consumer-release-bump-workspace.test.js')) pkg.scripts.test=pkg.scripts.test.replace('test/distribution-release-workflows.test.js','test/distribution-release-workflows.test.js test/consumer-release-bump-workspace.test.js');
+          fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');
+          const contract=JSON.parse(fs.readFileSync('core-contract.json','utf8'));contract.coreVersion='4.14.3';fs.writeFileSync('core-contract.json',JSON.stringify(contract,null,2)+'\n');
+          for(const file of ['docs/EFFICIENCY_CONTRACT.md','docs/EFFICIENCY_CONTRACT.zh-CN.md','docs/QUALITY_PLATFORM.md','docs/QUALITY_PLATFORM.zh-CN.md']){
+            let text=fs.readFileSync(file,'utf8');text=text.replace(/Core v?4\.14\.2/g,m=>m.includes('v')?'Core v4.14.3':'Core 4.14.3');fs.writeFileSync(file,text);
+          }
+          const file='CHANGELOG.md',text=fs.readFileSync(file,'utf8'),marker='# Changelog\n\n';
+          const entry='## 4.14.3 - 2026-09-03\n\n- Fix the shared release-bearing Consumer Guard so product versions are read from the consumer workspace rather than the Core submodule package identity.\n- Validate existing `serviceVersion` and `diagnoseVersion` aliases against the consumer package version, while keeping unrelated schema/protocol versions untouched.\n- Make CHANGELOG release-heading validation conditional, matching canonical repin behavior for consumers such as Diagnose that do not carry a CHANGELOG file.\n- Add regression coverage for Change, Review, Commit, Service and Diagnose version shapes; Family Registry v1, Snapshot v2, Manifest v4, Status v1 and Distribution Receipt v1 remain unchanged.\n\n';
+          if(!text.includes('## 4.14.3 - 2026-09-03'))fs.writeFileSync(file,text.startsWith(marker)?marker+entry+text.slice(marker.length):entry+text);
+          NODE
+          npm run ci
+          git config user.name codex-safe-family-bot
+          git config user.email codex-safe-family-bot@users.noreply.github.com
+          git add package.json core-contract.json CHANGELOG.md docs/EFFICIENCY_CONTRACT.md docs/EFFICIENCY_CONTRACT.zh-CN.md docs/QUALITY_PLATFORM.md docs/QUALITY_PLATFORM.zh-CN.md
+          git diff --cached --quiet && exit 0
+          git commit -m 'chore(release): prepare Core 4.14.3'
+          git push origin HEAD:fix/consumer-release-guard-workspace-4.14.3
