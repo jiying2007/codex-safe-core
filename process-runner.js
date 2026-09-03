@@ -6,8 +6,8 @@ const path = require('path');
 /** @typedef {(zh: string, en: string) => string} Translate */
 /** @typedef {{dispose: () => void}} DisposableLike */
 /** @typedef {{isCancellationRequested: boolean, onCancellationRequested: (listener: () => void) => DisposableLike}} CancellationTokenLike */
-/** @typedef {{cwd?: string, env?: NodeJS.ProcessEnv, shell?: boolean, windowsVerbatimArguments?: boolean, timeoutMs?: number, maxStdoutBytes?: number, maxStderrBytes?: number}} ProcessOptions */
-/** @typedef {Error & {code?: string|number, stdout?: string|Buffer, stderr?: string|Buffer, stdoutTail?: string, stderrTail?: string, elapsedMs?: number, lastActivityMs?: number}} ProcessError */
+/** @typedef {{cwd?: string, env?: NodeJS.ProcessEnv, shell?: boolean, windowsVerbatimArguments?: boolean, timeoutMs?: number, maxStdoutBytes?: number, maxCapturedStdoutBytes?: number, maxStderrBytes?: number}} ProcessOptions */
+/** @typedef {Error & {code?: string|number, stdout?: string|Buffer, stderr?: string|Buffer, stdoutTail?: string, stderrTail?: string, stdoutBytes?: number, stdoutTruncated?: boolean, elapsedMs?: number, lastActivityMs?: number}} ProcessError */
 
 const DEFAULT_TEXT_STDOUT_LIMIT = 4 * 1024 * 1024;
 const DEFAULT_TEXT_STDERR_LIMIT = 1 * 1024 * 1024;
@@ -72,6 +72,24 @@ function createProcessRunner(ui = (_zh, en) => en) {
     return buffer.subarray(Math.max(0, buffer.length - maxBytes)).toString('utf8');
   }
 
+  function appendBoundedTail(chunks, buffer, maxBytes, capturedBytes) {
+    if (maxBytes <= 0) return 0;
+    chunks.push(buffer);
+    let retained = capturedBytes + buffer.length;
+    while (retained > maxBytes && chunks.length) {
+      const overflow = retained - maxBytes;
+      const first = chunks[0];
+      if (first.length <= overflow) {
+        retained -= first.length;
+        chunks.shift();
+      } else {
+        chunks[0] = first.subarray(overflow);
+        retained -= overflow;
+      }
+    }
+    return retained;
+  }
+
   function execute(command, args, options = {}, stdinText = '', cancellationToken, mode = 'text') {
     if (options.shell === true) {
       const error = new Error('Shell execution is forbidden by Codex Safe Core.');
@@ -86,6 +104,9 @@ function createProcessRunner(ui = (_zh, en) => en) {
       textMode ? DEFAULT_TEXT_STDOUT_LIMIT : DEFAULT_BUFFER_STDOUT_LIMIT,
       'maxStdoutBytes'
     );
+    const maxCapturedStdoutBytes = options.maxCapturedStdoutBytes === undefined
+      ? null
+      : normalizeLimit(options.maxCapturedStdoutBytes, maxStdoutBytes, 'maxCapturedStdoutBytes');
     const maxStderrBytes = normalizeLimit(
       options.maxStderrBytes,
       textMode ? DEFAULT_TEXT_STDERR_LIMIT : DEFAULT_BUFFER_STDERR_LIMIT,
@@ -103,6 +124,8 @@ function createProcessRunner(ui = (_zh, en) => en) {
       const stdoutChunks = [];
       const stderrChunks = [];
       let stdoutBytes = 0;
+      let stdoutCapturedBytes = 0;
+      let stdoutTruncated = false;
       let stderrBytes = 0;
       const startedAt = Date.now();
       let lastActivityAt = startedAt;
@@ -125,6 +148,8 @@ function createProcessRunner(ui = (_zh, en) => en) {
         const now = Date.now();
         error.stdoutTail = bufferTail(stdoutChunks);
         error.stderrTail = bufferTail(stderrChunks);
+        error.stdoutBytes = stdoutBytes;
+        error.stdoutTruncated = stdoutTruncated;
         error.elapsedMs = Math.max(0, now - startedAt);
         error.lastActivityMs = Math.max(0, now - lastActivityAt);
         return error;
@@ -206,7 +231,13 @@ function createProcessRunner(ui = (_zh, en) => en) {
           ));
           return;
         }
-        stdoutChunks.push(buffer);
+        if (maxCapturedStdoutBytes === null) {
+          stdoutChunks.push(buffer);
+          stdoutCapturedBytes += buffer.length;
+        } else {
+          stdoutCapturedBytes = appendBoundedTail(stdoutChunks, buffer, maxCapturedStdoutBytes, stdoutCapturedBytes);
+          stdoutTruncated = stdoutBytes > stdoutCapturedBytes;
+        }
       });
 
       child.stderr.on('data', chunk => {
@@ -237,9 +268,14 @@ function createProcessRunner(ui = (_zh, en) => en) {
         const stdoutBuffer = Buffer.concat(stdoutChunks);
         const stderrBuffer = Buffer.concat(stderrChunks);
         if (code === 0) {
-          settle(resolve, textMode
+          const result = textMode
             ? { stdout: stdoutBuffer.toString('utf8'), stderr: stderrBuffer.toString('utf8') }
-            : { stdout: stdoutBuffer, stderr: stderrBuffer });
+            : { stdout: stdoutBuffer, stderr: stderrBuffer };
+          if (maxCapturedStdoutBytes !== null) {
+            result.stdoutBytes = stdoutBytes;
+            result.stdoutTruncated = stdoutTruncated;
+          }
+          settle(resolve, result);
           return;
         }
         const stdout = textMode ? stdoutBuffer.toString('utf8') : stdoutBuffer;

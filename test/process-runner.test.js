@@ -46,6 +46,30 @@ test('stdout limits fail closed', async () => {
   );
 });
 
+test('bounded stdout capture retains only the tail while enforcing a larger total-output limit', async () => {
+  const result = await runner.runProcess(
+    process.execPath,
+    ['-e', 'process.stdout.write("0123456789")'],
+    { timeoutMs: 5000, maxStdoutBytes: 64, maxCapturedStdoutBytes: 4 }
+  );
+  assert.equal(result.stdout, '6789');
+  assert.equal(result.stderr, '');
+  assert.equal(result.stdoutBytes, 10);
+  assert.equal(result.stdoutTruncated, true);
+});
+
+test('bounded stdout capture still fails closed on the total-output limit', async () => {
+  await assert.rejects(
+    runner.runProcess(
+      process.execPath,
+      ['-e', 'process.stdout.write("0123456789")'],
+      { timeoutMs: 5000, maxStdoutBytes: 8, maxCapturedStdoutBytes: 4 }
+    ),
+    error => error?.code === 'EOUTPUTLIMIT'
+      && error.stdoutBytes === 10
+  );
+});
+
 test('timeouts terminate the process and preserve bounded diagnostics', async () => {
   await assert.rejects(
     runner.runProcess(
@@ -80,6 +104,10 @@ test('command and limits are validated before spawn', async () => {
   await assert.rejects(runner.runPreparedProcess('bad\ncommand', []), TypeError);
   assert.throws(
     () => runner.runProcess(process.execPath, ['-e', '0'], { maxStdoutBytes: -1 }),
+    RangeError
+  );
+  assert.throws(
+    () => runner.runProcess(process.execPath, ['-e', '0'], { maxCapturedStdoutBytes: -1 }),
     RangeError
   );
 });

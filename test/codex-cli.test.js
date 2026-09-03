@@ -5,10 +5,21 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { createCodexCli, parseCodexJsonl } = require('../codex-cli');
+const {
+  DEFAULT_CODEX_STDOUT_CAPTURE_LIMIT,
+  DEFAULT_CODEX_TRANSCRIPT_LIMIT,
+  createCodexCli,
+  parseCodexJsonl
+} = require('../codex-cli');
 const { REQUIRED_CODEX_TOP_LEVEL_FLAGS, REQUIRED_CODEX_EXEC_FLAGS } = require('../safe-contract');
 
-function createRunner({ missingExec = false, finalText = '{"ok":true}', failExec = null } = {}) {
+function createRunner({
+  missingExec = false,
+  finalText = '{"ok":true}',
+  failExec = null,
+  execStdoutPrefix = '',
+  execMetadata = {}
+} = {}) {
   const calls = [];
   const runPreparedProcess = async (command, args, options, stdinText) => {
     calls.push({ command, args, options, stdinText });
@@ -21,11 +32,12 @@ function createRunner({ missingExec = false, finalText = '{"ok":true}', failExec
     if (args.includes('exec')) {
       if (failExec) throw failExec;
       return {
-        stdout: [
+        stdout: execStdoutPrefix + [
           JSON.stringify({ type: 'turn.completed', usage: { input_tokens: 100, cached_input_tokens: 30, output_tokens: 20, reasoning_output_tokens: 7 } }),
           JSON.stringify({ type: 'item.completed', item: { type: 'agent_message', text: finalText } })
         ].join('\n') + '\n',
-        stderr: ''
+        stderr: '',
+        ...execMetadata
       };
     }
     throw new Error(`unexpected call: ${command} ${args.join(' ')}`);
@@ -43,6 +55,19 @@ test('JSONL parser returns the last agent message and rejects malformed output',
   assert.throws(
     () => parseCodexJsonl(JSON.stringify({ type: 'turn.failed', error: { message: 'boom' } })),
     error => error?.code === 'ECODEXTURN'
+  );
+});
+
+test('JSONL parser can ignore only a truncated leading fragment', () => {
+  const final = JSON.stringify({ type: 'item.completed', item: { type: 'agent_message', text: '{"ok":true}' } });
+  assert.equal(parseCodexJsonl(`partial-json-fragment\n${final}\n`, { allowLeadingPartial: true }), '{"ok":true}');
+  assert.throws(
+    () => parseCodexJsonl(`partial-json-fragment\n${final}\n`),
+    error => error?.code === 'ECODEXOUTPUT'
+  );
+  assert.throws(
+    () => parseCodexJsonl(`${final}\npartial-json-fragment\n`, { allowLeadingPartial: true }),
+    error => error?.code === 'ECODEXOUTPUT'
   );
 });
 
@@ -89,6 +114,28 @@ test('structured execution returns usage, request estimate, provider metadata, a
   assert.equal(exec.stdinText, 'untrusted input');
   assert.ok(exec.options.cwd);
   assert.ok(exec.args.indexOf('--ask-for-approval') < exec.args.indexOf('exec'));
+  assert.equal(exec.options.maxStdoutBytes, DEFAULT_CODEX_TRANSCRIPT_LIMIT);
+  assert.equal(exec.options.maxCapturedStdoutBytes, DEFAULT_CODEX_STDOUT_CAPTURE_LIMIT);
+});
+
+test('structured execution accepts a long transcript from bounded tail capture', async () => {
+  const fake = createRunner({
+    execStdoutPrefix: 'partial-json-fragment\n',
+    execMetadata: { stdoutTruncated: true, stdoutBytes: 8 * 1024 * 1024 }
+  });
+  const cli = createCodexCli({ runPreparedProcess: fake.runPreparedProcess });
+  const result = await cli.runStructuredCodex({
+    codexPath: 'codex',
+    schema: { type: 'object', additionalProperties: false, properties: { ok: { type: 'boolean' } }, required: ['ok'] },
+    input: 'x',
+    maxStdoutBytes: 1024 * 1024,
+    maxTranscriptBytes: 12 * 1024 * 1024
+  });
+  assert.deepEqual(result.parsed, { ok: true });
+  assert.equal(result.usage.inputTokens, 100);
+  const exec = fake.calls.find(call => call.args.includes('exec') && call.args.includes('--output-schema'));
+  assert.equal(exec.options.maxStdoutBytes, 12 * 1024 * 1024);
+  assert.equal(exec.options.maxCapturedStdoutBytes, 1024 * 1024);
 });
 
 test('structured execution injects a safe HTTP-only compatible provider before stdin marker', async () => {

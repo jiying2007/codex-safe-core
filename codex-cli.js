@@ -23,6 +23,9 @@ const {
   classifyCodexFailure
 } = require('./codex-runtime');
 
+const DEFAULT_CODEX_STDOUT_CAPTURE_LIMIT = 4 * 1024 * 1024;
+const DEFAULT_CODEX_TRANSCRIPT_LIMIT = 64 * 1024 * 1024;
+
 function createError(code, message, cause, extra = {}) {
   const error = new Error(message);
   error.code = code;
@@ -31,13 +34,18 @@ function createError(code, message, cause, extra = {}) {
   return error;
 }
 
-function parseCodexJsonl(stdout) {
+function parseCodexJsonl(stdout, { allowLeadingPartial = false } = {}) {
   let lastAgentMessage = '';
   const errors = [];
-  for (const line of String(stdout || '').split(/\r?\n/).filter(Boolean)) {
+  const lines = String(stdout || '').split(/\r?\n/).filter(Boolean);
+  for (let index = 0; index < lines.length; index++) {
+    const line = lines[index];
     let event;
     try { event = JSON.parse(line); }
-    catch { throw createError('ECODEXOUTPUT', 'Codex --json returned invalid JSONL.'); }
+    catch {
+      if (allowLeadingPartial && index === 0) continue;
+      throw createError('ECODEXOUTPUT', 'Codex --json returned invalid JSONL.');
+    }
     if (event?.type === 'item.completed' && event?.item?.type === 'agent_message' && typeof event.item.text === 'string') {
       lastAgentMessage = event.item.text;
     }
@@ -68,6 +76,14 @@ function assertSchema(value) {
     throw new TypeError('schema must be a JSON object.');
   }
   return value;
+}
+
+function normalizeStructuredOutputLimit(value, fallback, name) {
+  const resolved = value === undefined ? fallback : Number(value);
+  if (!Number.isFinite(resolved) || resolved < 0 || resolved > 256 * 1024 * 1024) {
+    throw new RangeError(`${name} must be a finite value between 0 and 268435456 bytes.`);
+  }
+  return Math.floor(resolved);
 }
 
 function createCodexCli({ runPreparedProcess, tempPrefix = 'codex-safe-', capabilityCache = new Map() } = {}) {
@@ -195,7 +211,8 @@ function createCodexCli({ runPreparedProcess, tempPrefix = 'codex-safe-', capabi
     input,
     schemaFileName = 'output-schema.json',
     token,
-    maxStdoutBytes = 4 * 1024 * 1024,
+    maxStdoutBytes = DEFAULT_CODEX_STDOUT_CAPTURE_LIMIT,
+    maxTranscriptBytes = DEFAULT_CODEX_TRANSCRIPT_LIMIT,
     maxStderrBytes = 1024 * 1024,
     processOptions = {},
     maxEstimatedTokens = 0,
@@ -208,6 +225,9 @@ function createCodexCli({ runPreparedProcess, tempPrefix = 'codex-safe-', capabi
     if (!processOptions || typeof processOptions !== 'object' || Array.isArray(processOptions)) {
       throw new TypeError('processOptions must be an object.');
     }
+    const captureLimit = normalizeStructuredOutputLimit(maxStdoutBytes, DEFAULT_CODEX_STDOUT_CAPTURE_LIMIT, 'maxStdoutBytes');
+    const transcriptLimit = normalizeStructuredOutputLimit(maxTranscriptBytes, DEFAULT_CODEX_TRANSCRIPT_LIMIT, 'maxTranscriptBytes');
+    const effectiveTranscriptLimit = Math.max(captureLimit, transcriptLimit);
 
     const baseEnvironment = processOptions.env || process.env;
     const credential = resolveProviderCredential(runtime, { env: baseEnvironment });
@@ -235,7 +255,15 @@ function createCodexCli({ runPreparedProcess, tempPrefix = 'codex-safe-', capabi
         processResult = await runPreparedProcess(
           resolved.executable,
           buildCodexArgs(schemaPath, model, normalizedRuntime),
-          { ...processOptions, env: environment, cwd: tempDir, timeoutMs: effectiveTimeoutMs, maxStdoutBytes, maxStderrBytes },
+          {
+            ...processOptions,
+            env: environment,
+            cwd: tempDir,
+            timeoutMs: effectiveTimeoutMs,
+            maxStdoutBytes: effectiveTranscriptLimit,
+            maxCapturedStdoutBytes: captureLimit,
+            maxStderrBytes
+          },
           input,
           token
         );
@@ -250,7 +278,9 @@ function createCodexCli({ runPreparedProcess, tempPrefix = 'codex-safe-', capabi
         throw classifyCodexFailure(error, normalizedRuntime, { phase, env: environment, credential });
       }
 
-      const agentText = parseCodexJsonl(processResult.stdout);
+      const agentText = parseCodexJsonl(processResult.stdout, {
+        allowLeadingPartial: processResult.stdoutTruncated === true
+      });
       let parsed;
       try { parsed = JSON.parse(agentText); }
       catch { throw createError('ECODEXOUTPUT', 'The final Codex agent_message is not JSON matching the output schema.'); }
@@ -309,6 +339,8 @@ function createCodexCli({ runPreparedProcess, tempPrefix = 'codex-safe-', capabi
 }
 
 module.exports = {
+  DEFAULT_CODEX_STDOUT_CAPTURE_LIMIT,
+  DEFAULT_CODEX_TRANSCRIPT_LIMIT,
   assertSafeTempPrefix,
   assertSafeSchemaFileName,
   assertSchema,
