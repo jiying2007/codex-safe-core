@@ -1,0 +1,42 @@
+name: Family Status
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '13,43 * * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: family-status-main
+  cancel-in-progress: true
+
+jobs:
+  status:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@e51e5fe84fc33b4c73ebe40526b2694712b5b858
+        with:
+          node-version: '22.22.2'
+      - name: Generate Family Status v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/generate-family-status.js FAMILY_STATUS.json
+      - name: Publish status summary
+        shell: bash
+        run: |
+          node - <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+          const s=require('./FAMILY_STATUS.json');
+          console.log(`# Codex Safe Family Status\n\n- healthy: ${s.healthy}\n- Core: ${s.core.version} ${s.core.releaseReady?'released':'not ready'}\n- Family: ${s.family.reason}\n`);
+          for(const [name,v] of Object.entries(s.consumers)) console.log(`- ${name} ${v.version}: core=${v.coreAligned} release=${v.releaseReady} distribution=${v.distributionReady} (${v.reason})`);
+          NODE
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: codex-safe-family-status
+          path: FAMILY_STATUS.json
+          if-no-files-found: error
