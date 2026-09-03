@@ -70,8 +70,11 @@ jobs:
         run: |
           set -euo pipefail
           digest="$(sha256sum DISTRIBUTION_RECEIPT.json | awk '{print $1}')"
-          safe_channel="$(printf '%s' "$CHANNEL" | tr -c '0-9A-Za-z._-' '-')"
-          tag="distribution-${safe_channel}-v${PRODUCT_VERSION}-${digest:0:12}"
+          case "$CHANNEL" in
+            vscode-marketplace) tag_channel=marketplace ;;
+            *) tag_channel="$(printf '%s' "$CHANNEL" | tr -c '0-9A-Za-z._-' '-')" ;;
+          esac
+          tag="distribution-${tag_channel}-v${PRODUCT_VERSION}-${digest:0:12}"
           if gh release view "$tag" >/dev/null 2>&1; then
             echo "distribution receipt already exists: $tag"
           else
