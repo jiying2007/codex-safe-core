@@ -1,6 +1,6 @@
 # Quality Platform
 
-Codex Safe Core 4.13.0 / Quality Platform v3 keeps the shared deterministic quality platform stable while Policy Schema v4 includes the `change` repository-policy section. Product-owned GitHub/GitLab provider behavior, VS Code UI, pipeline APIs, databases, analyzer acquisition and notifications remain outside Core.
+Codex Safe Core 4.13.1 / Quality Platform v3 keeps the shared deterministic quality platform stable while Policy Schema v4 includes the `change` repository-policy section. Product-owned GitHub/GitLab provider behavior, VS Code UI, pipeline APIs, databases, analyzer acquisition and notifications remain outside Core.
 
 ## Runtime / Provider Contract v3
 
@@ -9,6 +9,8 @@ Core owns compatible-provider credential, transport and machine-runtime resoluti
 For an inherited OpenAI-compatible provider, `credentialSource=auto|env|auth-json` remains secret-by-reference. `auto` prefers the provider's configured environment variable and otherwise follows the existing bounded `auth.json` path. Secrets are injected only into the child Codex process environment and never enter argv, settings, receipts, Family Runtime profiles or diagnostics.
 
 HTTPS remains preferred. Loopback and literal private-network HTTP endpoints (RFC1918/link-local/loopback and IPv6 ULA/link-local) configured in machine-owned Codex or Family Runtime state may be inherited without repeating a per-product insecure-HTTP switch; diagnostics must surface the plaintext transport warning. Public/non-IP HTTP is still rejected unless it is explicitly trusted in the machine-scoped Family Runtime profile. Repository policy can never enable or trust insecure transport. Provider Contract v3 and Codex Runtime v3 continue to require Responses HTTP/SSE and structured output.
+
+Structured Codex execution uses separate bounded budgets for transcript production and retained stdout. Long JSONL event streams may exceed the in-memory capture window without terminating a valid review, while the total child-output ceiling remains fail-closed. Only the bounded stdout tail needed for the final structured agent message, usage, and diagnostics is retained; a truncated leading JSONL fragment is tolerated only when Core itself reports bounded-tail truncation.
 
 ## Judgment Lifecycle v1
 

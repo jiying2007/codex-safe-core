@@ -1,6 +1,6 @@
 # Quality Platform
 
-Codex Safe Core 4.13.0 / Quality Platform v3 保持共享确定性质量平台稳定，同时 Policy Schema v4 包含 `change` Repository Policy section。GitHub/GitLab Provider、VS Code UI、Pipeline API、数据库、Analyzer 获取与通知仍属于产品层，不进入 Core。
+Codex Safe Core 4.13.1 / Quality Platform v3 保持共享确定性质量平台稳定，同时 Policy Schema v4 包含 `change` Repository Policy section。GitHub/GitLab Provider、VS Code UI、Pipeline API、数据库、Analyzer 获取与通知仍属于产品层，不进入 Core。
 
 ## Runtime / Provider Contract v3
 
@@ -9,6 +9,8 @@ Core 统一拥有 compatible Provider 的 Credential、Transport 与机器级 Ru
 继承 OpenAI-compatible Provider 时，`credentialSource=auto|env|auth-json` 继续保持 Secret-by-reference。`auto` 优先使用 Provider 配置的环境变量，否则沿用现有有界 `auth.json` 解析。Secret 只注入 Codex 子进程环境，绝不会进入 argv、Settings、Receipt、Family Runtime profile 或诊断日志。
 
 HTTPS 仍是首选。机器拥有的 Codex / Family Runtime 中，如果 Endpoint 是 Loopback 或字面量私网 HTTP（RFC1918、link-local、loopback、IPv6 ULA/link-local），各产品可以直接继承，不再重复要求每个插件单独打开 insecure HTTP；Doctor 必须明确显示明文传输风险。公网/非 IP HTTP 默认继续拒绝，只有机器级 Family Runtime 显式 `trustedPrivateHttp=true` 才可信任。Repository Policy 永远不能开启或信任明文 HTTP。Provider Contract v3 与 Codex Runtime v3 继续强制 Responses HTTP/SSE 与 Structured Output。
+
+Structured Codex execution 现在把 transcript 总产出预算与内存 stdout 保留预算分开：较长的 JSONL 事件流可以超过内存捕获窗口而不误杀合法 Review，同时子进程总输出仍保留 fail-closed 硬上限。Core 只保留足够解析最终结构化 agent message、usage 与诊断信息的有界 stdout 尾部；只有在 Core 自己明确标记发生有界尾部截断时，解析器才允许忽略第一个不完整 JSONL 片段。
 
 ## Judgment Lifecycle v1
 

@@ -1,6 +1,6 @@
 {
   "name": "@jiying2007/codex-safe-core",
-  "version": "4.13.0",
+  "version": "4.13.1",
   "private": true,
   "description": "Canonical runtime core for the Codex Safe Git workflow family.",
   "license": "MIT",
@@ -48,6 +48,7 @@
     "scripts/verify-release-artifact.js",
     "scripts/verify-released-core.js",
     "scripts/verify-consumer-product-contract.js",
+    "scripts/verify-family-ui-contract.js",
     "LICENSE",
     "README.md",
     "README.zh-CN.md",
