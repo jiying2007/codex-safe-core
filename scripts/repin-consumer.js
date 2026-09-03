@@ -8,7 +8,8 @@ const CURRENT_STATE_DOCS=[
   'README.md','README.zh-CN.md',
   'docs/GETTING_STARTED.md','docs/GETTING_STARTED.zh-CN.md',
   'SUPPORT.md','SECURITY.md','PUBLISHING.md','VERIFY_RELEASE.md',
-  'docs/DEPLOYMENT.md','docs/DEPLOYMENT.zh-CN.md','OPERATIONS.md','ARCHITECTURE.md'
+  'docs/DEPLOYMENT.md','docs/DEPLOYMENT.zh-CN.md','OPERATIONS.md','ARCHITECTURE.md',
+  'deploy/docker/compose.yaml'
 ];
 const CURRENT_CONTRACT_TESTS=['test/input-manifest-contract.test.js'];
 
@@ -25,7 +26,11 @@ function syncVerifierText(text,{sha,version}){
 }
 function syncCurrentIdentityText(text,{oldSha,newSha,oldVersion,newVersion,oldProductVersion,newProductVersion}){
   let out=replaceAll(text,oldSha,newSha);
-  if(oldVersion&&newVersion&&oldVersion!==newVersion)out=out.replace(new RegExp(`((?:Codex\\s+)?Safe Core\\s+v?)${esc(oldVersion)}\\b`,'g'),`$1${newVersion}`);
+  if(oldVersion&&newVersion&&oldVersion!==newVersion){
+    out=out.replace(new RegExp(`((?:Codex\\s+)?Safe Core\\s+v?)${esc(oldVersion)}\\b`,'g'),`$1${newVersion}`);
+    out=out.replace(new RegExp('(Safe Core[:：]\\s*`?)'+esc(oldVersion)+'(`?)','g'),`$1${newVersion}$2`);
+    out=out.replace(new RegExp('((?:pins|固定到) Core\\s+)'+esc(oldVersion)+'\\b','g'),`$1${newVersion}`);
+  }
   if(oldProductVersion&&newProductVersion&&oldProductVersion!==newProductVersion)out=out.replace(new RegExp(`\\b${esc(oldProductVersion)}\\b`,'g'),newProductVersion);
   return out;
 }
