@@ -1,5 +1,12 @@
 # Changelog
 
+## 4.14.3 - 2026-09-03
+
+- Fix the shared release-bearing Consumer Guard so product versions are read from the consumer workspace rather than the Core submodule package identity.
+- Validate existing `serviceVersion` and `diagnoseVersion` aliases against the consumer package version, while keeping unrelated schema/protocol versions untouched.
+- Make CHANGELOG release-heading validation conditional, matching canonical repin behavior for consumers such as Diagnose that do not carry a CHANGELOG file.
+- Add regression coverage for Change, Review, Commit, Service and Diagnose version shapes; Family Registry v1, Snapshot v2, Manifest v4, Status v1 and Distribution Receipt v1 remain unchanged.
+
 ## 4.14.2 - 2026-09-03
 
 - Fix Distribution Receipt v1 publication so the canonical `vscode-marketplace` receipt channel maps to the Family Registry evidence tag prefix `distribution-marketplace-v`; Marketplace evidence can now be discovered by Family Freshness without changing receipt semantics.
