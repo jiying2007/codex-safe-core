@@ -43,7 +43,15 @@ jobs:
           [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
           [[ "$PRODUCT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           test "$RELEASE_TAG" = "v${PRODUCT_VERSION}"
-          test "$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" --jq '.object.sha')" = "$SOURCE_SHA"
+          object_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" --jq '.object.sha')"
+          object_type="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" --jq '.object.type')"
+          for depth in {1..4}; do
+            [[ "$object_type" == tag ]] || break
+            object_type="$(gh api "repos/${GITHUB_REPOSITORY}/git/tags/${object_sha}" --jq '.object.type')"
+            object_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/tags/${object_sha}" --jq '.object.sha')"
+          done
+          test "$object_type" = commit
+          test "$object_sha" = "$SOURCE_SHA"
           test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" --jq '.immutable')" = true
       - name: Generate deterministic Distribution Receipt v1
         shell: bash
@@ -76,6 +84,10 @@ jobs:
             sleep 5
           done
           test "$immutable" = true
-          for attempt in {1..12}; do gh release verify "$tag" && break || sleep 5; done
-          gh release verify "$tag"
+          release_verified=false
+          for attempt in {1..12}; do
+            if gh release verify "$tag"; then release_verified=true; break; fi
+            sleep 5
+          done
+          test "$release_verified" = true
           gh release verify-asset "$tag" DISTRIBUTION_RECEIPT.json
