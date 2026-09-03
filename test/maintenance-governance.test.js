@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
-const {CURRENT_CONTRACT_TESTS,CURRENT_STATE_DOCS,bumpPatch,syncContractTestText,syncCurrentIdentityText,syncVerifierText}=require('../scripts/repin-consumer');
+const {CURRENT_CONTRACT_TESTS,CURRENT_STATE_DOCS,bumpPatch,syncContractTestText,syncCurrentIdentityText,syncProductVersionAliases,syncVerifierText}=require('../scripts/repin-consumer');
 
 const root = path.resolve(__dirname, '..');
 const contributing = fs.readFileSync(path.join(root, 'CONTRIBUTING.md'), 'utf8');
@@ -30,6 +30,18 @@ test('every Core repin is release-bearing and requires a consumer patch version'
   assert.match(contributing, /every Core gitlink change requires a consumer patch release/i);
   assert.match(contributing, /immutable release/i);
   assert.equal(bumpPatch('4.7.2'),'4.7.3');
+});
+
+test('release-bearing repin synchronizes existing product version aliases only',()=>{
+  const service=syncProductVersionAliases({productVersion:'7.4.2',serviceVersion:'7.4.1',databaseSchemaVersion:8},'7.4.2');
+  assert.equal(service.serviceVersion,'7.4.2');
+  assert.equal(service.databaseSchemaVersion,8);
+  const diagnose=syncProductVersionAliases({productVersion:'1.4.3',diagnoseVersion:'1.4.2',diagnosisReceiptVersion:2},'1.4.3');
+  assert.equal(diagnose.diagnoseVersion,'1.4.3');
+  assert.equal(diagnose.diagnosisReceiptVersion,2);
+  const generic=syncProductVersionAliases({productVersion:'4.7.3',reviewReceiptVersion:5},'4.7.3');
+  assert.equal(Object.prototype.hasOwnProperty.call(generic,'serviceVersion'),false);
+  assert.equal(Object.prototype.hasOwnProperty.call(generic,'diagnoseVersion'),false);
 });
 
 test('coordinated repin waits for release and distribution before Family freshness', () => {

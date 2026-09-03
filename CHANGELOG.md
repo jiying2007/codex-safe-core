@@ -1,5 +1,12 @@
 # Changelog
 
+## 4.14.1 - 2026-09-03
+
+- Fix release-aware coordinated repin so existing product-version aliases such as `serviceVersion` and `diagnoseVersion` advance with `productVersion` during a Core SHA change.
+- Keep alias synchronization bounded to fields that already exist; protocol/schema version fields are never inferred or rewritten as product identity.
+- Add regression coverage for Service/Diagnose aliases and same-Core idempotency so a repeated repin cannot advance the product version twice.
+- Keep Family Registry v1, Atomic Family Snapshot v2, Family Manifest v4, Family Status v1, Distribution Receipt v1 and all runtime/policy/receipt contracts unchanged.
+
 ## 4.14.0 - 2026-09-03
 
 - Promote Family Registry v1, release-aware Atomic Family Snapshot v2, Family Manifest v4, Family Status v1 and Distribution Receipt v1 without changing Safe Contract v2, Policy Schema v4, Runtime/Provider Contract v3, Review Receipt v5, Commit Receipt v4, Diagnosis Receipt v2 or Quality Platform v3.
