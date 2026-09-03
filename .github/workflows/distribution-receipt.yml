@@ -1,0 +1,93 @@
+name: Distribution Receipt
+
+on:
+  workflow_call:
+    inputs:
+      product_id:
+        required: true
+        type: string
+      product_version:
+        required: true
+        type: string
+      source_sha:
+        required: true
+        type: string
+      release_tag:
+        required: true
+        type: string
+      channel:
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  receipt:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PRODUCT_ID: ${{ inputs.product_id }}
+      PRODUCT_VERSION: ${{ inputs.product_version }}
+      SOURCE_SHA: ${{ inputs.source_sha }}
+      RELEASE_TAG: ${{ inputs.release_tag }}
+      CHANNEL: ${{ inputs.channel }}
+    steps:
+      - name: Validate receipt subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$PRODUCT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          test "$RELEASE_TAG" = "v${PRODUCT_VERSION}"
+          object_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" --jq '.object.sha')"
+          object_type="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" --jq '.object.type')"
+          for depth in {1..4}; do
+            [[ "$object_type" == tag ]] || break
+            object_type="$(gh api "repos/${GITHUB_REPOSITORY}/git/tags/${object_sha}" --jq '.object.type')"
+            object_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/tags/${object_sha}" --jq '.object.sha')"
+          done
+          test "$object_type" = commit
+          test "$object_sha" = "$SOURCE_SHA"
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" --jq '.immutable')" = true
+      - name: Generate deterministic Distribution Receipt v1
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const value={schemaVersion:1,productId:process.env.PRODUCT_ID,productVersion:process.env.PRODUCT_VERSION,channel:process.env.CHANNEL,sourceSha:process.env.SOURCE_SHA,releaseTag:process.env.RELEASE_TAG};
+          fs.writeFileSync('DISTRIBUTION_RECEIPT.json',JSON.stringify(value,null,2)+'\n');
+          NODE
+      - name: Attest distribution receipt
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: DISTRIBUTION_RECEIPT.json
+      - name: Publish immutable digest-addressed distribution evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          digest="$(sha256sum DISTRIBUTION_RECEIPT.json | awk '{print $1}')"
+          safe_channel="$(printf '%s' "$CHANNEL" | tr -c '0-9A-Za-z._-' '-')"
+          tag="distribution-${safe_channel}-v${PRODUCT_VERSION}-${digest:0:12}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "distribution receipt already exists: $tag"
+          else
+            gh release create "$tag" DISTRIBUTION_RECEIPT.json --target "$SOURCE_SHA" --title "${PRODUCT_ID} ${PRODUCT_VERSION} ${CHANNEL} distribution" --notes "Immutable distribution receipt generated only after the caller's channel publication job succeeded."
+          fi
+          immutable=false
+          for attempt in {1..12}; do
+            immutable="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${tag}" --jq '.immutable')"
+            [[ "$immutable" == true ]] && break
+            sleep 5
+          done
+          test "$immutable" = true
+          release_verified=false
+          for attempt in {1..12}; do
+            if gh release verify "$tag"; then release_verified=true; break; fi
+            sleep 5
+          done
+          test "$release_verified" = true
+          gh release verify-asset "$tag" DISTRIBUTION_RECEIPT.json

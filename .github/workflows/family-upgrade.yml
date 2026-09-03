@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       core_version:
-        description: Released Core version, for example 4.9.7
+        description: Released Core version, for example 4.14.0
         required: true
         type: string
 
@@ -18,6 +18,7 @@ permissions:
 jobs:
   coordinated-repin:
     runs-on: ubuntu-24.04
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -30,13 +31,16 @@ jobs:
         env:
           FAMILY_BOT_TOKEN: ${{ secrets.FAMILY_BOT_TOKEN }}
           CORE_SHA: ${{ inputs.core_sha }}
+          CORE_VERSION: ${{ inputs.core_version }}
         shell: bash
         run: |
           set -euo pipefail
           test -n "$FAMILY_BOT_TOKEN" || { echo 'FAMILY_BOT_TOKEN is required for cross-repository orchestration'; exit 2; }
           [[ "$CORE_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo 'core_sha must be an exact 40-character SHA'; exit 2; }
           test "$(git rev-parse HEAD)" = "$CORE_SHA" || { echo 'orchestrator only runs for the current released Core main SHA'; exit 2; }
-      - name: Open, validate, merge coordinated repin PRs
+          test "$(node -p "require('./package.json').version")" = "$CORE_VERSION"
+          test "$(node -p "require('./core-contract.json').coreVersion")" = "$CORE_VERSION"
+      - name: Open, validate and merge release-bearing consumer repin PRs
         env:
           GH_TOKEN: ${{ secrets.FAMILY_BOT_TOKEN }}
           CORE_SHA: ${{ inputs.core_sha }}
@@ -47,27 +51,51 @@ jobs:
           git config --global user.name 'codex-safe-family-bot'
           git config --global user.email 'codex-safe-family-bot@users.noreply.github.com'
           ORCH="$PWD/scripts/repin-consumer.js"
-          for repo in codex-pr codex-commit codex-review codex-review-service codex-diagnose; do
+          mapfile -t repos < <(node -e "for(const r of Object.keys(require('./family-registry.json').consumers)) console.log(r)")
+          for repo in "${repos[@]}"; do
             dir="$(mktemp -d)/$repo"
-            git clone --quiet --recurse-submodules "https://x-access-token:${GH_TOKEN}@github.com/jiying2007/${repo}.git" "$dir"
+            git clone --quiet --recurse-submodules "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY_OWNER}/${repo}.git" "$dir"
             branch="repin-safe-core-v${CORE_VERSION}"
             git -C "$dir" checkout -b "$branch"
             node "$ORCH" "$dir" "$CORE_SHA"
             git -C "$dir" add -A
             git -C "$dir" diff --cached --quiet && { echo "$repo already pins $CORE_SHA"; continue; }
-            git -C "$dir" commit -m "chore: pin Codex Safe Core v${CORE_VERSION}"
-            git -C "$dir" push origin "$branch"
-            pr="$(gh pr list --repo "jiying2007/$repo" --head "$branch" --state open --json number --jq '.[0].number // empty')"
+            product_version="$(node -p "require('$dir/package.json').version")"
+            git -C "$dir" commit -m "chore(release): ${repo} ${product_version} pins Core ${CORE_VERSION}"
+            git -C "$dir" push --force-with-lease origin "$branch"
+            pr="$(gh pr list --repo "${GITHUB_REPOSITORY_OWNER}/$repo" --head "$branch" --state open --json number --jq '.[0].number // empty')"
             if [ -z "$pr" ]; then
-              gh pr create --repo "jiying2007/$repo" --head "$branch" --base main --title "chore: pin Codex Safe Core v${CORE_VERSION}" --body "Coordinated exact-pin upgrade to Codex Safe Core ${CORE_VERSION} (${CORE_SHA}). No compatibility shim or product-version change."
-              pr="$(gh pr list --repo "jiying2007/$repo" --head "$branch" --state open --json number --jq '.[0].number // empty')"
+              gh pr create --repo "${GITHUB_REPOSITORY_OWNER}/$repo" --head "$branch" --base main --title "chore(release): ${repo} ${product_version} pins Core ${CORE_VERSION}" --body "Release-bearing exact-pin upgrade to Codex Safe Core ${CORE_VERSION} (${CORE_SHA}). Product patch version is mandatory because distributable runtime changed; no compatibility shim or stale artifact reuse is allowed."
+              pr="$(gh pr list --repo "${GITHUB_REPOSITORY_OWNER}/$repo" --head "$branch" --state open --json number --jq '.[0].number // empty')"
             fi
             test -n "$pr" || { echo "failed to resolve repin PR for $repo"; exit 2; }
-            gh pr checks "$pr" --repo "jiying2007/$repo" --watch --fail-fast
-            gh pr merge "$pr" --repo "jiying2007/$repo" --squash --delete-branch
+            gh pr checks "$pr" --repo "${GITHUB_REPOSITORY_OWNER}/$repo" --watch --fail-fast
+            head_sha="$(gh pr view "$pr" --repo "${GITHUB_REPOSITORY_OWNER}/$repo" --json headRefOid --jq .headRefOid)"
+            gh pr merge "$pr" --repo "${GITHUB_REPOSITORY_OWNER}/$repo" --squash --delete-branch --match-head-commit "$head_sha"
           done
+      - name: Wait for exact immutable consumer releases and required distribution
+        env:
+          GITHUB_TOKEN: ${{ secrets.FAMILY_BOT_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t repos < <(node -e "for(const r of Object.keys(require('./family-registry.json').consumers)) console.log(r)")
+          for attempt in {1..60}; do
+            all_ready=true
+            for repo in "${repos[@]}"; do
+              state="$(node scripts/family-release-state.js --repo "$repo")"
+              ready="$(printf '%s' "$state" | node -e "let s='';process.stdin.on('data',c=>s+=c);process.stdin.on('end',()=>process.stdout.write(String(JSON.parse(s).ready)))")"
+              reason="$(printf '%s' "$state" | node -e "let s='';process.stdin.on('data',c=>s+=c);process.stdin.on('end',()=>process.stdout.write(JSON.parse(s).reason||''))")"
+              echo "$repo ready=$ready reason=$reason"
+              [[ "$ready" == true ]] || all_ready=false
+            done
+            [[ "$all_ready" == true ]] && exit 0
+            sleep 15
+          done
+          echo 'Family consumers did not reach exact release + distribution readiness.' >&2
+          exit 1
       - name: Trigger release-aware Family freshness
         env:
           GH_TOKEN: ${{ secrets.FAMILY_BOT_TOKEN }}
         shell: bash
-        run: gh workflow run "Family Freshness" --repo jiying2007/codex-safe-core --ref main
+        run: gh workflow run "Family Freshness" --repo "$GITHUB_REPOSITORY" --ref main

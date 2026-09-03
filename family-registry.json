@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "owner": "jiying2007",
+  "core": {
+    "repository": "codex-safe-core",
+    "productId": "codex-safe-core"
+  },
+  "consumers": {
+    "codex-pr": {
+      "productId": "codex-change-safe",
+      "release": {
+        "tagPrefix": "v",
+        "artifactKind": "vsix"
+      },
+      "distribution": {
+        "channel": "vscode-marketplace",
+        "receiptPrefix": "distribution-marketplace-v",
+        "required": true
+      }
+    },
+    "codex-commit": {
+      "productId": "codex-commit-safe",
+      "release": {
+        "tagPrefix": "v",
+        "artifactKind": "vsix"
+      },
+      "distribution": {
+        "channel": "vscode-marketplace",
+        "receiptPrefix": "distribution-marketplace-v",
+        "required": true
+      }
+    },
+    "codex-review": {
+      "productId": "codex-review-safe",
+      "release": {
+        "tagPrefix": "v",
+        "artifactKind": "vsix"
+      },
+      "distribution": {
+        "channel": "vscode-marketplace",
+        "receiptPrefix": "distribution-marketplace-v",
+        "required": true
+      }
+    },
+    "codex-review-service": {
+      "productId": "codex-review-service",
+      "release": {
+        "tagPrefix": "v",
+        "artifactKind": "tgz+oci",
+        "requiredAssets": ["IMAGE_DIGEST.txt"]
+      },
+      "distribution": {
+        "channel": "ghcr",
+        "releaseAsset": "IMAGE_DIGEST.txt",
+        "required": true
+      }
+    },
+    "codex-diagnose": {
+      "productId": "codex-diagnose",
+      "release": {
+        "tagPrefix": "v",
+        "artifactKind": "tgz"
+      },
+      "distribution": {
+        "channel": "github-release",
+        "required": true
+      }
+    }
+  }
+}

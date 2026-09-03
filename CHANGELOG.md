@@ -1,5 +1,14 @@
 # Changelog
 
+## 4.14.0 - 2026-09-03
+
+- Promote Family Registry v1, release-aware Atomic Family Snapshot v2, Family Manifest v4, Family Status v1 and Distribution Receipt v1 without changing Safe Contract v2, Policy Schema v4, Runtime/Provider Contract v3, Review Receipt v5, Commit Receipt v4, Diagnosis Receipt v2 or Quality Platform v3.
+- Require every consumer Core gitlink change to advance the consumer by exactly one patch product version and publish an exact immutable product Release; source-only Core repins can no longer make Family Freshness green.
+- Freeze exact consumer release tag/tag-SHA/assets and required distribution evidence: Marketplace receipts for Review/Commit/Change, released GHCR digest for Review Service and immutable GitHub Release distribution for Diagnose.
+- Make Family Upgrade wait for every consumer Release and distribution boundary before Family Freshness, and make three-platform Family Compatibility generate release-aware Manifest v4 evidence.
+- Add reusable exact-SHA Consumer Release Integrity and immutable Distribution Receipt workflows, machine-readable Family Status, canonical Family Registry topology and Core security-extended CodeQL.
+- Keep main branch server-side protection intentionally deferred at the current product stage; workflows do not claim an unbypassable Ruleset while it is disabled.
+
 ## 4.13.1 - 2026-09-03
 
 - Separate Codex structured-execution transcript production from retained stdout: keep a bounded in-memory JSONL tail while enforcing an independent 64 MiB total transcript ceiling.

@@ -21,6 +21,7 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
+          fetch-depth: 0
       - uses: actions/setup-node@e51e5fe84fc33b4c73ebe40526b2694712b5b858
         with:
           node-version: '22.22.2'
@@ -36,6 +37,7 @@ jobs:
           test "$pinned" = "$EXPECTED_CORE_SHA" || { echo "$PRODUCT pins $pinned, expected $EXPECTED_CORE_SHA"; exit 2; }
           node src/codex-safe-core/scripts/verify-released-core.js "$EXPECTED_CORE_SHA"
           node src/codex-safe-core/scripts/verify-consumer-product-contract.js "$EXPECTED_CORE_SHA" "$PRODUCT"
+          node src/codex-safe-core/scripts/verify-consumer-release-bump.js
           node src/codex-safe-core/scripts/verify-actions-pins.js .github/workflows
           node src/codex-safe-core/scripts/verify-non-goals.js .
           node src/codex-safe-core/scripts/family-diagnostics.js > FAMILY_DIAGNOSTICS.json
