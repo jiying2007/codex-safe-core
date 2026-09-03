@@ -1,0 +1,37 @@
+name: Stage Core 4.14.2 docs
+on:
+  push:
+    branches: [fix/distribution-receipt-tag-4.14.2]
+    paths: [.github/workflows/_stage-core-4.14.2-docs.yml]
+permissions:
+  contents: write
+jobs:
+  sync:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with: { persist-credentials: true, fetch-depth: 0 }
+      - uses: actions/setup-node@e51e5fe84fc33b4c73ebe40526b2694712b5b858
+        with: { node-version: '24.19.0' }
+      - name: Sync current release docs and validate
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('node:fs');
+          for(const file of ['docs/QUALITY_PLATFORM.md','docs/QUALITY_PLATFORM.zh-CN.md']){
+            const text=fs.readFileSync(file,'utf8');
+            fs.writeFileSync(file,text.replace('Core 4.14.1','Core 4.14.2'));
+          }
+          const file='CHANGELOG.md',text=fs.readFileSync(file,'utf8'),marker='# Changelog\n\n';
+          const entry='## 4.14.2 - 2026-09-03\n\n- Fix Distribution Receipt v1 publication so the canonical `vscode-marketplace` receipt channel maps to the Family Registry evidence tag prefix `distribution-marketplace-v`; Marketplace evidence can now be discovered by Family Freshness without changing receipt semantics.\n- Align Consumer Release Integrity annotated-tag resolution with Family release-state inspection using a bounded four-layer peel before requiring the exact release commit.\n- Add deterministic regression coverage proving Marketplace receipt tag/channel compatibility and exact release tag peeling.\n- Keep Family Registry v1, Snapshot v2, Manifest v4, Status v1, Distribution Receipt v1 and all runtime/policy/receipt protocol versions unchanged.\n\n';
+          if(!text.includes('## 4.14.2 - 2026-09-03'))fs.writeFileSync(file,text.startsWith(marker)?marker+entry+text.slice(marker.length):entry+text);
+          NODE
+          npm run ci
+          git config user.name codex-safe-family-bot
+          git config user.email codex-safe-family-bot@users.noreply.github.com
+          git add CHANGELOG.md docs/QUALITY_PLATFORM.md docs/QUALITY_PLATFORM.zh-CN.md
+          git diff --cached --quiet && exit 0
+          git commit -m 'docs(release): sync Core 4.14.2 current state'
+          git push origin HEAD:fix/distribution-receipt-tag-4.14.2
