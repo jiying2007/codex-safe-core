@@ -5,6 +5,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
 const {isNextPatch}=require('../scripts/verify-consumer-release-bump');
+const {CURRENT_STATE_DOCS,syncCurrentIdentityText}=require('../scripts/repin-consumer');
 
 const root=path.resolve(__dirname,'..');
 const source=fs.readFileSync(path.join(root,'scripts','verify-consumer-release-bump.js'),'utf8');
@@ -34,4 +35,18 @@ test('changelog validation follows canonical repin and is conditional on reposit
   assert.match(source,/const changelogPath=path\.join\(root,'CHANGELOG\.md'\)/);
   assert.match(source,/fs\.existsSync\(changelogPath\)/);
   assert.match(source,/CHANGELOG must begin with product release/);
+});
+
+test('current identity synchronization covers Change exact-pin and family-alignment prose',()=>{
+  const oldSha='a'.repeat(40),newSha='b'.repeat(40);
+  const input='- Safe Core: `4.14.2` exact pin `'+oldSha+'`\nCodex Change Safe 5.4.4 pins Core 4.14.2.\nSafe Core：`4.14.2`\nCodex Change Safe 5.4.4 固定到 Core 4.14.2。';
+  const out=syncCurrentIdentityText(input,{oldSha,newSha,oldVersion:'4.14.2',newVersion:'4.14.3',oldProductVersion:'5.4.4',newProductVersion:'5.4.5'});
+  assert.match(out,/Safe Core: `4\.14\.3` exact pin `b{40}`/);
+  assert.match(out,/Codex Change Safe 5\.4\.5 pins Core 4\.14\.3/);
+  assert.match(out,/Safe Core：`4\.14\.3`/);
+  assert.match(out,/Codex Change Safe 5\.4\.5 固定到 Core 4\.14\.3/);
+});
+
+test('Service compose is canonical current-state release identity',()=>{
+  assert.ok(CURRENT_STATE_DOCS.includes('deploy/docker/compose.yaml'));
 });
