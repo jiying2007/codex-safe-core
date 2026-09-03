@@ -4,7 +4,7 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
-const {isNextPatch}=require('../scripts/verify-consumer-release-bump');
+const {changelogBeginsWithRelease,isNextPatch}=require('../scripts/verify-consumer-release-bump');
 const {CURRENT_STATE_DOCS,syncCurrentIdentityText}=require('../scripts/repin-consumer');
 
 const root=path.resolve(__dirname,'..');
@@ -31,10 +31,14 @@ test('consumer verifier enforces existing Service and Diagnose product aliases',
   assert.match(source,/product\[alias\]!==after/);
 });
 
-test('changelog validation follows canonical repin and is conditional on repository support',()=>{
+test('changelog validation accepts only canonical top-of-file release forms',()=>{
+  assert.equal(changelogBeginsWithRelease('# Changelog\n\n## 7.4.2 - 2026-09-03\n\nbody\n','7.4.2'),true);
+  assert.equal(changelogBeginsWithRelease('## 4.5.3 - 2026-09-03\n\nbody\n','4.5.3'),true);
+  assert.equal(changelogBeginsWithRelease('# Changelog\n\n## 7.4.1\n\nold\n\n## 7.4.2\n','7.4.2'),false);
+  assert.equal(changelogBeginsWithRelease('## 4.5.2\n\nold\n\n## 4.5.3\n','4.5.3'),false);
+  assert.equal(changelogBeginsWithRelease('intro\n## 4.5.3\n','4.5.3'),false);
   assert.match(source,/const changelogPath=path\.join\(root,'CHANGELOG\.md'\)/);
   assert.match(source,/fs\.existsSync\(changelogPath\)/);
-  assert.match(source,/CHANGELOG must begin with product release/);
 });
 
 test('current identity synchronization covers Change exact-pin and family-alignment prose',()=>{
