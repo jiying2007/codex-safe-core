@@ -1,5 +1,12 @@
 # Changelog
 
+## 4.14.2 - 2026-09-03
+
+- Fix Distribution Receipt v1 publication so the canonical `vscode-marketplace` receipt channel maps to the Family Registry evidence tag prefix `distribution-marketplace-v`; Marketplace evidence can now be discovered by Family Freshness without changing receipt semantics.
+- Align Consumer Release Integrity annotated-tag resolution with Family release-state inspection using a bounded four-layer peel before requiring the exact release commit.
+- Add deterministic regression coverage proving Marketplace receipt tag/channel compatibility and exact release tag peeling.
+- Keep Family Registry v1, Snapshot v2, Manifest v4, Status v1, Distribution Receipt v1 and all runtime/policy/receipt protocol versions unchanged.
+
 ## 4.14.1 - 2026-09-03
 
 - Fix release-aware coordinated repin so existing product-version aliases such as `serviceVersion` and `diagnoseVersion` advance with `productVersion` during a Core SHA change.

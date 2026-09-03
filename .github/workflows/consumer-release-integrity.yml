@@ -39,9 +39,12 @@ jobs:
           tag="v${version}"
           release_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${tag}" --jq '.object.sha')"
           object_type="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${tag}" --jq '.object.type')"
-          if [[ "$object_type" == tag ]]; then
+          for depth in {1..4}; do
+            [[ "$object_type" == tag ]] || break
+            object_type="$(gh api "repos/${GITHUB_REPOSITORY}/git/tags/${release_sha}" --jq '.object.type')"
             release_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/tags/${release_sha}" --jq '.object.sha')"
-          fi
+          done
+          test "$object_type" = commit || { echo "$PRODUCT release tag ${tag} did not resolve to a commit" >&2; exit 1; }
           test "$release_sha" = "$EXPECTED_SHA" || { echo "$PRODUCT release tag ${tag} points to ${release_sha}, expected ${EXPECTED_SHA}" >&2; exit 1; }
           test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${tag}" --jq '.immutable')" = true || { echo "${tag} is not immutable" >&2; exit 1; }
           gh release verify "$tag"
