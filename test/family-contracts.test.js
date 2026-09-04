@@ -31,8 +31,7 @@ function productFixture(productId){
     safeCoreCommit:pin,safeCoreRuntimeDigest:digests.runtimeDigest,safeCoreGovernanceDigest:digests.governanceDigest,
     minimumNodeVersion:core.minimumNodeVersion,canonicalNodeVersion:core.canonicalNodeVersion,supportedNodeMajors:core.supportedNodeMajors
   }));
-  // The parent index records the exact submodule commit while the nested checkout supplies the pinned Core contract/digest evidence.
-  fs.rmSync(path.join(pinnedRoot,'.git'),{recursive:true,force:true});
+  // Keep the nested repository metadata: real submodule checkouts also have an independent Git directory.
   git(['update-index','--add','--cacheinfo',`160000,${pin},src/codex-safe-core`],dir);
   return{dir,pin,digests};
 }
