@@ -28,6 +28,9 @@
   "tokenCalibrationVersion": 1,
   "tokenCalibrationStoreVersion": 1,
   "modelRoutingContractVersion": 1,
+  "modelRegistryVersion": 1,
+  "modelLineageVersion": 1,
+  "modelEconomicsVersion": 1,
   "supportedNodeMajors": [
     22,
     24
