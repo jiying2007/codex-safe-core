@@ -1,0 +1,29 @@
+name: Repository Governance
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 4 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: repository-governance
+  cancel-in-progress: true
+
+jobs:
+  rulesets:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@e51e5fe84fc33b4c73ebe40526b2694712b5b858
+        with:
+          node-version: '22.22.2'
+      - name: Verify server-side Family Rulesets
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/verify-repository-ruleset.js
