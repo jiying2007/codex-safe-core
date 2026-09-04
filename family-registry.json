@@ -14,8 +14,7 @@
         "requiredAssets": ["CONSUMER_CI_RECEIPT.json"]
       },
       "distribution": {
-        "channel": "vscode-marketplace",
-        "receiptPrefix": "distribution-marketplace-v",
+        "channel": "github-release",
         "required": true
       }
     },
@@ -27,8 +26,7 @@
         "requiredAssets": ["CONSUMER_CI_RECEIPT.json"]
       },
       "distribution": {
-        "channel": "vscode-marketplace",
-        "receiptPrefix": "distribution-marketplace-v",
+        "channel": "github-release",
         "required": true
       }
     },
@@ -40,8 +38,7 @@
         "requiredAssets": ["CONSUMER_CI_RECEIPT.json"]
       },
       "distribution": {
-        "channel": "vscode-marketplace",
-        "receiptPrefix": "distribution-marketplace-v",
+        "channel": "github-release",
         "required": true
       }
     },
