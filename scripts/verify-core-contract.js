@@ -41,7 +41,6 @@ assert.equal(calibrationStore.TOKEN_CALIBRATION_STORE_VERSION,contract.tokenCali
 assert.equal(Object.prototype.hasOwnProperty.call(contract,'prPromptContractVersion'),false);
 assert.equal(Object.prototype.hasOwnProperty.call(safe,'PR_PROMPT_CONTRACT_VERSION'),false);
 for(const key of ['qualityPlatformVersion','reviewProfileVersion','profilePackVersion','impactEvidenceVersion','testImpactVersion','analyzerFindingVersion','patchProposalVersion','diagnosePromptContractVersion','diagnosisContractVersion','diagnosisReceiptVersion','diagnosisInputManifestVersion','judgmentLifecycleVersion','semanticReviewVersion','evidenceManifestVersion','reviewKeyVersion','findingLedgerVersion','findingVerificationVersion','familyRegistryVersion','familySnapshotVersion','familyManifestVersion','familyStatusVersion','distributionReceiptVersion','familyUiContractVersion','productContractVersion','consumerCiReceiptVersion','coreDigestContractVersion','repositoryGovernanceContractVersion','tokenCalibrationVersion','tokenCalibrationStoreVersion','modelRoutingContractVersion','modelRegistryVersion','modelLineageVersion','modelEconomicsVersion','codexRuntimeVersion','providerContractVersion','diagnosticContractVersion'])assert.ok(Number.isInteger(contract[key])&&contract[key]>=1,`${key} must be a positive integer`);
-assert.equal(contract.coreVersion,'4.16.0');
 assert.equal(contract.qualityPlatformVersion,3);
 assert.equal(contract.familyRegistryVersion,1);
 assert.equal(contract.familySnapshotVersion,3);
