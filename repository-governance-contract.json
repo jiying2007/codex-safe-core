@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "repositories": [
+    "codex-safe-core",
+    "codex-review",
+    "codex-commit",
+    "codex-pr",
+    "codex-review-service",
+    "codex-diagnose"
+  ],
+  "defaultBranch": "main",
+  "enforcement": "active",
+  "requiredRuleTypes": [
+    "pull_request",
+    "required_status_checks",
+    "deletion",
+    "non_fast_forward"
+  ],
+  "pullRequest": {
+    "minimumApprovals": 1,
+    "dismissStaleReviewsOnPush": true,
+    "requireCodeOwnerReview": false,
+    "requireLastPushApproval": true
+  },
+  "requiredStatusChecks": {
+    "requireNonEmpty": true,
+    "strictRequiredStatusChecksPolicy": true
+  },
+  "maximumBypassActors": 2
+}
