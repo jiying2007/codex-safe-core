@@ -8,11 +8,17 @@ const registry=require('../family-registry.json');
 const distribution=fs.readFileSync(path.join(root,'.github','workflows','distribution-receipt.yml'),'utf8');
 const integrity=fs.readFileSync(path.join(root,'.github','workflows','consumer-release-integrity.yml'),'utf8');
 
-test('Marketplace distribution receipt tag matches Family Registry while receipt channel remains canonical',()=>{
+test('VSIX products use immutable GitHub Release as the required current-stage distribution boundary',()=>{
   for(const repo of ['codex-pr','codex-commit','codex-review']){
-    assert.equal(registry.consumers[repo].distribution.channel,'vscode-marketplace');
-    assert.equal(registry.consumers[repo].distribution.receiptPrefix,'distribution-marketplace-v');
+    assert.equal(registry.consumers[repo].distribution.channel,'github-release');
+    assert.equal(registry.consumers[repo].distribution.required,true);
+    assert.equal(registry.consumers[repo].distribution.receiptPrefix,undefined);
   }
+  assert.equal(registry.consumers['codex-review-service'].distribution.channel,'ghcr');
+  assert.equal(registry.consumers['codex-diagnose'].distribution.channel,'github-release');
+});
+
+test('Marketplace Distribution Receipt machinery remains canonical for optional manual publication',()=>{
   assert.match(distribution,/vscode-marketplace\) tag_channel=marketplace/);
   assert.match(distribution,/channel:process\.env\.CHANNEL/);
   assert.match(distribution,/tag="distribution-\$\{tag_channel\}-v\$\{PRODUCT_VERSION\}-\$\{digest:0:12\}"/);
