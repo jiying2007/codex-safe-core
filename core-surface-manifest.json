@@ -6,6 +6,9 @@
   "runtimeTopLevelExtensions": [
     ".js"
   ],
+  "runtimeExcludeFiles": [
+    "promotion-corpus.js"
+  ],
   "runtimeContractKeys": [
     "safeCoreMajorVersion",
     "safeContractVersion",
@@ -62,6 +65,7 @@
     "SECURITY.md",
     "SUPPORT.md",
     "VERIFY_RELEASE.md",
+    "promotion-corpus.js",
     "core-ownership-manifest.json",
     "family-error-taxonomy.json",
     "family-non-goals.json",
