@@ -20,7 +20,7 @@ const modelLineage=require('../model-lineage');
 const modelEconomics=require('../model-economics');
 const calibrationStore=require('../token-calibration-store');
 const {renderCurrentContractBlock}=require('./current-contract-block');
-function read(file){return fs.readFileSync(path.join(root,file),'utf8');}
+function read(file){return fs.readFileSync(path.join(root,file),'utf8').replace(/\r\n/g,'\n');}
 function esc(s){return String(s).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
 assert.equal(pkg.version,contract.coreVersion);
 assert.equal(pkg.engines.node,`>=${contract.minimumNodeVersion} <23 || >=${contract.canonicalNodeVersion} <25`);
