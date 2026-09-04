@@ -15,6 +15,8 @@ module.exports = Object.freeze({
   ...require('./token-calibration-store'),
   ...require('./model-routing'),
   ...require('./model-capabilities'),
+  ...require('./model-lineage'),
+  ...require('./model-economics'),
   ...require('./quality-platform'),
   ...require('./diagnosis-quality'),
   ...require('./review-profile-pack'),
