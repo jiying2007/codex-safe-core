@@ -41,8 +41,8 @@ Product Contract v2 绑定 `safeCoreCommit`、`safeCoreRuntimeDigest` 与 `safeC
 3. 只为 Runtime 改变的 Consumer 创建 Repin PR；Runtime-equivalent Consumer 记录为 skipped。
 4. 所有准备好的 PR 必须先完成完整产品 CI，任何一个未绿都不允许进入 Merge Phase。
 5. 冻结全部 PR Head SHA，再只合并这一组已验证 Head。
-6. 每个发生 Runtime Repin 的 Consumer 发布 exact immutable Product Release、所需 Distribution Evidence 与 `CONSUMER_CI_RECEIPT.json`。
-7. Family Freshness 校验 Runtime Compatibility、Release/Distribution、CI Receipt；Manifest 过期时再触发 Family Compatibility。
+6. 每个发生 Runtime Repin 的 Consumer 发布 exact immutable Product Release、当前阶段要求的 Distribution Evidence 与 `CONSUMER_CI_RECEIPT.json`。
+7. Family Freshness 校验 Runtime Compatibility、Release/Required Distribution、CI Receipt；Manifest 过期时再触发 Family Compatibility。
 
 该两阶段事务避免“前几个已合并、后一个失败”被误认为完成。Consumer 的精确 gitlink 仍是审计锁；只是纯 Governance Core 更新在 Runtime Identity 不变时无需移动该锁。
 
@@ -55,6 +55,8 @@ Receipt 不授予新 Authority，也不替代真实 CI；它只是“该 Release
 ## Family Evidence
 
 Atomic Family Snapshot v3 冻结最新 exact immutable Core Release 与两个 Core Digest，同时冻结每个 exact Consumer Product Release、其实际 pinned Core SHA/digests、Consumer CI Receipt 与所需 Distribution Evidence。
+
+当前阶段，Review Safe、Commit Safe、Change Safe 以包含 VSIX 的 exact immutable GitHub Release 作为必需 Distribution Boundary。VS Code Marketplace 仅保留为可选/人工发布通道，不参与 Family Readiness。Review Service 继续要求已发布 GHCR Digest；Diagnose 继续使用 immutable GitHub Release。
 
 Family Manifest v5 记录 Snapshot、Product Contract/package-lock Digest、Protocol/Runtime Identity 与 Distribution Evidence，然后执行 GitHub build-provenance attestation，并按 digest-addressed immutable Release 发布。
 
