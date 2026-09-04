@@ -14,6 +14,7 @@ function canonicalConsumer(state){
     sha:state.sha,
     version:state.version,
     corePin:{sha:state.corePin.sha,version:state.corePin.version,runtimeDigest:state.corePin.runtimeDigest,governanceDigest:state.corePin.governanceDigest},
+    ciReceipt:{receiptDigest:state.ciReceipt.receiptDigest,assetDigest:state.ciReceipt.assetDigest,runId:state.ciReceipt.runId,workflow:state.ciReceipt.workflow,runAttempt:state.ciReceipt.runAttempt,suites:state.ciReceipt.suites},
     release:{tag:state.release.tag,tagSha:state.release.tagSha,immutable:state.release.immutable,publishedAt:state.release.publishedAt,assets:state.release.assets.map(({name,size,digest})=>({name,size,digest}))},
     distribution:state.distribution
   };
@@ -24,7 +25,7 @@ async function createSnapshot({token=process.env.GITHUB_TOKEN}={}){
   const consumers={};
   for(const name of CONSUMERS){
     const consumer=state.consumers[name];
-    if(!consumer.ready)throw new Error(`${name} is not release/distribution/runtime ready: ${consumer.reason}`);
+    if(!consumer.ready)throw new Error(`${name} is not release/CI/distribution/runtime ready: ${consumer.reason}`);
     consumers[name]=canonicalConsumer(consumer);
   }
   const payload={
