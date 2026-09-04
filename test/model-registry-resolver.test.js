@@ -24,11 +24,16 @@ function document() {
 }
 
 test('default registry path is machine scoped', () => {
-  assert.equal(modelRegistryPath({}, '/home/example'), path.join('/home/example', '.codex-safe', 'models.json'));
+  const home = path.resolve('home-example');
+  assert.equal(modelRegistryPath({}, home), path.join(home, '.codex-safe', 'models.json'));
 });
 
 test('environment override resolves relative to home', () => {
-  assert.equal(modelRegistryPath({ CODEX_SAFE_MODEL_REGISTRY_FILE: 'config/models.json' }, '/home/example'), path.join('/home/example', 'config', 'models.json'));
+  const home = path.resolve('home-example');
+  assert.equal(
+    modelRegistryPath({ CODEX_SAFE_MODEL_REGISTRY_FILE: 'config/models.json' }, home),
+    path.resolve(home, 'config', 'models.json')
+  );
 });
 
 test('parses closed registry document', () => {
