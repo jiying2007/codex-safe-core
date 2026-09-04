@@ -12,9 +12,11 @@ const {
 } = require('./safe-contract');
 const {
   extractCodexUsage,
+  usageShape,
   estimateRequestTokens,
   assertWithinTokenBudget
 } = require('./efficiency-planner');
+const { createCodexJsonlAccumulator } = require('./codex-jsonl-stream');
 const {
   normalizeCodexRuntimeOptions,
   appendProviderArgs,
@@ -250,6 +252,8 @@ function createCodexCli({ runPreparedProcess, tempPrefix = 'codex-safe-', capabi
     return withTemporaryDirectory(async tempDir => {
       const schemaPath = path.join(tempDir, schemaFileName);
       fs.writeFileSync(schemaPath, JSON.stringify(schema), { encoding: 'utf8', mode: 0o600 });
+      const stream = createCodexJsonlAccumulator();
+      const callerStdout = typeof processOptions.onStdoutChunk === 'function' ? processOptions.onStdoutChunk : null;
       let processResult;
       try {
         processResult = await runPreparedProcess(
@@ -262,7 +266,11 @@ function createCodexCli({ runPreparedProcess, tempPrefix = 'codex-safe-', capabi
             timeoutMs: effectiveTimeoutMs,
             maxStdoutBytes: effectiveTranscriptLimit,
             maxCapturedStdoutBytes: captureLimit,
-            maxStderrBytes
+            maxStderrBytes,
+            onStdoutChunk: chunk => {
+              stream.push(chunk);
+              if (callerStdout) callerStdout(chunk);
+            }
           },
           input,
           token
@@ -278,9 +286,19 @@ function createCodexCli({ runPreparedProcess, tempPrefix = 'codex-safe-', capabi
         throw classifyCodexFailure(error, normalizedRuntime, { phase, env: environment, credential });
       }
 
-      const agentText = parseCodexJsonl(processResult.stdout, {
-        allowLeadingPartial: processResult.stdoutTruncated === true
-      });
+      const streamedSnapshot = stream.snapshot();
+      let agentText;
+      let usage;
+      if (streamedSnapshot.events > 0 || streamedSnapshot.pendingBytes > 0) {
+        const streamed = stream.finish();
+        agentText = streamed.agentMessage;
+        usage = usageShape(streamed.usage || {});
+      } else {
+        agentText = parseCodexJsonl(processResult.stdout, {
+          allowLeadingPartial: processResult.stdoutTruncated === true
+        });
+        usage = extractCodexUsage(processResult.stdout);
+      }
       let parsed;
       try { parsed = JSON.parse(agentText); }
       catch { throw createError('ECODEXOUTPUT', 'The final Codex agent_message is not JSON matching the output schema.'); }
@@ -288,7 +306,7 @@ function createCodexCli({ runPreparedProcess, tempPrefix = 'codex-safe-', capabi
         parsed,
         resolved,
         processResult,
-        usage: extractCodexUsage(processResult.stdout),
+        usage,
         requestEstimate,
         provider: providerMetadata(normalizedRuntime, credential),
         durationMs: Math.max(0, Date.now() - started)
