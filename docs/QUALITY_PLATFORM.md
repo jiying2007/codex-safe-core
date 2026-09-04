@@ -4,7 +4,7 @@ Codex Safe Core 4.16.0 / Quality Platform v3 keeps the shared deterministic qual
 
 ## Runtime / Provider Contract v3
 
-Core owns compatible-provider credential, transport and machine-runtime resolution. Consumers default to `provider.mode=auto`, inheriting an explicit product override, machine Family Runtime, user Codex configuration, then the built-in OpenAI runtime. Repository-local provider configuration cannot redirect machine credentials. HTTPS is preferred; private-network plaintext inheritance remains machine-owned, visible and bounded. Structured Codex JSONL is streamed incrementally with independent retained-output and total-transcript ceilings.
+Core owns compatible-provider credential, transport and machine-runtime resolution. Consumers default to `provider.mode=auto`, inheriting an explicit product override, machine Family Runtime at `~/.codex-safe/runtime.json`, user Codex configuration, then the built-in OpenAI runtime. Compatible providers keep `credentialSource=auto|env|auth-json`; secrets remain references and never enter repository policy or receipts. Repository-local provider configuration cannot redirect machine credentials. HTTPS is preferred; private-network HTTP inheritance remains machine-owned, visible and bounded. Structured Codex JSONL is streamed incrementally with independent retained-output and total-transcript ceilings.
 
 ## Model Routing Contract v1
 
