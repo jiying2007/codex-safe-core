@@ -26,6 +26,7 @@
   "distributionReceiptVersion": 1,
   "productContractVersion": 1,
   "tokenCalibrationVersion": 1,
+  "tokenCalibrationStoreVersion": 1,
   "modelRoutingContractVersion": 1,
   "supportedNodeMajors": [
     22,
