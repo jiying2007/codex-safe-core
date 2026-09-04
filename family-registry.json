@@ -10,7 +10,8 @@
       "productId": "codex-change-safe",
       "release": {
         "tagPrefix": "v",
-        "artifactKind": "vsix"
+        "artifactKind": "vsix",
+        "requiredAssets": ["CONSUMER_CI_RECEIPT.json"]
       },
       "distribution": {
         "channel": "vscode-marketplace",
@@ -22,7 +23,8 @@
       "productId": "codex-commit-safe",
       "release": {
         "tagPrefix": "v",
-        "artifactKind": "vsix"
+        "artifactKind": "vsix",
+        "requiredAssets": ["CONSUMER_CI_RECEIPT.json"]
       },
       "distribution": {
         "channel": "vscode-marketplace",
@@ -34,7 +36,8 @@
       "productId": "codex-review-safe",
       "release": {
         "tagPrefix": "v",
-        "artifactKind": "vsix"
+        "artifactKind": "vsix",
+        "requiredAssets": ["CONSUMER_CI_RECEIPT.json"]
       },
       "distribution": {
         "channel": "vscode-marketplace",
@@ -47,7 +50,7 @@
       "release": {
         "tagPrefix": "v",
         "artifactKind": "tgz+oci",
-        "requiredAssets": ["IMAGE_DIGEST.txt"]
+        "requiredAssets": ["IMAGE_DIGEST.txt", "CONSUMER_CI_RECEIPT.json"]
       },
       "distribution": {
         "channel": "ghcr",
@@ -59,7 +62,8 @@
       "productId": "codex-diagnose",
       "release": {
         "tagPrefix": "v",
-        "artifactKind": "tgz"
+        "artifactKind": "tgz",
+        "requiredAssets": ["CONSUMER_CI_RECEIPT.json"]
       },
       "distribution": {
         "channel": "github-release",
