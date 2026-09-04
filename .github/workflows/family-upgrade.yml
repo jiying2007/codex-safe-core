@@ -8,12 +8,16 @@ on:
         required: true
         type: string
       core_version:
-        description: Released Core version, for example 4.14.0
+        description: Released Core version, for example 4.16.0
         required: true
         type: string
 
 permissions:
   contents: read
+
+concurrency:
+  group: family-upgrade-${{ inputs.core_sha }}
+  cancel-in-progress: false
 
 jobs:
   coordinated-repin:
@@ -40,7 +44,10 @@ jobs:
           test "$(git rev-parse HEAD)" = "$CORE_SHA" || { echo 'orchestrator only runs for the current released Core main SHA'; exit 2; }
           test "$(node -p "require('./package.json').version")" = "$CORE_VERSION"
           test "$(node -p "require('./core-contract.json').coreVersion")" = "$CORE_VERSION"
-      - name: Open, validate and merge release-bearing consumer repin PRs
+          node scripts/core-digests.js . --output CORE_DIGESTS.json
+          test "$(node -p "require('./CORE_DIGESTS.json').coreVersion")" = "$CORE_VERSION"
+      - name: Phase 1 - prepare every runtime-changing consumer PR
+        id: prepare
         env:
           GH_TOKEN: ${{ secrets.FAMILY_BOT_TOKEN }}
           CORE_SHA: ${{ inputs.core_sha }}
@@ -51,28 +58,76 @@ jobs:
           git config --global user.name 'codex-safe-family-bot'
           git config --global user.email 'codex-safe-family-bot@users.noreply.github.com'
           ORCH="$PWD/scripts/repin-consumer.js"
+          upgrade_id="v${CORE_VERSION}-${CORE_SHA:0:12}"
+          state_tsv="$PWD/family-upgrade-state.tsv"
+          : > "$state_tsv"
           mapfile -t repos < <(node -e "for(const r of Object.keys(require('./family-registry.json').consumers)) console.log(r)")
           for repo in "${repos[@]}"; do
             dir="$(mktemp -d)/$repo"
             git clone --quiet --recurse-submodules "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY_OWNER}/${repo}.git" "$dir"
-            branch="repin-safe-core-v${CORE_VERSION}"
-            git -C "$dir" checkout -b "$branch"
+            branch="family-${upgrade_id}"
+            if git -C "$dir" show-ref --verify --quiet "refs/remotes/origin/${branch}"; then
+              git -C "$dir" checkout -B "$branch" "origin/$branch"
+            else
+              git -C "$dir" checkout -b "$branch"
+            fi
             node "$ORCH" "$dir" "$CORE_SHA"
             git -C "$dir" add -A
-            git -C "$dir" diff --cached --quiet && { echo "$repo already pins $CORE_SHA"; continue; }
+            if git -C "$dir" diff --cached --quiet; then
+              echo "$repo runtime-equivalent; no product repin/release required"
+              printf '%s\t%s\t%s\t%s\n' "$repo" skipped '' "$branch" >> "$state_tsv"
+              continue
+            fi
             product_version="$(node -p "require('$dir/package.json').version")"
-            git -C "$dir" commit -m "chore(release): ${repo} ${product_version} pins Core ${CORE_VERSION}"
+            if git -C "$dir" diff --cached --quiet HEAD; then
+              echo "$repo has no staged runtime change"
+            else
+              git -C "$dir" commit -m "chore(release): ${repo} ${product_version} pins runtime-changing Core ${CORE_VERSION}"
+            fi
             git -C "$dir" push --force-with-lease origin "$branch"
             pr="$(gh pr list --repo "${GITHUB_REPOSITORY_OWNER}/$repo" --head "$branch" --state open --json number --jq '.[0].number // empty')"
             if [ -z "$pr" ]; then
-              gh pr create --repo "${GITHUB_REPOSITORY_OWNER}/$repo" --head "$branch" --base main --title "chore(release): ${repo} ${product_version} pins Core ${CORE_VERSION}" --body "Release-bearing exact-pin upgrade to Codex Safe Core ${CORE_VERSION} (${CORE_SHA}). Product patch version is mandatory because distributable runtime changed; no compatibility shim or stale artifact reuse is allowed."
+              gh pr create --repo "${GITHUB_REPOSITORY_OWNER}/$repo" --head "$branch" --base main --title "chore(release): ${repo} ${product_version} pins Core ${CORE_VERSION}" --body "Two-phase Family Upgrade ${upgrade_id}. Core runtimeDigest changed, so this exact-pin upgrade requires a new immutable product patch release and distribution evidence. Governance-only Core changes are skipped by the orchestrator."
               pr="$(gh pr list --repo "${GITHUB_REPOSITORY_OWNER}/$repo" --head "$branch" --state open --json number --jq '.[0].number // empty')"
             fi
             test -n "$pr" || { echo "failed to resolve repin PR for $repo"; exit 2; }
+            printf '%s\t%s\t%s\t%s\n' "$repo" prepared "$pr" "$branch" >> "$state_tsv"
+          done
+          node - "$upgrade_id" "$state_tsv" <<'NODE'
+          const fs=require('fs');const [id,file]=process.argv.slice(2);const entries=fs.readFileSync(file,'utf8').trim().split(/\n/).filter(Boolean).map(line=>{const[repository,status,pr,branch]=line.split('\t');return{repository,status,prNumber:pr?Number(pr):null,branch,headSha:null};});fs.writeFileSync('FAMILY_UPGRADE_STATE.json',JSON.stringify({schemaVersion:1,upgradeId:id,phase:'prepared',entries},null,2)+'\n');
+          NODE
+      - name: Upload prepared transaction state
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: family-upgrade-${{ inputs.core_version }}-${{ inputs.core_sha }}
+          path: FAMILY_UPGRADE_STATE.json
+          if-no-files-found: error
+      - name: Phase 1b - validate all prepared PRs before any merge
+        env:
+          GH_TOKEN: ${{ secrets.FAMILY_BOT_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e "for(const e of require('./FAMILY_UPGRADE_STATE.json').entries) if(e.status==='prepared') console.log(e.repository+'\t'+e.prNumber)" | while IFS=$'\t' read -r repo pr; do
+            echo "validating ${repo}#${pr}"
             gh pr checks "$pr" --repo "${GITHUB_REPOSITORY_OWNER}/$repo" --watch --fail-fast
-            head_sha="$(gh pr view "$pr" --repo "${GITHUB_REPOSITORY_OWNER}/$repo" --json headRefOid --jq .headRefOid)"
+          done
+          node - <<'NODE'
+          const fs=require('fs'),cp=require('child_process');const state=require('./FAMILY_UPGRADE_STATE.json');for(const e of state.entries){if(e.status!=='prepared')continue;e.headSha=cp.execFileSync('gh',['pr','view',String(e.prNumber),'--repo',`${process.env.GITHUB_REPOSITORY_OWNER}/${e.repository}`,'--json','headRefOid','--jq','.headRefOid'],{encoding:'utf8'}).trim();if(!/^[0-9a-f]{40}$/.test(e.headSha))throw new Error(`invalid frozen head for ${e.repository}`);e.status='validated';}state.phase='validated';fs.writeFileSync('FAMILY_UPGRADE_STATE.json',JSON.stringify(state,null,2)+'\n');
+          NODE
+      - name: Phase 2 - merge frozen validated heads
+        env:
+          GH_TOKEN: ${{ secrets.FAMILY_BOT_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e "for(const e of require('./FAMILY_UPGRADE_STATE.json').entries) if(e.status==='validated') console.log([e.repository,e.prNumber,e.headSha].join('\t'))" | while IFS=$'\t' read -r repo pr head_sha; do
+            echo "committing ${repo}#${pr} @ ${head_sha}"
             gh pr merge "$pr" --repo "${GITHUB_REPOSITORY_OWNER}/$repo" --squash --delete-branch --match-head-commit "$head_sha"
           done
+          node - <<'NODE'
+          const fs=require('fs');const state=require('./FAMILY_UPGRADE_STATE.json');for(const e of state.entries)if(e.status==='validated')e.status='merged';state.phase='merged';fs.writeFileSync('FAMILY_UPGRADE_STATE.json',JSON.stringify(state,null,2)+'\n');
+          NODE
       - name: Wait for exact immutable consumer releases and required distribution
         env:
           GITHUB_TOKEN: ${{ secrets.FAMILY_BOT_TOKEN }}
@@ -92,7 +147,7 @@ jobs:
             [[ "$all_ready" == true ]] && exit 0
             sleep 15
           done
-          echo 'Family consumers did not reach exact release + distribution readiness.' >&2
+          echo 'Family consumers did not reach exact release + distribution + runtime readiness.' >&2
           exit 1
       - name: Trigger release-aware Family freshness
         env:
