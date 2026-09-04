@@ -10,6 +10,7 @@ module.exports = Object.freeze({
   ...require('./git-repository'),
   ...require('./context-builder'),
   ...require('./efficiency-planner'),
+  ...require('./model-routing'),
   ...require('./quality-platform'),
   ...require('./diagnosis-quality'),
   ...require('./review-profile-pack'),
