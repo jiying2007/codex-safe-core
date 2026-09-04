@@ -13,6 +13,7 @@ function canonicalConsumer(state){
   return {
     sha:state.sha,
     version:state.version,
+    corePin:{sha:state.corePin.sha,version:state.corePin.version,runtimeDigest:state.corePin.runtimeDigest,governanceDigest:state.corePin.governanceDigest},
     release:{tag:state.release.tag,tagSha:state.release.tagSha,immutable:state.release.immutable,publishedAt:state.release.publishedAt,assets:state.release.assets.map(({name,size,digest})=>({name,size,digest}))},
     distribution:state.distribution
   };
@@ -23,13 +24,13 @@ async function createSnapshot({token=process.env.GITHUB_TOKEN}={}){
   const consumers={};
   for(const name of CONSUMERS){
     const consumer=state.consumers[name];
-    if(!consumer.ready)throw new Error(`${name} is not release/distribution ready: ${consumer.reason}`);
+    if(!consumer.ready)throw new Error(`${name} is not release/distribution/runtime ready: ${consumer.reason}`);
     consumers[name]=canonicalConsumer(consumer);
   }
   const payload={
     schemaVersion:Number(contract.familySnapshotVersion),
     registry:{schemaVersion:Number(registry.schemaVersion),digest:sha(JSON.stringify(registry))},
-    core:{version:state.core.version,sha:state.core.sha,release:{tag:state.core.release.tag,tagSha:state.core.release.tagSha,immutable:state.core.release.immutable,publishedAt:state.core.release.publishedAt,assets:state.core.release.assets.map(({name,size,digest})=>({name,size,digest}))}},
+    core:{version:state.core.version,sha:state.core.sha,runtimeDigest:state.core.digests.runtimeDigest,governanceDigest:state.core.digests.governanceDigest,release:{tag:state.core.release.tag,tagSha:state.core.release.tagSha,immutable:state.core.release.immutable,publishedAt:state.core.release.publishedAt,assets:state.core.release.assets.map(({name,size,digest})=>({name,size,digest}))}},
     consumers
   };
   payload.snapshotDigest=sha(JSON.stringify(payload));
