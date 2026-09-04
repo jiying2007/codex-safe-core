@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "syntheticPerPartition": 30,
+  "templates": [
+    {"category":"security","severity":"critical","description":"path traversal from untrusted archive entry","file":"src/security/archive_{n}.js"},
+    {"category":"concurrency","severity":"high","description":"lock-order inversion under error retry","file":"src/concurrency/lock_{n}.c"},
+    {"category":"resource","severity":"high","description":"allocation or descriptor leak on partial failure","file":"src/resource/leak_{n}.c"},
+    {"category":"correctness","severity":"high","description":"state committed before validation completes","file":"src/correctness/state_{n}.js"},
+    {"category":"test","severity":"medium","description":"behavioral branch changed without regression coverage","file":"src/api/feature_{n}.js"}
+  ],
+  "profilePacks": ["general","backend","security","cpp","embedded-linux","embedded-mcu","driver","kernel","realtime"],
+  "repoSizeBuckets": ["small","medium","large"],
+  "realRegressions": [
+    "high-fanout semantic enumeration must remain bounded to changed scope",
+    "structured JSONL transcript must not overflow retained stdout",
+    "release attestation propagation must retry deterministically",
+    "staged-only review must not ingest unstaged overlay",
+    "provider response body must be bounded while streaming",
+    "cache replay must not become authoritative model evidence",
+    "cross-provider fallback must remain opt-in",
+    "model registry machine input must be fail-closed",
+    "family repin must preserve exact product identity",
+    "GitLab legacy PAT authentication must use real API verification"
+  ],
+  "cleanNegatives": [
+    "documentation wording only",
+    "test assertion message cleanup",
+    "pure symbol rename with equivalent behavior",
+    "formatting-only C change",
+    "dependency lockfile metadata refresh without runtime delta",
+    "comment cleanup in concurrency code",
+    "README example update",
+    "generated docs identity synchronization",
+    "safe refactor preserving validation order",
+    "test fixture path normalization with same semantics"
+  ]
+}
