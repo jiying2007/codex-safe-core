@@ -29,6 +29,15 @@ async function inspectCoreDigests(release,{token=process.env.GITHUB_TOKEN}={}){
   const value=await downloadJson(asset.url,token),ready=Number(value?.schemaVersion)===Number(contract.coreDigestContractVersion)&&isDigest(value?.runtimeDigest)&&isDigest(value?.governanceDigest);
   return{ready,runtimeDigest:ready?value.runtimeDigest:null,governanceDigest:ready?value.governanceDigest:null,assetDigest:asset.digest||null,surfaceManifestDigest:ready&&isDigest(value.surfaceManifestDigest)?value.surfaceManifestDigest:null,reason:ready?'verified-core-digests':'core-digest-asset-invalid'};
 }
+function ciRunMatchesReceipt(receipt,run,sourceSha){
+  if(!receipt||!run||!isSha(sourceSha))return false;
+  const receiptAttempt=Math.max(1,Number(receipt?.ci?.runAttempt)||1),runAttempt=Math.max(1,Number(run.run_attempt)||1);
+  if(String(receipt?.ci?.runId||'')!==String(run.id||''))return false;
+  if(run.status!=='completed'||run.conclusion!=='success'||run.head_sha!==sourceSha||runAttempt!==receiptAttempt)return false;
+  const workflow=String(receipt?.ci?.workflow||'').trim();
+  if(workflow&&String(run.name||'').trim()&&workflow!==String(run.name).trim())return false;
+  return true;
+}
 async function inspectConsumerCiReceipt(repo,version,sourceSha,release,productContract,pinnedCoreDigests,{token=process.env.GITHUB_TOKEN}={}){
   const asset=release?.assets?.find(item=>item.name==='CONSUMER_CI_RECEIPT.json');
   if(!release?.ready||!asset?.url)return{ready:false,assetDigest:asset?.digest||null,reason:'consumer-ci-receipt-missing'};
@@ -36,8 +45,13 @@ async function inspectConsumerCiReceipt(repo,version,sourceSha,release,productCo
   try{receipt=await downloadJson(asset.url,token);}catch(error){return{ready:false,assetDigest:asset.digest||null,reason:'consumer-ci-receipt-unreadable',error:error.message};}
   const copy={...receipt};delete copy.receiptDigest;
   const digestValid=isDigest(receipt?.receiptDigest)&&receipt.receiptDigest===sha(JSON.stringify(copy));
-  const ready=Boolean(Number(receipt?.schemaVersion)===Number(contract.consumerCiReceiptVersion)&&receipt?.productId===productContract?.productId&&receipt?.productVersion===version&&receipt?.sourceSha===sourceSha&&receipt?.corePin?.sha===productContract?.safeCoreCommit&&receipt?.corePin?.runtimeDigest===pinnedCoreDigests?.runtimeDigest&&receipt?.corePin?.governanceDigest===pinnedCoreDigests?.governanceDigest&&receipt?.ci?.conclusion==='success'&&String(receipt?.ci?.runId||'')&&digestValid);
-  return{ready,assetDigest:asset.digest||null,receiptDigest:ready?receipt.receiptDigest:null,runId:ready?String(receipt.ci.runId):null,workflow:ready?String(receipt.ci.workflow||''):null,runAttempt:ready?Number(receipt.ci.runAttempt||1):null,suites:ready&&Array.isArray(receipt.suites)?receipt.suites:[],reason:ready?'verified-consumer-ci-receipt':'consumer-ci-receipt-invalid'};
+  const structurallyValid=Boolean(Number(receipt?.schemaVersion)===Number(contract.consumerCiReceiptVersion)&&receipt?.productId===productContract?.productId&&receipt?.productVersion===version&&receipt?.sourceSha===sourceSha&&receipt?.corePin?.sha===productContract?.safeCoreCommit&&receipt?.corePin?.runtimeDigest===pinnedCoreDigests?.runtimeDigest&&receipt?.corePin?.governanceDigest===pinnedCoreDigests?.governanceDigest&&receipt?.ci?.conclusion==='success'&&String(receipt?.ci?.runId||'')&&digestValid);
+  if(!structurallyValid)return{ready:false,assetDigest:asset.digest||null,reason:'consumer-ci-receipt-invalid'};
+  let run;
+  try{run=await githubJson(`/repos/${OWNER}/${repo}/actions/runs/${encodeURIComponent(String(receipt.ci.runId))}`,{token});}
+  catch(error){return{ready:false,assetDigest:asset.digest||null,receiptDigest:receipt.receiptDigest,reason:'consumer-ci-run-unreadable',error:error.message};}
+  if(!ciRunMatchesReceipt(receipt,run,sourceSha))return{ready:false,assetDigest:asset.digest||null,receiptDigest:receipt.receiptDigest,reason:'consumer-ci-run-not-successful'};
+  return{ready:true,assetDigest:asset.digest||null,receiptDigest:receipt.receiptDigest,runId:String(receipt.ci.runId),workflow:String(receipt.ci.workflow||''),runAttempt:Number(receipt.ci.runAttempt||1),suites:Array.isArray(receipt.suites)?receipt.suites:[],reason:'verified-consumer-ci-receipt-and-run'};
 }
 async function inspectDistribution(repo,version,sourceSha,release,{token=process.env.GITHUB_TOKEN}={}){
   const spec=registry.consumers[repo]?.distribution||{channel:'github-release',required:true};
@@ -76,4 +90,4 @@ async function collectFamilyState({token=process.env.GITHUB_TOKEN}={}){
 }
 async function main(){const args=process.argv.slice(2),repoIndex=args.indexOf('--repo'),state=await collectFamilyState();if(repoIndex>=0){const repo=args[repoIndex+1];if(!CONSUMERS.includes(repo))throw new Error(`Unknown Family consumer: ${repo}`);process.stdout.write(`${JSON.stringify(state.consumers[repo],null,2)}\n`);return;}process.stdout.write(`${JSON.stringify(state,null,2)}\n`);}
 if(require.main===module)main().catch(error=>{console.error(error.stack||error.message||String(error));process.exitCode=1;});
-module.exports={CONSUMERS,CORE_REPO,CORE_URL,OWNER,collectFamilyState,exactImmutableRelease,githubJson,inspectConsumer,inspectConsumerCiReceipt,inspectCore,inspectCoreDigests,inspectDistribution,inspectRelease,isDigest,isSha,releaseAssets,resolveTagCommit};
+module.exports={CONSUMERS,CORE_REPO,CORE_URL,OWNER,ciRunMatchesReceipt,collectFamilyState,exactImmutableRelease,githubJson,inspectConsumer,inspectConsumerCiReceipt,inspectCore,inspectCoreDigests,inspectDistribution,inspectRelease,isDigest,isSha,releaseAssets,resolveTagCommit};
