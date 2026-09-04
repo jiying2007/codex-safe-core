@@ -2,6 +2,11 @@
 
 const MODEL_ROUTING_CONTRACT_VERSION = 1;
 const REVIEW_MODES = Object.freeze(['fast', 'balanced', 'deep']);
+const REVIEW_MODE_PLANS = Object.freeze({
+  fast: Object.freeze({ mode: 'fast', evidenceFactor: 0.35, contextFactor: 0.25, tokenFactor: 0.4, impactDepth: 0, maxImpactFiles: 0 }),
+  balanced: Object.freeze({ mode: 'balanced', evidenceFactor: 0.7, contextFactor: 0.6, tokenFactor: 0.7, impactDepth: 1, maxImpactFiles: 8 }),
+  deep: Object.freeze({ mode: 'deep', evidenceFactor: 1, contextFactor: 1, tokenFactor: 1, impactDepth: 2, maxImpactFiles: 20 })
+});
 const MODEL_ROLES = Object.freeze(['scout', 'reviewer', 'adjudicator']);
 const MODEL_CLASSES = Object.freeze(['fast', 'balanced', 'frontier']);
 const MODEL_SELECTION_STRATEGIES = Object.freeze(['auto', 'preference', 'fixed']);
@@ -34,6 +39,24 @@ function enumValue(value, values, name, fallback) {
   const resolved = value === undefined || value === null || value === '' ? fallback : String(value);
   if (!values.includes(resolved)) throw new TypeError(`${name} is unsupported: ${resolved}`);
   return resolved;
+}
+
+function clamp(value, min, max, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.max(min, Math.min(max, number)) : fallback;
+}
+
+function resolveReviewModePlan(mode = 'balanced', overrides = {}) {
+  const key = enumValue(mode, REVIEW_MODES, 'mode', 'balanced');
+  const base = REVIEW_MODE_PLANS[key];
+  return freeze({
+    ...base,
+    evidenceFactor: clamp(overrides.evidenceFactor, 0.1, 1, base.evidenceFactor),
+    contextFactor: clamp(overrides.contextFactor, 0.1, 1, base.contextFactor),
+    tokenFactor: clamp(overrides.tokenFactor, 0.1, 1, base.tokenFactor),
+    impactDepth: Math.floor(clamp(overrides.impactDepth, 0, 3, base.impactDepth)),
+    maxImpactFiles: Math.floor(clamp(overrides.maxImpactFiles, 0, 50, base.maxImpactFiles))
+  });
 }
 
 function normalizeCapabilities(value = {}) {
@@ -103,12 +126,7 @@ function assessModelCompatibility({ mode = 'balanced', role = 'reviewer', modelC
   const resolvedMode = enumValue(mode, REVIEW_MODES, 'mode', 'balanced');
   const resolvedRole = enumValue(role, MODEL_ROLES, 'role', 'reviewer');
   const resolvedClass = enumValue(modelClass, MODEL_CLASSES, 'modelClass', 'balanced');
-  const compatibilityPolicy = enumValue(
-    policy,
-    MODEL_COMPATIBILITY_POLICIES,
-    'compatibilityPolicy',
-    'strict'
-  );
+  const compatibilityPolicy = enumValue(policy, MODEL_COMPATIBILITY_POLICIES, 'compatibilityPolicy', 'strict');
   const requiredClass = requiredClassFor(resolvedMode, resolvedRole);
   const compatible = CLASS_RANK[resolvedClass] >= CLASS_RANK[requiredClass];
   return freeze({
@@ -125,10 +143,7 @@ function assessModelCompatibility({ mode = 'balanced', role = 'reviewer', modelC
 
 function normalizeCandidate(raw, name = 'candidate') {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new TypeError(`${name} must be an object.`);
-  return freeze({
-    provider: clean(raw.provider, `${name} provider`, 128),
-    model: clean(raw.model, `${name} model`, 256)
-  });
+  return freeze({ provider: clean(raw.provider, `${name} provider`, 128), model: clean(raw.model, `${name} model`, 256) });
 }
 
 function modelLookup(registry) {
@@ -168,12 +183,7 @@ function resolveModelSelection(request = {}) {
   const role = enumValue(request.role, MODEL_ROLES, 'role', 'reviewer');
   const mode = enumValue(request.mode, REVIEW_MODES, 'mode', 'balanced');
   const strategy = enumValue(request.strategy, MODEL_SELECTION_STRATEGIES, 'selectionStrategy', 'auto');
-  const compatibilityPolicy = enumValue(
-    request.compatibilityPolicy,
-    MODEL_COMPATIBILITY_POLICIES,
-    'compatibilityPolicy',
-    strategy === 'fixed' ? 'warn' : 'strict'
-  );
+  const compatibilityPolicy = enumValue(request.compatibilityPolicy, MODEL_COMPATIBILITY_POLICIES, 'compatibilityPolicy', strategy === 'fixed' ? 'warn' : 'strict');
   const provider = clean(request.provider || '', 'requested provider', 128, { allowEmpty: true });
   const allowedProviders = Array.isArray(request.allowedProviders)
     ? [...new Set(request.allowedProviders.map((value, index) => clean(value, `allowedProviders[${index}]`, 128)))]
@@ -283,6 +293,7 @@ function buildModelEvidence(selection, options = {}) {
 module.exports = {
   MODEL_ROUTING_CONTRACT_VERSION,
   REVIEW_MODES,
+  REVIEW_MODE_PLANS,
   MODEL_ROLES,
   MODEL_CLASSES,
   MODEL_SELECTION_STRATEGIES,
@@ -290,6 +301,7 @@ module.exports = {
   MODEL_STATUSES,
   MODEL_HEALTH,
   REVISION_PIN_STRENGTH,
+  resolveReviewModePlan,
   validateModelRegistry,
   requiredClassFor,
   assessModelCompatibility,
