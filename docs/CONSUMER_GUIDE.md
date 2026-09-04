@@ -41,8 +41,8 @@ Product Contract v2 binds `safeCoreCommit`, `safeCoreRuntimeDigest` and `safeCor
 3. Prepare repin PRs only for consumers whose runtime digest changed; runtime-equivalent consumers are recorded as skipped.
 4. Wait for every prepared PR to pass its complete product CI before any merge.
 5. Freeze all prepared PR head SHAs, then merge only that validated set.
-6. Each changed consumer publishes an exact immutable product release, required distribution evidence and `CONSUMER_CI_RECEIPT.json`.
-7. Family Freshness verifies runtime compatibility, release/distribution and CI receipts, then dispatches Family Compatibility when the immutable Family Manifest is stale.
+6. Each changed consumer publishes an exact immutable product release, its current-stage required distribution evidence and `CONSUMER_CI_RECEIPT.json`.
+7. Family Freshness verifies runtime compatibility, release/required-distribution and CI receipts, then dispatches Family Compatibility when the immutable Family Manifest is stale.
 
 The two-phase transaction prevents a partially merged rollout from being treated as complete. The exact consumer Core gitlink remains an auditable lock; governance-only Core updates simply do not require moving it when runtime identity is unchanged.
 
@@ -55,6 +55,8 @@ The receipt does not grant authority and does not replace the CI run. It is dura
 ## Family evidence
 
 Atomic Family Snapshot v3 freezes the newest exact immutable Core release and both Core digests, plus each exact consumer product release, its actual pinned Core SHA/digests, Consumer CI Receipt and required distribution evidence.
+
+At the current product stage, Review Safe, Commit Safe and Change Safe use the exact immutable GitHub Release containing the VSIX as their required distribution boundary. VS Code Marketplace publication is optional/manual and is not required for Family readiness. Review Service still requires its published GHCR digest; Diagnose uses its immutable GitHub Release.
 
 Family Manifest v5 records that snapshot, Product Contract/package-lock digests, protocol/runtime identity and distribution evidence, then receives GitHub build-provenance attestation and digest-addressed immutable publication.
 
