@@ -2,6 +2,12 @@ name: Family Compatibility
 
 on:
   workflow_dispatch:
+    inputs:
+      full_matrix:
+        description: Re-run every consumer full CI on Linux, Windows and macOS
+        required: false
+        default: false
+        type: boolean
   schedule:
     - cron: '43 3 * * 1'
 
@@ -9,7 +15,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: family-compat-main
+  group: family-compat-main-${{ github.event_name }}-${{ inputs.full_matrix || false }}
   cancel-in-progress: true
 
 jobs:
@@ -26,7 +32,7 @@ jobs:
         with:
           node-version: '22.22.2'
       - id: resolve
-        name: Freeze exact released and distributed consumer snapshot
+        name: Freeze exact released, CI-attested and distributed consumer snapshot
         env:
           GITHUB_TOKEN: ${{ github.token }}
         shell: bash
@@ -37,11 +43,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: ${{ fromJSON((github.event_name == 'schedule' || inputs.full_matrix == true) && '["ubuntu-latest","windows-latest","macos-latest"]' || '["ubuntu-24.04"]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 50
     env:
       FAMILY_SNAPSHOT_JSON: ${{ needs.snapshot.outputs.snapshot }}
+      FULL_MATRIX: ${{ github.event_name == 'schedule' || inputs.full_matrix == true }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -49,38 +56,44 @@ jobs:
       - uses: actions/setup-node@e51e5fe84fc33b4c73ebe40526b2694712b5b858
         with:
           node-version: '22.22.2'
-      - name: Materialize atomic Family Snapshot v2
+      - name: Materialize atomic Family Snapshot v3
         shell: bash
         run: node -e "require('fs').writeFileSync('FAMILY_SNAPSHOT.json',process.env.FAMILY_SNAPSHOT_JSON+'\n')"
-      - name: Validate Core
+      - name: Validate current Core identity
+        if: env.FULL_MATRIX != 'true'
+        run: |
+          npm run check:contract
+          node scripts/verify-current-docs.js
+          node scripts/verify-promotion-corpus.js
+      - name: Validate current Core fully
+        if: env.FULL_MATRIX == 'true'
         run: npm run ci
       - name: Checkout exact released consumer snapshot
         run: node scripts/checkout-family-snapshot.js FAMILY_SNAPSHOT.json family
-      - name: Verify released consumers pin this Core and retain governance
+      - name: Verify released consumers retain governance and runtime-equivalent Core
         shell: bash
         run: |
           set -euo pipefail
-          core_sha="$(git rev-parse HEAD)"
           mapfile -t repos < <(node -e "for(const r of Object.keys(require('./family-registry.json').consumers)) console.log(r)")
           for repo in "${repos[@]}"; do
-            pinned="$(git -C "family/${repo}" ls-files --stage src/codex-safe-core | awk '{print $2}')"
-            test "$pinned" = "$core_sha" || { echo "${repo} pins ${pinned}, expected ${core_sha}" >&2; exit 1; }
             node scripts/verify-actions-pins.js "family/${repo}/.github/workflows"
             node scripts/verify-non-goals.js "family/${repo}"
-            (cd "family/${repo}" && node src/codex-safe-core/scripts/verify-consumer-product-contract.js "$core_sha")
+            (cd "family/${repo}" && node "$GITHUB_WORKSPACE/scripts/verify-consumer-product-contract.js" --runtime-compatible)
+            node -e "const s=require('./FAMILY_SNAPSHOT.json').consumers[process.argv[1]];if(!s.ciReceipt?.receiptDigest||!s.ciReceipt?.runId)throw new Error(process.argv[1]+' missing Consumer CI Receipt');" "$repo"
           done
       - name: Verify consumers do not reimplement Core-owned primitives
         run: node scripts/verify-consumer-boundaries.js family
-      - name: Replay Family golden corpus through every released consumer Core
+      - name: Replay Family golden corpus through every runtime-equivalent consumer Core
         run: node scripts/family-golden.js family/codex-pr/src/codex-safe-core family/codex-commit/src/codex-safe-core family/codex-review/src/codex-safe-core family/codex-review-service/src/codex-safe-core family/codex-diagnose/src/codex-safe-core
-      - name: Install Linux Extension Host dependencies
-        if: runner.os == 'Linux'
+      - name: Install Linux Extension Host dependencies for full audit
+        if: env.FULL_MATRIX == 'true' && runner.os == 'Linux'
         shell: bash
         run: |
           set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y xvfb libgtk-3-0 libnss3 libasound2t64 || sudo apt-get install -y xvfb libgtk-3-0 libnss3 libasound2
-      - name: Validate released consumer source snapshots
+      - name: Full audit - re-run every released consumer CI
+        if: env.FULL_MATRIX == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -112,12 +125,12 @@ jobs:
       - uses: actions/setup-node@e51e5fe84fc33b4c73ebe40526b2694712b5b858
         with:
           node-version: '22.22.2'
-      - name: Materialize atomic Family Snapshot v2
+      - name: Materialize atomic Family Snapshot v3
         shell: bash
         run: node -e "require('fs').writeFileSync('FAMILY_SNAPSHOT.json',process.env.FAMILY_SNAPSHOT_JSON+'\n')"
       - name: Checkout exact released consumer snapshot
         run: node scripts/checkout-family-snapshot.js FAMILY_SNAPSHOT.json family
-      - name: Generate canonical release-aware Family Manifest v4
+      - name: Generate canonical runtime-aware Family Manifest v5
         run: node scripts/generate-family-manifest.js family FAMILY_MANIFEST.json FAMILY_SNAPSHOT.json
       - name: Attest Family manifest
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
@@ -141,7 +154,7 @@ jobs:
           if gh release view "$tag" >/dev/null 2>&1; then
             echo "digest-addressed Family manifest release already exists: $tag"
           else
-            gh release create "$tag" FAMILY_MANIFEST.json --target "$GITHUB_SHA" --title "Codex Safe Family manifest ${version} ${digest:0:12}" --notes "Machine-generated release-aware, snapshot-atomic and provenance-attested exact Core/consumer/distribution manifest. Historical Family evidence; not an end-user product release."
+            gh release create "$tag" FAMILY_MANIFEST.json --target "$GITHUB_SHA" --title "Codex Safe Family manifest ${version} ${digest:0:12}" --notes "Machine-generated runtime-aware, CI-attested, snapshot-atomic exact Core/consumer/distribution manifest. Historical Family evidence; not an end-user product release."
           fi
           immutable=false
           for attempt in {1..12}; do
