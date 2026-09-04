@@ -92,13 +92,15 @@ Family Registry v1 定义活跃 Topology。Family Snapshot v3 冻结：
 - 每个 exact Consumer Release；
 - 每个 Consumer 实际 pinned Core SHA/digests；
 - Consumer CI Receipt v1；
-- Marketplace/GHCR/GitHub Release 所需 Distribution Evidence。
+- 该产品当前阶段要求的 Distribution Boundary。
+
+当前阶段，**Review Safe、Commit Safe、Change Safe 以各自 exact immutable GitHub Release 作为 VSIX 的必需分发边界**。VS Code Marketplace 仅作为可选、人工发布通道；它不参与 Family Readiness，也不要求正常 Family Release 闭环必须配置 `VSCE_PAT`。Review Service 仍要求已发布的 GHCR Digest，Diagnose 仍以 immutable GitHub Release 为分发边界。
 
 Family Manifest v5 绑定 Snapshot、Product Contract/package-lock Digest、Protocol/Runtime Identity 与 Distribution Evidence，再执行 GitHub build-provenance attestation 和 digest-addressed immutable publication。
 
 普通 Family Compatibility 信任 immutable Consumer CI Receipt，只运行一次 Ubuntu cross-family validation；完整 5 Consumer × Linux/Windows/macOS 矩阵保留为每周或显式 `full_matrix=true` 审计。
 
-Runtime-changing Core Upgrade 使用两阶段事务：先准备全部需要的 Consumer PR 并等待所有 CI 通过；再冻结 PR Head 并只合并这一组已验证 Head。Runtime-equivalent Consumer 记录为 skipped。Release、Distribution、CI Receipt 全部收敛后，Family Freshness 才能完成。
+Runtime-changing Core Upgrade 使用两阶段事务：先准备全部需要的 Consumer PR 并等待所有 CI 通过；再冻结 PR Head 并只合并这一组已验证 Head。Runtime-equivalent Consumer 记录为 skipped。Release、当前阶段要求的 Distribution、CI Receipt 全部收敛后，Family Freshness 才能完成。
 
 ## Family SCM UI
 

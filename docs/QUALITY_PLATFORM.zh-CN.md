@@ -1,6 +1,6 @@
 # Quality Platform
 
-Codex Safe Core 4.16.0 / Quality Platform v3 在保持共享确定性质量平台稳定的同时，完成 Model Routing Contract v1、runtime/governance 身份拆分、Consumer CI Receipt v1 与 runtime-aware Family 证据链。Safe Contract v2、Policy Schema v4、Runtime v3 与 Provider Contract v3 继续作为安全边界。
+Codex Safe Core 4.16.1 / Quality Platform v3 在保持共享确定性质量平台稳定的同时，完成 Model Routing Contract v1、runtime/governance 身份拆分、Consumer CI Receipt v1 与 runtime-aware Family 证据链。Safe Contract v2、Policy Schema v4、Runtime v3 与 Provider Contract v3 继续作为安全边界。
 
 ## Runtime / Provider Contract v3
 

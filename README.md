@@ -92,13 +92,15 @@ Family Registry v1 defines the active topology. Family Snapshot v3 freezes:
 - each exact consumer release;
 - each consumer's actual exact pinned Core SHA/digests;
 - its Consumer CI Receipt v1;
-- required Marketplace/GHCR/GitHub Release distribution evidence.
+- the required distribution boundary for that product.
+
+At the current product stage, **Review Safe, Commit Safe and Change Safe use their exact immutable GitHub Release as the required VSIX distribution boundary**. VS Code Marketplace publication is optional and manual; it is not a Family readiness requirement and does not require `VSCE_PAT` for normal Family release closure. Review Service still requires its released GHCR digest, and Diagnose uses its immutable GitHub Release.
 
 Family Manifest v5 binds that snapshot, Product Contract/package-lock digests, protocol/runtime identity and distribution evidence, then receives GitHub build-provenance attestation and immutable digest-addressed publication.
 
 Routine Family Compatibility trusts immutable Consumer CI Receipts and runs one Ubuntu cross-family validation. The complete five-consumer × Linux/Windows/macOS matrix remains a weekly or explicit `full_matrix=true` audit.
 
-Runtime-changing Core upgrades use a two-phase transaction: prepare all required consumer PRs and wait for every CI gate before any merge; then freeze PR heads and merge only that validated set. Runtime-equivalent consumers are recorded as skipped. Release, distribution and CI-receipt evidence must converge before Family Freshness can complete.
+Runtime-changing Core upgrades use a two-phase transaction: prepare all required consumer PRs and wait for every CI gate before any merge; then freeze PR heads and merge only that validated set. Runtime-equivalent consumers are recorded as skipped. Release, required distribution and CI-receipt evidence must converge before Family Freshness can complete.
 
 ## Family SCM UI
 

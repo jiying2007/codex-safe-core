@@ -1,6 +1,6 @@
 # Quality Platform
 
-Codex Safe Core 4.16.0 / Quality Platform v3 keeps the shared deterministic quality platform stable while completing Model Routing Contract v1, runtime/governance identity separation, Consumer CI Receipt v1 and the runtime-aware Family evidence chain. Safe Contract v2, Policy Schema v4, Runtime v3 and Provider Contract v3 remain the safety boundary.
+Codex Safe Core 4.16.1 / Quality Platform v3 keeps the shared deterministic quality platform stable while completing Model Routing Contract v1, runtime/governance identity separation, Consumer CI Receipt v1 and the runtime-aware Family evidence chain. Safe Contract v2, Policy Schema v4, Runtime v3 and Provider Contract v3 remain the safety boundary.
 
 ## Runtime / Provider Contract v3
 
