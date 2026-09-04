@@ -22,9 +22,10 @@ function blobDigest(root, relative) {
   return git(root, ['hash-object', '--', relative]);
 }
 function isRuntimeFile(relative, manifest) {
-  if (manifest.runtimeFiles.includes(relative)) return true;
+  if ((manifest.runtimeExcludeFiles || []).includes(relative)) return false;
+  if ((manifest.runtimeFiles || []).includes(relative)) return true;
   if (relative.includes('/')) return false;
-  return manifest.runtimeTopLevelExtensions.some(ext => relative.endsWith(ext));
+  return (manifest.runtimeTopLevelExtensions || []).some(ext => relative.endsWith(ext));
 }
 function contractProjection(contract, keys) {
   const value = {};
@@ -47,8 +48,8 @@ function computeCoreDigests(rootArg = process.cwd()) {
     if (isRuntimeFile(relative, manifest)) runtimeEntries.push(entry);
     else governanceEntries.push(entry);
   }
-  runtimeEntries.push(['core-contract.runtime', sha(JSON.stringify(contractProjection(contract, manifest.runtimeContractKeys)))]);
-  governanceEntries.push(['core-contract.governance', sha(JSON.stringify(canonical(Object.fromEntries(Object.entries(contract).filter(([key]) => !manifest.runtimeContractKeys.includes(key))))))]);
+  runtimeEntries.push(['core-contract.runtime', sha(JSON.stringify(contractProjection(contract, manifest.runtimeContractKeys || [])))]);
+  governanceEntries.push(['core-contract.governance', sha(JSON.stringify(canonical(Object.fromEntries(Object.entries(contract).filter(([key]) => !(manifest.runtimeContractKeys || []).includes(key))))))]);
   const runtimeDigest = sha(JSON.stringify(runtimeEntries));
   const governanceDigest = sha(JSON.stringify(governanceEntries));
   return Object.freeze({
