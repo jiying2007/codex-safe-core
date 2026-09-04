@@ -6,7 +6,7 @@ const path = require('path');
 /** @typedef {(zh: string, en: string) => string} Translate */
 /** @typedef {{dispose: () => void}} DisposableLike */
 /** @typedef {{isCancellationRequested: boolean, onCancellationRequested: (listener: () => void) => DisposableLike}} CancellationTokenLike */
-/** @typedef {{cwd?: string, env?: NodeJS.ProcessEnv, shell?: boolean, windowsVerbatimArguments?: boolean, timeoutMs?: number, maxStdoutBytes?: number, maxCapturedStdoutBytes?: number, maxStderrBytes?: number}} ProcessOptions */
+/** @typedef {{cwd?: string, env?: NodeJS.ProcessEnv, shell?: boolean, windowsVerbatimArguments?: boolean, timeoutMs?: number, maxStdoutBytes?: number, maxCapturedStdoutBytes?: number, maxStderrBytes?: number, onStdoutChunk?: (chunk: Buffer) => void}} ProcessOptions */
 /** @typedef {Error & {code?: string|number, stdout?: string|Buffer, stderr?: string|Buffer, stdoutTail?: string, stderrTail?: string, stdoutBytes?: number, stdoutTruncated?: boolean, elapsedMs?: number, lastActivityMs?: number}} ProcessError */
 
 const DEFAULT_TEXT_STDOUT_LIMIT = 4 * 1024 * 1024;
@@ -95,6 +95,9 @@ function createProcessRunner(ui = (_zh, en) => en) {
       const error = new Error('Shell execution is forbidden by Codex Safe Core.');
       error.code = 'ESHELLFORBIDDEN';
       return Promise.reject(error);
+    }
+    if (options.onStdoutChunk !== undefined && typeof options.onStdoutChunk !== 'function') {
+      return Promise.reject(new TypeError('onStdoutChunk must be a function when provided.'));
     }
 
     const timeoutMs = normalizeTimeout(options.timeoutMs);
@@ -230,6 +233,19 @@ function createProcessRunner(ui = (_zh, en) => en) {
             `Child process stdout exceeded the limit (${maxStdoutBytes} bytes)`
           ));
           return;
+        }
+        if (options.onStdoutChunk) {
+          try { options.onStdoutChunk(buffer); }
+          catch (cause) {
+            const error = createTerminationError(
+              'EOUTPUTPARSE',
+              '子进程 stdout 流式处理失败。',
+              'Child process stdout streaming consumer failed.'
+            );
+            error.cause = cause;
+            terminate(error);
+            return;
+          }
         }
         if (maxCapturedStdoutBytes === null) {
           stdoutChunks.push(buffer);

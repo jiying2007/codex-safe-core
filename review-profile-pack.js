@@ -2,6 +2,7 @@
 
 const packsDocument = require('./quality/profile-packs.json');
 const { REVIEW_PROFILES, resolveReviewProfile } = require('./quality-platform');
+const { resolveReviewModePlan } = require('./model-routing');
 
 const PROFILE_PACK_VERSION = 1;
 const PROFILE_PACK_NAMES = Object.freeze(Object.keys(packsDocument.packs || {}));
@@ -38,12 +39,31 @@ function resolveReviewProfilePack(name = 'general', overrides = {}) {
   });
 }
 
+function resolveReviewModeProfile(mode = 'balanced', packName = 'general', overrides = {}) {
+  const key = PROFILE_PACK_NAMES.includes(String(packName)) ? String(packName) : 'general';
+  const pack = REVIEW_PROFILE_PACKS[key];
+  const plan = resolveReviewModePlan(mode, overrides);
+  return freeze({
+    ...plan,
+    name: plan.mode,
+    packVersion: PROFILE_PACK_VERSION,
+    packName: pack.name,
+    legacyBaseProfile: pack.baseProfile,
+    focusCategories: pack.focusCategories,
+    checks: pack.checks,
+    analyzerMode: overrides.analyzerMode || 'advisory'
+  });
+}
+
 function formatProfilePackEvidence(profile) {
   if (!profile?.packName || !Array.isArray(profile.checks)) return '';
+  const execution = profile.mode
+    ? `Mode: ${profile.mode}`
+    : `Base profile: ${profile.baseProfile || profile.name || 'standard'}`;
   return [
     '--- TRUSTED REVIEW PROFILE PACK ---',
     `Pack: ${profile.packName} v${profile.packVersion || PROFILE_PACK_VERSION}`,
-    `Base profile: ${profile.baseProfile || profile.name || 'standard'}`,
+    execution,
     `Focus categories: ${(profile.focusCategories || []).join(', ')}`,
     'Required review emphasis:',
     ...profile.checks.map(check => `- ${check}`),
@@ -51,4 +71,11 @@ function formatProfilePackEvidence(profile) {
   ].join('\n');
 }
 
-module.exports = Object.freeze({ PROFILE_PACK_VERSION, PROFILE_PACK_NAMES, REVIEW_PROFILE_PACKS, resolveReviewProfilePack, formatProfilePackEvidence });
+module.exports = Object.freeze({
+  PROFILE_PACK_VERSION,
+  PROFILE_PACK_NAMES,
+  REVIEW_PROFILE_PACKS,
+  resolveReviewProfilePack,
+  resolveReviewModeProfile,
+  formatProfilePackEvidence
+});

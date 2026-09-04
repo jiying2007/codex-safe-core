@@ -5,6 +5,8 @@
     "forbidRuntimeDependencies": true,
     "forbidBranchTrackingSubmodule": true,
     "forbidRepositoryDefinedAnalyzerCommands": true,
+    "forbidRepositoryModelSelection": true,
+    "forbidConcreteModelIdsInCoreRouting": true,
     "forbidImplicitNetworkRetrieval": true
   },
   "family": {
@@ -15,6 +17,7 @@
     "forbidModelAutoCommitPushMerge": true,
     "forbidSelfTrainingFromFeedback": true,
     "forbidPrMrNarrativeGenerator": true,
+    "changeDefaultModelCalls": 0,
     "singleFamilyManifest": true
   },
   "reviewService": {
