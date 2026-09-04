@@ -7,8 +7,9 @@ const contract = require('../core-contract.json');
 const { renderCurrentContractBlock } = require('./current-contract-block');
 
 const root = path.resolve(__dirname, '..');
-const architecture = fs.readFileSync(path.join(root, 'ARCHITECTURE.md'), 'utf8');
-const expected = renderCurrentContractBlock(contract);
+const normalizeText = value => String(value).replace(/\r\n/g, '\n');
+const architecture = normalizeText(fs.readFileSync(path.join(root, 'ARCHITECTURE.md'), 'utf8'));
+const expected = normalizeText(renderCurrentContractBlock(contract));
 const start = '<!-- GENERATED:CORE-CONTRACT:START -->';
 const end = '<!-- GENERATED:CORE-CONTRACT:END -->';
 const startIndex = architecture.indexOf(start);
@@ -38,7 +39,7 @@ const facts = [
   ['Product Contract', contract.productContractVersion]
 ];
 for (const relative of currentFiles) {
-  const text = fs.readFileSync(path.join(root, relative), 'utf8');
+  const text = normalizeText(fs.readFileSync(path.join(root, relative), 'utf8'));
   for (const [label, version] of facts) {
     const pattern = new RegExp(`${label.replace(' ', '\\s+')}\\s+v(\\d+)`, 'gi');
     let match;
