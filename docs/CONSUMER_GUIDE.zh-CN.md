@@ -4,77 +4,89 @@ Codex Safe Core 只由活跃的 Codex Safe Family 产品消费，不是独立 CL
 
 ## 唯一支持的消费模型
 
-每个活跃产品都通过 `src/codex-safe-core` Git submodule 固定到一个明确 Core commit：
+每个活跃产品都通过 `src/codex-safe-core` Git submodule 固定到一个**正式发布的精确 Core commit**：
 
 ```bash
 git submodule update --init --recursive
 git -C src/codex-safe-core rev-parse HEAD
 ```
 
-禁止 branch tracking、复制 runtime、npm runtime dependency 或兼容代理。
+禁止 branch tracking、复制 Runtime、npm Runtime dependency 或兼容代理。
 
-当前机器契约由 `core-contract.json` 管理：**Safe Core v4 / Safe Contract v2 / Policy Schema v4 / Review Receipt v5 / Commit Receipt v4 / Diagnosis Receipt v2 / Review、Commit、Diagnose Prompt Contract v1 / Codex Runtime v3 / Provider Contract v3**。Consumer 只支持 Node 22 >=22.22.2 <23 或 Node 24 >=24.19.0 <25。
+当前机器契约由 `core-contract.json` 管理：**Safe Core v4 / Safe Contract v2 / Policy Schema v4 / Review Receipt v5 / Commit Receipt v4 / Diagnosis Receipt v2 / Runtime v3 / Provider Contract v3 / Model Routing v1 / Family Snapshot v3 / Family Manifest v5 / Product Contract v2 / Consumer CI Receipt v1**。Consumer 只支持 Node 22 >=22.22.2 <23 或 Node 24 >=24.19.0 <25。
 
 当前五个活跃 Consumer 是 **Codex Change Safe、Codex Review Safe、Codex Commit Safe、Codex Review Service、Codex Diagnose Safe**。Codex PR Safe 仅作为旧的模型生成 PR 描述身份退役；Change Safe 是独立的确定性交付产品，不恢复旧 Narrative Generator。
 
 ## Repository Policy Schema v4
 
-仓库策略唯一入口是 committed `.codex-safe.json`，必须使用 `schemaVersion: 4`。Core 统一拥有解析、闭合字段/类型校验和 Policy fingerprint。
+仓库策略唯一入口是 committed `.codex-safe.json`，必须使用 `schemaVersion: 4`。Core 统一拥有解析、闭合字段/类型校验和 Policy fingerprint。支持 `review`、`commit`、`change`、`reviewService`；原 `pr` section 继续拒绝。Diagnose 因 CI Diagnosis 使用不同执行表面，不进入 Repository Policy。
 
-支持的 section 为：
+Consumer 必须调用 Core Policy API，不能再定义第二套 JSON Schema/parser。产品可以解释经过校验的 Rule，但不能重定义字段类型，也不能接受旧 Schema。
 
-- `review`：Review Safe；
-- `commit`：Commit Safe；
-- `change`：Change Safe 的确定性交付要求；
-- `reviewService`：Review Service。
+## Runtime 与 Governance 身份
 
-原 `pr` section 继续拒绝。`change` 不是兼容别名，不包含模型 prompt/narrative 配置。Diagnose 仍不进入 Repository Policy，因为 CI Diagnosis 属于不同执行表面。
+Core Digest Contract v1 为每个 immutable Core Release 发布两个独立 Digest：
 
-Consumer 必须调用 Core Policy API，不能再定义第二套 JSON Schema/parser。产品可以解释经过校验的 rules，但不能重定义字段类型，也不能接受旧 schema。
+- `runtimeDigest`：Consumer 实际携带的 Runtime Module、Policy Schema 与 runtime-relevant contract fields；
+- `governanceDigest`：Workflow、Test、Quality Corpus、Docs、Release/Orchestration 等治理身份。
+
+每个 Consumer 仍固定一个精确 released Core SHA。只有该 pin 的 `runtimeDigest` 与最新 released Core 完全相同，才允许保持旧 Core SHA；这是密码学上的 Runtime Identity，不是 Compatibility Shim。`runtimeDigest` 不同必须 Product Repin + Patch Release。
+
+Product Contract v2 绑定 `safeCoreCommit`、`safeCoreRuntimeDigest` 与 `safeCoreGovernanceDigest`。因此纯 Governance Core Release 不再强制五个字节完全相同的 VSIX/OCI/tgz 重新构建与分发。
 
 ## 协调升级 Core
 
-1. 合并并正式发布经过审核的 Core 变更，记录精确 SHA。
-2. Change、Review、Commit、Review Service、Diagnose 同步 repin 到该 SHA。
-3. 所有绑定 Core SHA、Policy Schema 的机器门禁、schema/provenance URL、Product Contract 同步更新。
-4. 运行五个活跃 Consumer 各自完整 CI，包括 Change Safe Provider / Extension Host 门禁。
-5. 全部通过后再合并 Consumer。
-6. 最后运行 Family Compatibility，确认所有活跃 Consumer 与 canonical Core HEAD 一致。
-7. 要求 `FAMILY_MANIFEST.json` 中五个活跃 Consumer 都精确 pin 同一 Core SHA，并保留 GitHub provenance attestation。
+1. 合并并正式发布经过审核的 Core，验证精确 SHA 和 `CORE_DIGESTS.json`。
+2. 比较最新 `runtimeDigest` 与五个 Consumer 实际 pinned released Core。
+3. 只为 Runtime 改变的 Consumer 创建 Repin PR；Runtime-equivalent Consumer 记录为 skipped。
+4. 所有准备好的 PR 必须先完成完整产品 CI，任何一个未绿都不允许进入 Merge Phase。
+5. 冻结全部 PR Head SHA，再只合并这一组已验证 Head。
+6. 每个发生 Runtime Repin 的 Consumer 发布 exact immutable Product Release、所需 Distribution Evidence 与 `CONSUMER_CI_RECEIPT.json`。
+7. Family Freshness 校验 Runtime Compatibility、Release/Distribution、CI Receipt；Manifest 过期时再触发 Family Compatibility。
 
-即使只是 governance-only Core 变化，gitlink 仍是 Family Trust Root 锁。
+该两阶段事务避免“前几个已合并、后一个失败”被误认为完成。Consumer 的精确 gitlink 仍是审计锁；只是纯 Governance Core 更新在 Runtime Identity 不变时无需移动该锁。
+
+## Consumer CI Receipt v1
+
+每个活跃 Consumer Release 必须携带 attested `CONSUMER_CI_RECEIPT.json`，绑定 Product ID/Version/SHA、exact Core pin/digests、成功 CI Run ID/Attempt 和已验证 Suite Identity。Family Readiness 校验这个 immutable receipt，而不是只依赖瞬时绿勾。
+
+Receipt 不授予新 Authority，也不替代真实 CI；它只是“该 Released Product SHA 已通过声明 Gate”的长期证据。
+
+## Family Evidence
+
+Atomic Family Snapshot v3 冻结最新 exact immutable Core Release 与两个 Core Digest，同时冻结每个 exact Consumer Product Release、其实际 pinned Core SHA/digests、Consumer CI Receipt 与所需 Distribution Evidence。
+
+Family Manifest v5 记录 Snapshot、Product Contract/package-lock Digest、Protocol/Runtime Identity 与 Distribution Evidence，然后执行 GitHub build-provenance attestation，并按 digest-addressed immutable Release 发布。
+
+普通 Family Compatibility 直接消费 immutable Consumer CI Receipt，只运行一次 Ubuntu cross-family validation；完整 5 Consumer × Linux/Windows/macOS 矩阵保留为每周/手动 `full_matrix=true` 审计，消除重复 Product CI，但不降低 Product Release Gate。
 
 ## 职责边界
 
-`core-ownership-manifest.json` 记录 Core-owned primitive。Consumer 必须消费这些实现，不能自行声明独立的 Process/Codex/Policy/Receipt/Review-Evidence/Profile/Test-Impact/Diagnosis 原语。Family Compatibility 在接受 manifest 前会运行 ownership boundary linter。
+`core-ownership-manifest.json` 记录 Core-owned Primitive。Consumer 必须消费这些实现，不能自行声明独立的 Process/Codex/Policy/Receipt/Review-Evidence/Profile/Test-Impact/Diagnosis/Model-Routing 原语。Family Compatibility 在接受 Manifest 前运行 Ownership Boundary Linter。
 
-SCM Provider adapter、Pipeline/Job API、Analyzer Artifact 获取与解析编排、SQLite/outbox、通知、部署、Diagnosis 发布、增量审核持久状态与产品领域 orchestration 继续属于对应产品。
+SCM Provider Adapter、Pipeline/Job API、Analyzer Artifact 获取与编排、SQLite/outbox、通知、部署、Diagnosis 发布、增量审核状态与产品领域 Orchestration 继续属于对应产品。
 
-模型生成 PR/MR Narrative 仍是明确非目标。SCM 侧 PR/MR 交付授权由 Codex Change Safe 拥有，并保持在 Core runtime 边界之外；只有其 Repository Policy schema/validation 由 Core 统一拥有。
+模型生成 PR/MR Narrative 仍是明确非目标。SCM 侧 PR/MR 交付授权由 Codex Change Safe 拥有；只有其 Repository Policy Schema/Validation 由 Core 统一拥有。
 
 ## Codex Runtime / Provider Contract v3
 
-Core 统一拥有全产品族 Codex Runtime Contract，同时保持 Safe Contract v2 不变。只支持 `openai` 与显式 `openai-compatible` 两种 Provider 模式。
+Core 统一拥有全产品族 Codex Runtime Contract，同时保持 Safe Contract v2 不变。Compatible Provider 通过机器所有的 `credentialSource=auto|env|auth-json` 获取凭据；Secret 只注入 Codex 子进程环境，不进入 argv、Settings、Receipt 或诊断日志。
 
-兼容 Provider 支持 `credentialSource=auto|env|auth-json`。`auto` 优先读取配置的 API Key 环境变量；环境变量不存在时，读取 `${CODEX_HOME}/auth.json` 或 `~/.codex/auth.json`。`auth.json` 只接受 API Key 身份：`auth_mode=apikey` 且存在非空 `OPENAI_API_KEY`；不会把 ChatGPT/session token 当作中转站凭据。解析出的 Secret 仅注入 Codex 子进程环境，不进入 argv、产品 Settings、Receipt 或诊断日志。
+Consumer 默认解析顺序：产品显式 Override → Family Runtime → 用户 Codex Config → 内置 OpenAI。仓库内 Codex Config 不参与 Provider Routing。HTTPS 为首选；私网明文继承必须机器所有、明确可见且有界。Change Safe 默认模型调用为 0。
 
-HTTPS 继续作为默认 Transport。Loopback HTTP 可用于本机开发；非 Loopback HTTP 仅在产品/机器 Runtime 显式设置 `allowInsecureHttp=true` 时允许，Repository Policy 无权开启。URL 中的 credentials、query、fragment 继续拒绝。兼容 Provider 继续强制 Responses HTTP/SSE 与 Structured Output，并关闭 WebSocket。
+## Model Routing、Token 与质量契约
 
-Change Safe 默认模型调用为 0；它只消费确定性的 Core primitive，不获得 Codex Runtime Authority。
+Core 统一拥有 Model Routing Contract v1、Machine Registry Validation、canonical `registryDigest` / `routingPolicyDigest`、Token Usage 归一、Request Estimate、Risk-aware Budget、Calibration、Reservation、Profile Pack、Test Impact 与 Quality/Economics Eval。
 
-## Token、效率与质量契约
-
-Core 统一拥有 Token usage 归一、request estimate、risk-aware budget、model routing、reservation、Impact Evidence、Analyzer Finding 归一、Profile Pack、Test Impact 与质量评估。产品只拥有 Evidence Acquisition 与执行策略。
-
-效率必须服从正确性：只要预算导致证据遗漏，就必须显式降级 coverage；不得为了省 Token 把 incomplete 结果包装为成功质量结论。
+效率必须服从正确性：预算导致的 Evidence 缺口必须显式暴露。Model Promotion 必须基于真实 Corpus Result 并满足最小样本数；历史 Recorded Baseline 不再被解释为“模型普遍 100%”。
 
 ## Diagnosis Contract / Receipt v2
 
-Codex Diagnose Safe 在自身 trust boundary 获取 CI/job evidence，再把 failure log 交给 Core。模型输出必须经过 Core schema/normalization 后才可创建 Diagnosis Receipt v2。Pipeline log 是不可信 Evidence，Core 与 Diagnose 都不会执行日志里的指令。
+Codex Diagnose Safe 在自身 Trust Boundary 获取 CI/Job Evidence，再把 Failure Log 交给 Core。模型输出必须经过 Core Schema/Normalization 后才可创建 Diagnosis Receipt v2。Pipeline Log 是不可信 Evidence，Core 与 Diagnose 都不会执行日志里的指令。
 
-## Safe Contract 身份
+## Repository Governance
 
-Safe Contract v2 暴露 `SAFE_CONTRACT_MANIFEST` 与 SHA-256 `SAFE_CONTRACT_DIGEST`。Digest 代表精确 Authority/Capability Manifest，不替代语义协议版本。Review Receipt v5、Commit Receipt v4 与 Diagnosis Receipt v2 继续独立版本化。
+`repository-governance-contract.json` 定义六个 Family Repository 的服务器侧 Ruleset Baseline。仓库内测试不能替代 GitHub 服务器控制。管理员安装 Ruleset 后，运行 `npm run check:repository-governance` 或定时 Repository Governance Workflow 验证。
 
 ## 验证
 
@@ -84,7 +96,6 @@ Safe Contract v2 暴露 `SAFE_CONTRACT_MANIFEST` 与 SHA-256 `SAFE_CONTRACT_DIGE
 npm run ci
 ```
 
-Core CI 覆盖 contract/runtime identity、Policy Schema v4、Provider Contract v3 Credential/Transport safety、确定性 Review Rules、adversarial fixtures、Quality/Profile/Test-Impact/Diagnosis primitive、golden behavior、成本规划、性能预算与供应链门禁。Family Compatibility 还会验证五个活跃 Consumer 的精确 Core pin、ownership boundary 和完整 CI，再生成带 attestation 的 Family Manifest。
+Core CI 覆盖 Contract/Runtime Identity、Policy Schema v4、Provider Contract v3 Credential/Transport Safety、确定性 Review Rule、Adversarial Fixture、Promotion Corpus 结构、Quality/Profile/Test-Impact/Diagnosis Primitive、Model Routing/Economics、Digest Classification、性能预算与供应链门禁。
 
-
-Runtime Contract v3 允许所有 Consumer 共享机器级 `~/.codex-safe/runtime.json`，因此 Review、Commit、Diagnose 与 Review Service 不需要重复录入同一个中转站地址。该文件只保存非 Secret Runtime 元数据；API Key 仍来自环境变量或 Codex `auth.json`。
+Runtime Contract v3 允许 Review、Commit、Diagnose 与 Review Service 共享机器级 `~/.codex-safe/runtime.json`；该文件不保存 Secret，API Key 仍来自环境变量或 Codex `auth.json`。

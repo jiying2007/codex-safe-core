@@ -6,6 +6,7 @@ module.exports = Object.freeze({
   ...require('./codex-runtime'),
   ...require('./codex-runtime-resolver'),
   ...require('./model-registry-resolver'),
+  ...require('./secure-local-file'),
   ...require('./process-runner'),
   ...require('./codex-jsonl-stream'),
   ...require('./codex-cli'),

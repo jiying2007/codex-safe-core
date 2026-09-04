@@ -2,137 +2,134 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-Codex Safe Core is the **single canonical safety/runtime and protocol core** for the Codex Safe family. It is an internal family component, not a standalone end-user application.
+Codex Safe Core is the **single canonical safety/runtime and protocol core** for the Codex Safe Family. It is an internal family component, **not a standalone end-user application**.
 
 | Product | User-facing role |
 | --- | --- |
 | [Codex Review Safe](https://github.com/jiying2007/codex-review) | Review staged changes in VS Code |
 | [Codex Commit Safe](https://github.com/jiying2007/codex-commit) | Generate validated Conventional Commit messages |
-| [Codex Change Safe](https://github.com/jiying2007/codex-pr) | Developer-side GitHub/GitLab delivery authorization, merge readiness and Change Receipt v1 |
-| [Codex Review Service](https://github.com/jiying2007/codex-review-service) | Self-hosted GitLab Self-Managed MR review, publication, gate and audit |
-| [Codex Diagnose Safe](https://github.com/jiying2007/codex-diagnose) | CI/build/test failure root-cause diagnosis with bounded evidence and Diagnosis Receipt v2 |
+| [Codex Change Safe](https://github.com/jiying2007/codex-pr) | GitHub/GitLab delivery authorization and merge readiness |
+| [Codex Review Service](https://github.com/jiying2007/codex-review-service) | Server-side GitLab MR review, publication, gating and audit |
+| [Codex Diagnose Safe](https://github.com/jiying2007/codex-diagnose) | Bounded CI/build/test failure diagnosis with Diagnosis Receipt v2 |
 
-**Codex PR Safe is retired.** Its former model-generated PR-description identity is not restored. **Codex Change Safe** is the deterministic successor delivery product: it authorizes and orchestrates GitHub/GitLab PR/MR delivery with zero model calls by default.
+**Codex PR Safe is retired.** The former model-generated PR-description product is not restored. **Codex Change Safe** is the deterministic successor and uses **zero model calls** by default.
 
-## Family SCM primary UI contract
+## Current machine contract
 
-For VS Code Source Control title actions, the canonical primary sequence is **Review → Commit → Change**. Each product owns exactly one primary SCM title command: Review at `navigation@5`, Commit at `navigation@6`, and Change at `navigation@7`. Independent Review and Delivery Preflight remain secondary actions and must not occupy the primary SCM toolbar. The machine source is `family-ui-contract.json`.
+`core-contract.json` is the single current-state source of truth:
 
-Current protocol line: **Safe Core v4 / Safe Contract v2 / Policy Schema v4 / Review Receipt v5 / Commit Receipt v4 / Diagnosis Receipt v2 / Codex Runtime v3 / Provider Contract v3 / Review, Commit & Diagnose Prompt Contracts v1**. `core-contract.json` is the machine-checked source of current Core/protocol/runtime identity.
+- Safe Core v4 / Safe Contract v2 / Policy Schema v4;
+- Review Receipt v5 / Commit Receipt v4 / Diagnosis Receipt v2;
+- Review, Commit and Diagnose Prompt Contract v1;
+- Codex Runtime v3 / Provider Contract v3;
+- Model Routing / Registry / Lineage / Economics v1;
+- Family Snapshot v3 / Family Manifest v5 / Product Contract v2;
+- Consumer CI Receipt v1 / Core Digest Contract v1 / Repository Governance Contract v1;
+- Node 22 >=22.22.2 <23 or Node 24 >=24.19.0 <25.
 
-## Which repository should I use?
-
-Use Codex Review Safe for developer-side pre-commit review, Codex Commit Safe for commit-message generation, Codex Change Safe for developer-side PR/MR delivery authorization, Codex Review Service for server-side GitLab MR review, and Codex Diagnose Safe for failed CI/build/test diagnosis. Clone this repository directly only when developing the family itself or updating the exact Core pin consumed by those products.
-
-See [Consumer Guide](docs/CONSUMER_GUIDE.md) for the supported consumption model and [SUPPORT.md](SUPPORT.md) for troubleshooting/reporting boundaries.
+Breaking safety/runtime changes require a coordinated hard switch. Permanent compatibility shims are not supported.
 
 ## Consumption model
 
-All five active consumers pin this repository as a Git submodule at `src/codex-safe-core`. The gitlink is the version lock; there is no copied runtime, branch-following mode, npm runtime dependency or compatibility proxy.
+Every active consumer pins one **exact formally released Core commit** as `src/codex-safe-core`:
 
 ```bash
 git submodule update --init --recursive
-npm run ci
+git -C src/codex-safe-core rev-parse HEAD
 ```
 
-A Core change is not complete until all five active consumers are coordinated-repinned to the exact reviewed, formally released Core commit and pass their own CI.
+There is no branch-following mode, copied runtime, npm runtime dependency or compatibility proxy.
 
-## Machine-verifiable Trust Root identity
+## Runtime / governance identity
 
-`core-contract.json` owns current versions and supported runtimes. `safe-contract.js` derives its protocol constants from this file and exports a closed `SAFE_CONTRACT_MANIFEST` plus `SAFE_CONTRACT_DIGEST` (SHA-256). The digest identifies the exact authority/capability surface without silently changing Safe Contract v2 semantics or any independently versioned Receipt schema.
+Core Digest Contract v1 separates two cryptographic identities:
 
-Current native runtime support is explicit rather than open-ended:
+- `runtimeDigest` covers runtime modules, `codex-safe.schema.json` and runtime-relevant machine-contract fields;
+- `governanceDigest` covers workflows, tests, quality corpora, docs and release/orchestration governance.
 
-- Node 22 LTS: **>=22.22.2 <23**
-- Node 24 LTS: **>=24.19.0 <25**
+A consumer always retains an exact Core SHA pin. It is runtime-compatible with a newer released Core only when the two formally released Core identities have the same `runtimeDigest`. A different runtime digest is stale and requires a consumer patch release. This avoids rebuilding byte-identical products for governance-only Core releases without weakening exact-pin auditability.
 
-CI validates both exact floors on Linux, Windows and macOS. Untested odd/future Node majors are not implicitly supported.
-
-## Ownership
-
-Core owns Codex capability probing/invocation, process lifecycle, generic Git primitives, Semantic Context, coverage-preserving Review Evidence Chunking, **Policy Schema v4**, deterministic review rules, fingerprints and Receipt validation/provenance. Core 4.x also owns Runtime/Provider Contract v3 credential and transport resolution, versioned Review Profile Packs, deterministic Test Impact selection, pure Diagnosis Contract/Receipt primitives, bounded token-estimator calibration, Review/Diagnose quality evaluation, Atomic Family Snapshot v1, Family Manifest v3, Product Contract v1 validation and immutable released-Core pin validation. `core-ownership-manifest.json` records this boundary.
-
-Product domains remain product-owned. Change Safe owns SCM provider adapters, source/target topology, native SCM policy discovery, PR/MR mutations, merge readiness and Delivery Authorization. Review Service owns webhook/queue/publication/audit. Diagnose owns CI evidence acquisition and diagnosis orchestration. Core never performs provider side effects.
-
-Model-generated PR/MR narrative remains a non-goal. Change Safe is deterministic delivery authorization, not a revival of the retired PR narrative generator.
-
-## Safe Contract v2
-
-Required capabilities include `--ask-for-approval never`, `exec --json`, ephemeral execution, ignored user/repository Codex rules, read-only sandbox, Structured Output and explicit disabling of shell/unified execution, web search, apps, multi-agent, plugins, hooks, goals, memories and dependency installation. Missing capabilities fail closed; there is no legacy CLI fallback.
-
-The daily Codex CLI Canary checks the latest upstream CLI on Linux/Windows/macOS and records the Safe Contract digest. When protected OpenAI credentials are configured, a live behavioral canary additionally attempts forbidden filesystem and loopback-network side effects and fails if either succeeds. A permanent adversarial corpus verifies that untrusted repository/model text cannot mutate Safe Contract argv.
+Product Contract v2 binds `safeCoreCommit`, `safeCoreRuntimeDigest` and `safeCoreGovernanceDigest`.
 
 ## Runtime / Provider Contract v3
 
-`openai-compatible` consumers may resolve a relay API key from the configured environment variable or directly from `${CODEX_HOME}/auth.json` / `~/.codex/auth.json`. `credentialSource=auto` prefers the environment and falls back to `auth.json`; only `auth_mode=apikey` with `OPENAI_API_KEY` is accepted. Secrets are injected only into the child Codex environment and are never placed in argv, settings, receipts or diagnostics.
+Review, Commit, Diagnose and Review Service can share machine-scoped `~/.codex-safe/runtime.json`. Resolution is product override → Family Runtime → user Codex config → built-in OpenAI. Repository-local Codex configuration is never inherited for provider routing.
 
-Consumers default to zero-config machine runtime resolution: explicit product override → `~/.codex-safe/runtime.json` / `CODEX_SAFE_RUNTIME_FILE` → `${CODEX_HOME}/config.toml` / `~/.codex/config.toml` → built-in OpenAI. Repository-local `.codex/config.toml` is never inherited for provider routing. HTTPS remains preferred; machine-configured literal private-IP HTTP is inherited with a plaintext warning, while public/non-IP HTTP remains fail-closed unless explicitly trusted by the machine-scoped Family Runtime profile. Compatible providers continue to use Responses HTTP/SSE with Structured Output and WebSockets disabled.
+Compatible providers use secret-by-reference `credentialSource=auto|env|auth-json`; secrets are injected only into the child Codex environment and never appear in argv, settings, receipts or diagnostics. HTTPS is preferred. Machine-owned private-network HTTP can be inherited only under the bounded transport contract and remains visibly marked as plaintext.
 
 ## Policy Schema v4
 
-The only repository policy is committed `.codex-safe.json`. Policy Schema v4 is a hard cut: older schema versions are rejected rather than silently migrated.
+The only repository policy is committed `.codex-safe.json` with closed sections:
 
-The closed top-level sections are:
+- `review` — Review Safe;
+- `commit` — Commit Safe;
+- `change` — deterministic Change Safe delivery requirements;
+- `reviewService` — Review Service.
 
-- `review` — Codex Review Safe policy;
-- `commit` — Codex Commit Safe policy;
-- `change` — Codex Change Safe delivery requirements;
-- `reviewService` — Codex Review Service repository policy.
+The retired `pr` prompt/narrative surface remains rejected. Change Safe does not regain model-generated PR/MR narrative.
 
-The old `pr` policy/prompt surface remains rejected. The new `change` section is not a compatibility alias for it: it contains deterministic delivery requirements such as required checks/approvals, provenance requirements and safety booleans, and never model narrative instructions.
+## Model Routing and token efficiency
 
-All products consume their section through the same Core parser/validator and the same committed policy fingerprint. Local Change Safe settings may only tighten the committed `change` policy; SCM-native requirements are unioned later in the Change product and cannot be weakened locally.
+Model Routing Contract v1 uses stable `fast` / `balanced` / `deep` execution intent and `scout` / `reviewer` / `adjudicator` authority roles. Concrete model generations remain machine/admin Registry data, not repository policy.
 
-Diagnose continues to use separate product configuration because CI diagnosis is not a repository delivery/review policy surface.
+Automatic routing selects only approved eligible models. Model Evidence binds canonical `registryDigest` and `routingPolicyDigest`, resolved provider/model/revision, qualification identity, fallback/degradation state and normalized usage. Cross-provider fallback is disabled unless explicitly machine/admin enabled.
 
-## Core 4.13 Quality Platform v3
+Token Estimator Calibration stores only numeric provider/model observations. Per-model `lastObservedAtMs` drives TTL, and machine files use bounded no-follow reads, owner/permission validation, lock/merge-on-write and atomic mode-0600 replacement. Prompts, source, findings, judgments and credentials are never calibration data.
 
-The existing `quick`, `standard`, `deep`, `security`, and `embedded` execution profiles remain stable. Profile Pack v1 provides versioned engineering packs for `general`, `backend`, `frontend`, `security`, `cpp`, `embedded-linux`, `embedded-mcu`, `driver`, `kernel`, and `realtime`. Test Impact v1 ranks controller-provided test candidates from changed paths and semantic evidence without executing tests. Diagnosis Contract v1 remains stable. Quality Platform v3 adds labeled Review and Diagnose regression corpora, including clean negative/cascade cases and explicit cost/accuracy gates. Token Calibration v1 can improve preflight estimates from actual usage without weakening fail-closed budgets.
+Model Economics is quality-constrained and segmented by mode, role, provider, model, Profile Pack and repository-size bucket. Promotion requires real corpus results plus minimum total/critical sample counts. The historical recorded baseline is regression evidence, not a claim of universal 100% model quality.
 
-## Receipt provenance
+## Judgment and evidence boundary
 
-Review Receipt v5 and Commit Receipt v4 are independently versioned closed contracts. Change Receipt v1 remains owned by Change Safe and binds a deterministic delivery snapshot to remote change identity. Diagnosis Receipt v2 binds project/pipeline/job/commit identity and the full Diagnosis Input Manifest, including exact model-visible evidence identity. Receipts are workflow provenance, never human approval, build evidence or test evidence by themselves.
+AI output is untrusted data. Git identity, Policy evaluation, Receipt validation, coverage/readiness gates, Review Evidence Manifest identity, model-routing evidence, Family snapshots and release authorization remain deterministic.
 
-Core Trust Root governance does not silently add fields to a Receipt schema. Safe Contract/execution/runtime identities remain separately versioned machine identities unless a Receipt version explicitly adopts them.
+Structural Review Evidence may be cached. Persisted model judgment cannot be reused as a new judgment. Only fresh inference creates a Review Receipt; bounded result replay never creates fresh provenance.
 
-## Deterministic boundary
+## Family evidence and release flow
 
-Git evidence identity, policy evaluation, Receipt validation, coverage/readiness/mechanical gates, severity/confidence filtering, stale-publication rejection, Profile Pack resolution, Test Impact ranking, diagnosis evidence digests, quality metrics, Family snapshot identity and manifest identity are deterministic. Model wording/findings/diagnoses are non-deterministic inputs and cannot bypass schema validation, evidence binding or deterministic gates.
+Family Registry v1 defines the active topology. Family Snapshot v3 freezes:
 
-## Family governance
+- the newest exact immutable Core Release and both Core digests;
+- each exact consumer release;
+- each consumer's actual exact pinned Core SHA/digests;
+- its Consumer CI Receipt v1;
+- required Marketplace/GHCR/GitHub Release distribution evidence.
 
-- **Atomic Family Compatibility:** weekly/manual Linux + Windows + macOS validation freezes one exact Core/consumer snapshot, then every platform checks out the same snapshot, verifies the five exact released Core pins, checks consumers for Core-owned primitive reimplementation, and runs every active consumer CI.
-- **Family Manifest v3 Attestation:** the manifest job consumes the same frozen snapshot and records exact Core/consumer SHAs, Product Contract digests, Core Contract digest, the complete versioned protocol map/fingerprint, runtime identity and a manifest digest before GitHub build provenance and immutable digest-addressed publication.
-- **Released Core gate:** active consumers may pin only a Core SHA that is the exact target of a final, immutable `vX.Y.Z` Core Release.
-- **Codex CLI Canary:** daily/manual capability validation against the latest upstream CLI, with credential-backed live negative behavior testing when configured.
-- **Adversarial corpus:** prompt-injection/tool-escalation samples permanently protect the deterministic Safe Contract boundary.
-- **Performance and quality budgets:** broad performance gates catch catastrophic regressions while labeled Review/Diagnose corpora catch accuracy, false-positive, calibration and token-cost regressions.
-- **OpenSSF Scorecard:** recurring security-regression signal.
-- **Release supply chain:** trusted reusable publication workflow, explicit Node 22/24 release tests, reproducible npm package gate, immutable tags/assets, SHA-256, SPDX SBOM and GitHub build-provenance attestation.
+Family Manifest v5 binds that snapshot, Product Contract/package-lock digests, protocol/runtime identity and distribution evidence, then receives GitHub build-provenance attestation and immutable digest-addressed publication.
 
-## Development
+Routine Family Compatibility trusts immutable Consumer CI Receipts and runs one Ubuntu cross-family validation. The complete five-consumer × Linux/Windows/macOS matrix remains a weekly or explicit `full_matrix=true` audit.
+
+Runtime-changing Core upgrades use a two-phase transaction: prepare all required consumer PRs and wait for every CI gate before any merge; then freeze PR heads and merge only that validated set. Runtime-equivalent consumers are recorded as skipped. Release, distribution and CI-receipt evidence must converge before Family Freshness can complete.
+
+## Family SCM UI
+
+The canonical VS Code SCM primary sequence is **Review → Commit → Change**. `family-ui-contract.json` is the machine source for the primary toolbar contract.
+
+## Repository governance
+
+`repository-governance-contract.json` defines the server-side GitHub Ruleset baseline for all six Family repositories: PR-based changes, strict required checks, review requirements, deletion/non-fast-forward protection and bounded bypass. `scripts/verify-repository-ruleset.js` audits the live GitHub state. Repository tests cannot substitute for server-side enforcement.
+
+## Supply chain
+
+Actions are full-SHA pinned. Trusted releases use supported Node floors, reproducible package checks, immutable tags/releases, SHA-256, SPDX SBOM and GitHub build-provenance attestation. Core Release additionally publishes attested `CORE_DIGESTS.json`; consumer releases publish attested `CONSUMER_CI_RECEIPT.json`.
+
+## Verification
 
 ```bash
-git submodule update --init --recursive
 npm run ci
 ```
 
-Use a supported Node 22/24 LTS range from `core-contract.json`.
+For live server-side repository governance verification:
 
-## Versioning
+```bash
+npm run check:repository-governance
+```
 
-Core major versions are implementation/protocol-family boundaries. Protocol numbers remain independent and change only when their semantics change. Policy Schema v4, Safe Contract v2, Review Receipt v5, Commit Receipt v4, Diagnosis Receipt v2, Codex Runtime v3 and Provider Contract v3 are independently versioned. Breaking policy/Core changes require a coordinated hard switch across active consumers; permanent compatibility shims are forbidden.
+See [ARCHITECTURE.md](ARCHITECTURE.md), [SECURITY.md](SECURITY.md), [Consumer Guide](docs/CONSUMER_GUIDE.md), [Quality Platform](docs/QUALITY_PLATFORM.md), and [GitHub Governance](docs/GITHUB_GOVERNANCE.md).
 
-## Security
+## User-visible time zone
 
-See [SECURITY.md](SECURITY.md), [ARCHITECTURE.md](ARCHITECTURE.md) and [VERIFY_RELEASE.md](VERIFY_RELEASE.md).
-
-The invariant is: **AI output is untrusted data and never gains authority to mutate Git, execute arbitrary commands, bypass safety capabilities, retry CI, or create provider side effects.**
+Machine-readable receipts/evidence stay canonical UTC. User-visible timestamps follow the runtime time zone or `CODEX_SAFE_DISPLAY_TIME_ZONE`. Display time never participates in fingerprints or evidence digests.
 
 ## License
 
 MIT
-
-## User-visible time zone
-
-Machine-readable receipts, evidence and persisted audit timestamps remain canonical UTC. User-visible timestamps use the runtime system time zone by default. When a server or container runs in UTC but operators need a business-local display, set `CODEX_SAFE_DISPLAY_TIME_ZONE` to an IANA zone such as `Asia/Singapore`, `Asia/Shanghai`, or `America/New_York`. The display time zone never participates in fingerprints, receipts or evidence digests.

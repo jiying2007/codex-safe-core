@@ -1,83 +1,86 @@
 # Quality Platform
 
-Codex Safe Core 4.15.0 / Quality Platform v3 keeps the shared deterministic quality platform stable while adding **Model Routing Contract v1** as an independently versioned model-selection/evidence contract. Policy Schema v4, Safe Contract v2, Receipt schemas and Provider Contract v3 remain unchanged. Product-owned GitHub/GitLab provider behavior, VS Code UI, pipeline APIs, databases, analyzer acquisition and notifications remain outside Core.
+Codex Safe Core 4.16.0 / Quality Platform v3 keeps the shared deterministic quality platform stable while completing Model Routing Contract v1, runtime/governance identity separation, Consumer CI Receipt v1 and the runtime-aware Family evidence chain. Safe Contract v2, Policy Schema v4, Runtime v3 and Provider Contract v3 remain the safety boundary.
 
 ## Runtime / Provider Contract v3
 
-Core owns compatible-provider credential, transport and machine-runtime resolution. Consumers should default to `provider.mode=auto`: Core first honors an explicit product override, then a machine-scoped Family Runtime profile at `~/.codex-safe/runtime.json` (or `CODEX_SAFE_RUNTIME_FILE`), then the user Codex configuration at `${CODEX_HOME}/config.toml` / `~/.codex/config.toml`, and finally the built-in OpenAI runtime. Repository-local `.codex/config.toml` is deliberately not used for provider inheritance, preventing repository content from redirecting machine credentials.
-
-For an inherited OpenAI-compatible provider, `credentialSource=auto|env|auth-json` remains secret-by-reference. `auto` prefers the provider's configured environment variable and otherwise follows the existing bounded `auth.json` path. Secrets are injected only into the child Codex process environment and never enter argv, settings, receipts, Family Runtime profiles or diagnostics.
-
-HTTPS remains preferred. Loopback and literal private-network HTTP endpoints configured in machine-owned Codex or Family Runtime state may be inherited with an explicit plaintext warning. Public/non-IP HTTP is still rejected unless explicitly trusted in the machine-scoped Family Runtime profile. Repository policy can never enable or trust insecure transport. Provider Contract v3 and Codex Runtime v3 continue to require Responses HTTP/SSE and structured output.
-
-Structured Codex execution now has an incremental JSONL consumer path. The process layer can stream bounded stdout chunks to Core while independently enforcing the total transcript ceiling and retained diagnostic tail. Core incrementally retains the latest structured agent message, usage and bounded error state instead of requiring the complete retained transcript for normal production parsing. Test doubles that do not expose the streaming hook retain the existing bounded-tail parser as a compatibility path; malformed streamed events and total-output overflow remain fail closed.
+Core owns compatible-provider credential, transport and machine-runtime resolution. Consumers default to `provider.mode=auto`, inheriting an explicit product override, machine Family Runtime at `~/.codex-safe/runtime.json`, user Codex configuration, then the built-in OpenAI runtime. Compatible providers keep `credentialSource=auto|env|auth-json`; secrets remain references and never enter repository policy or receipts. Repository-local provider configuration cannot redirect machine credentials. HTTPS is preferred; private-network HTTP inheritance remains machine-owned, visible and bounded. Structured Codex JSONL is streamed incrementally with independent retained-output and total-transcript ceilings.
 
 ## Model Routing Contract v1
 
-Model Routing Contract v1 separates stable product semantics from changing model generations.
+Model Routing Contract v1 separates stable product semantics from changing model generations:
 
-- **Mode** defines intent: `fast`, `balanced`, or `deep`.
-- **Role** defines model authority: `scout`, `reviewer`, or `adjudicator`.
-- **Model Class** is capability-oriented: `fast`, `balanced`, or `frontier`.
-- **Selection Strategy** is `auto`, `preference`, or `fixed`.
-- **Safe Gate is never a model role.** Deterministic policy, evidence, coverage, schema and provenance logic retain final authority.
+- **Mode:** `fast`, `balanced`, `deep`.
+- **Role:** `scout`, `reviewer`, `adjudicator`.
+- **Model Class:** `fast`, `balanced`, `frontier`.
+- **Selection Strategy:** `auto`, `preference`, `fixed`.
+- The deterministic Safe Gate is never a model role.
 
-Core contains no generation-specific model routing. Concrete provider/model identifiers live in machine/admin registry state and resolved execution evidence, not in repository policy. `auto` and `preference` select only approved, non-deprecated, non-unhealthy registry entries. Explicit `fixed` selection may be used for benchmark/debug and defaults to `warn` compatibility semantics so intentional mode/model mismatch is visible as degraded evidence rather than silently rewritten.
+`auto` and `preference` choose only approved, healthy-enough registry entries. Explicit `fixed` remains an advanced benchmark/debug control. Cross-provider fallback is disabled unless explicitly enabled. Qualification remains evidence-based; discovery alone never grants authority.
 
-Cross-provider fallback is disabled unless the caller explicitly enables it and may be further restricted by an allowlist. A private relay failure therefore cannot silently redirect repository evidence to another provider. Model unavailability returns `MODEL_UNAVAILABLE`; consumers may bypass an optional Scout, but a required Reviewer or triggered Adjudicator must fail closed rather than downgrade authority.
-
-The registry lifecycle is external/admin evidence (`discovered → compatible → qualified → shadow → canary → approved`, with health/deprecation tracked separately). Qualification is based on corpus evidence such as confirmed-finding recall, false-positive/false-negative rates, causal-anchor validity, structured-output validity, convergence, latency and token/cost efficiency. Discovery alone never makes a model eligible for `auto`.
-
-Every resolved call can emit Model Evidence containing mode, role, strategy, requested/resolved provider, resolved model/revision, model class, routing/registry revisions, qualification identity, lineage pin state, fallback/degradation flags and normalized token usage. Credentials, source, prompts and findings are never part of this routing evidence.
+Model Evidence now binds both human-readable revisions and canonical `registryDigest` / `routingPolicyDigest`. Resolved model/revision, Qualification identity, lineage, fallback/degradation and normalized token usage are recorded without credentials, prompts or source. Model Routing stays at v1: capability metadata and segmented economics are collected before any future change to the coarse `fast / balanced / frontier` classes.
 
 ## Token efficiency and calibration
 
-Core continues to normalize actual/cached/cache-write/output/reasoning token usage, estimate request cost, score evidence risk, allocate adaptive budgets and reserve project token capacity. Token Estimator Calibration can now restore a prior numeric snapshot. The optional calibration store persists only provider/model identity plus numeric calibration values with bounded TTL, entry count, atomic mode-0600 writes and symbolic-link rejection. It never persists prompts, source text, findings or model judgments.
+Token optimization is quality-constrained rather than token-minimal. Core measures actual/cached/cache-write/output/reasoning usage, tokens and cost per verified finding, coverage, false positives, verifier/scout/adjudicator call ratios and P50/P95 latency.
 
-The economic optimization target is quality-constrained efficiency rather than raw token minimization. Consumers should trend tokens per fresh review, cached-input ratio, tokens/cost per verified finding, coverage per token, verifier/adjudicator call ratio and P50/P95 latency alongside recall and false-positive gates. A cheaper route is not eligible for promotion when quality regression exceeds the approved corpus budget.
+Economics is segmented by `mode`, `role`, `provider`, `model`, `profilePack` and repository-size bucket. Promotion can require minimum total and critical-case sample counts before recall/false-positive constraints are evaluated.
+
+Token Estimator Calibration persists only numeric provider/model calibration. TTL is based on each model's actual `lastObservedAtMs`; unrelated writes cannot renew stale entries. The shared secure local-file primitive provides bounded no-follow reads, same-descriptor validation, owner/permission checks where supported, exclusive write locking, merge-on-write and atomic mode-0600 replacement.
+
+## Promotion corpus
+
+The historical 24-case recorded baseline remains an observed regression baseline; it is not reinterpreted as universal 100% model quality. Core 4.16 adds a deterministic promotion corpus of at least 80 cases across `dev`, `holdout` and `real-regression` partitions, including at least ten clean negatives and ten real Family regressions. It spans security, concurrency, resource, correctness and test findings; small/medium/large repositories; and the engineering profile packs.
+
+Promotion candidates must produce real evaluation results for that corpus. Core never fabricates recorded outputs for generated cases. Quality-constrained promotion rejects undersized samples even when their observed precision/recall is perfect.
 
 ## Judgment Lifecycle v1
 
-Core owns the Family-wide AI Judgment Lifecycle contract. ReviewSubject identity binds the code subject, diff, policy, Evidence Manifest, prompt contract, review profile and resolved model. A Review Receipt is emitted only for a fresh inference; replay never creates a new receipt. Consumers may cache deterministic structural evidence, but persisted model judgment may not be reused as a new judgment or verdict.
-
-Review Receipt v5 therefore requires both `reviewSubjectFingerprint` and `evidenceManifestDigest`. Delivery products qualify Review evidence from quality, coverage and mechanical gates; merge readiness remains a Change Safe responsibility.
+ReviewSubject identity binds code subject, diff, policy, Evidence Manifest, prompt contract, review profile and resolved model. Only fresh inference creates a Review Receipt. Structural Evidence may be cached; a persisted model judgment is never replayed as a new authoritative judgment. Review Receipt v5 requires `reviewSubjectFingerprint` and `evidenceManifestDigest`.
 
 ## Review profiles and Profile Packs
 
-The existing `quick`, `standard`, `deep`, `security`, and `embedded` execution profiles remain stable for current consumers while Model Routing v1 introduces orthogonal `fast`, `balanced`, and `deep` model-intent modes. A future coordinated hard cut may remove the mixed execution-profile surface only after all consumers migrate; Core does not create permanent aliases. Profile Pack v1 continues to provide `general`, `backend`, `frontend`, `security`, `cpp`, `embedded-linux`, `embedded-mcu`, `driver`, `kernel`, and `realtime` engineering emphasis without granting tools, network or write authority.
+The existing `quick`, `standard`, `deep`, `security` and `embedded` execution profiles remain supported while model intent uses `fast`, `balanced` and `deep`. Profile Pack v1 continues to expose `general`, `backend`, `frontend`, `security`, `cpp`, `embedded-linux`, `embedded-mcu`, `driver`, `kernel` and `realtime` emphasis without granting tools, network or write authority.
 
 ## Impact Evidence and Test Impact
 
-Core builds deterministic bounded Impact Evidence from controller-provided text and changed paths. `buildTestImpactMap()` ranks controller-provided test candidates; Core never discovers or executes tests itself. Budget pressure may reduce coverage only when that reduction remains explicit and fail closed.
+Core builds deterministic bounded Impact Evidence from controller-provided source context and paths. Test Impact ranks controller-provided test candidates; Core does not discover or execute tests. Budget pressure may reduce coverage only when the gap remains explicit and fail closed.
 
-## Analyzer contract
+## Analyzer, Diagnosis and semantic review contracts
 
-Core normalizes generic analyzer findings and SARIF 2.1 into a bounded deterministic contract. Analyzer text is untrusted evidence, never instructions. Repository policy cannot define executable analyzer commands.
+Analyzer findings and SARIF are normalized as untrusted evidence. Diagnosis compacts and redacts failure evidence, validates structured model output and binds the Diagnosis Input Manifest into Diagnosis Receipt v2. Quality evaluation tracks classification accuracy, false positives, calibration and token cost. Review Evidence chunking preserves changed-hunk coverage or records a gap; Profile Packs, Test Impact, Diagnosis and semantic review contracts remain deterministic Core primitives.
 
-## Diagnosis Contract / Receipt v2
+Patch proposals are evidence only. Core never applies, commits, pushes or merges a proposal.
 
-Diagnosis primitives compact and redact failure logs, derive a conservative classification prior, validate structured model output and bind the full model-visible Diagnosis Input Manifest into Diagnosis Receipt v2. The manifest covers failure evidence, deterministic prior, changed-path metadata, artifact text digests, prompt contract and model identity. Products own pipeline/job retrieval and publication. Diagnosis never retries CI, edits source, commits, pushes or merges.
+## Core runtime / governance identity
 
-Quality evaluation tracks classification accuracy, false positives, calibration and token cost against labeled Review/Diagnose corpora.
+Core Digest Contract v1 separates:
 
-## Semantic review contracts
+- `runtimeDigest`: shipped Core runtime modules, policy schema and runtime-relevant contract identity;
+- `governanceDigest`: workflows, tests, quality corpora, docs, orchestration and governance-only identity.
 
-Review Evidence chunking preserves changed-hunk coverage or records an explicit gap. Review Profile Packs, Test Impact, analyzer normalization, Diagnosis and semantic review contracts remain pure deterministic Core primitives. Model output is never allowed to create authority.
+Every consumer still pins one exact formally released Core SHA. A consumer is runtime-compatible with a newer Core only when both formally released Core identities have the same `runtimeDigest`. There is no semantic compatibility shim and a mismatched runtime digest is always stale.
 
-## Safe patch boundary
+Product Contract v2 binds `safeCoreCommit`, `safeCoreRuntimeDigest` and `safeCoreGovernanceDigest`. A runtime-changing Core release requires a consumer patch release. A governance-only Core release does not force five byte-identical product artifacts to be rebuilt or redistributed.
 
-Patch proposals are evidence only. Core **never applies, commits, pushes or merges** a proposal. Products may display bounded proposals but may not convert model text into implicit repository mutation.
+## Consumer CI Receipt v1
 
-## Family evidence
+Every active consumer product release carries an attested `CONSUMER_CI_RECEIPT.json`. The receipt binds product SHA/version, exact Core pin and Core digests, successful CI workflow run identity/attempt and validated suites. Family release readiness verifies this immutable receipt instead of treating a transient green check as durable evidence.
 
-Family Registry v1 is the single source of repository/product/distribution topology. Atomic Family Snapshot v2 freezes one exact released Core and five exact consumer product releases, including immutable release tag identity, release assets and required distribution evidence. A consumer Core repin is therefore release-bearing: if `src/codex-safe-core` changes, the consumer product version must advance by exactly one patch before the PR may pass the shared Family Release Guard.
+## Family Evidence
 
-Family Manifest v4 records the Snapshot v2 digest plus exact Core/consumer release tags, tag SHAs, immutable-release state, artifact digests, Product Contract/package-lock digests and distribution evidence in `FAMILY_MANIFEST.json`. VS Code products require an immutable Marketplace distribution receipt produced only after publishing the exact attested GitHub Release VSIX; Review Service requires the released `IMAGE_DIGEST.txt` to bind the GHCR multi-arch image digest; Diagnose uses its immutable GitHub Release as the distribution boundary. The manifest is provenance-attested and published as a digest-addressed immutable historical release.
+Family Registry v1 remains the topology source. Atomic Family Snapshot v3 freezes the current exact immutable Core release and both Core digests, plus each exact consumer release, its exact pinned Core SHA/digests, Consumer CI Receipt and required distribution evidence.
 
-Family Freshness requires every active consumer `main` to be Core-aligned and to have an exact immutable `vX.Y.Z` release whose tag resolves to that same main SHA, with required distribution evidence present. A source-only repin with a stale release is deliberately not fresh. Only after all five released products converge does the watcher compare them with the newest immutable Family Manifest and dispatch the full three-platform Family Compatibility gate.
+Family Manifest v5 records Snapshot v3, exact Core/consumer release identities, runtime/governance digests, Product Contract/package-lock digests, CI receipt identity and distribution evidence in `FAMILY_MANIFEST.json`. It is provenance-attested and published under a digest-addressed immutable release.
 
-Family Status v1 is the current machine-readable operational view: Core release readiness, consumer Core alignment, immutable release readiness, distribution readiness, current manifest digest and the freshness decision. It complements, but never replaces, immutable Family Manifest history.
+Family Freshness requires every active consumer to be runtime-compatible with the newest released Core and to have an exact immutable current product release, verified Consumer CI Receipt and required distribution. It no longer requires all consumers to repin a governance-only Core SHA.
 
-Coordinated upgrade is release-aware end to end: the maintenance tool updates the exact Core gitlink, Product Contract, verifier constants, current contract tests and a bounded current-state documentation allowlist, performs a mandatory product patch bump, then waits for every merged consumer to publish its immutable release and required distribution evidence before triggering Family Freshness. Historical changelog and migration records remain append-only.
+Ordinary Family Compatibility trusts immutable consumer CI receipts and runs one Ubuntu cross-family validation. The full five-consumer × Linux/Windows/macOS matrix remains a weekly or explicit `full_matrix=true` audit, preserving test strength while removing repeated work from routine refreshes.
 
-Change Safe participates as an active Core consumer for deterministic policy/fingerprint and Judgment Lifecycle primitives. Its SCM Provider and Delivery Authorization behavior remains product-owned; **Change Safe remains zero-model by default and must not acquire Scout/Reviewer/Adjudicator routing merely to generate narrative.** Its `change` policy schema/validation is Core-owned through the same `.codex-safe.json` Policy Schema v4 used by Review, Commit and Review Service.
+Coordinated Family Upgrade is two-phase. Phase 1 prepares every runtime-changing consumer PR and waits for all checks before any merge. Phase 2 freezes PR head SHAs and merges only the validated set. Runtime-equivalent consumers are recorded as skipped. The transaction state is preserved as an artifact for audit/retry, and release/distribution/CI evidence must still converge before Family Freshness.
+
+## Repository governance
+
+`repository-governance-contract.json` defines the required server-side GitHub Ruleset baseline for all six Family repositories: PR-based changes, strict required checks, deletion/non-fast-forward protection and bounded bypass. `scripts/verify-repository-ruleset.js` audits that server-side state. Repository tests are not substitutes for repository administration controls.
+
+Change Safe remains a deterministic delivery product with zero model calls by default; unifying Family model evidence does not restore model-generated PR/MR narrative.

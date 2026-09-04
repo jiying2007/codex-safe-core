@@ -26,7 +26,7 @@ test('obsolete copied-runtime and parallel policy instructions cannot return', (
   assert.match(contributing,/Do not add parallel product policy files/i);
 });
 
-test('every Core repin is release-bearing and requires a consumer patch version', () => {
+test('every actual Core gitlink change remains release-bearing and requires a consumer patch version', () => {
   assert.match(contributing, /every Core gitlink change requires a consumer patch release/i);
   assert.match(contributing, /immutable release/i);
   assert.equal(bumpPatch('4.7.2'),'4.7.3');
@@ -44,13 +44,19 @@ test('release-bearing repin synchronizes existing product version aliases only',
   assert.equal(Object.prototype.hasOwnProperty.call(generic,'diagnoseVersion'),false);
 });
 
-test('coordinated repin waits for release and distribution before Family freshness', () => {
+test('two-phase coordinated upgrade validates all runtime-changing PRs before merge and then waits for durable release evidence', () => {
   const workflow=fs.readFileSync(path.join(root,'.github','workflows','family-upgrade.yml'),'utf8');
-  assert.match(workflow,/gh workflow run "Family Freshness"/);
-  assert.doesNotMatch(workflow,/gh workflow run "Family Compatibility"/);
-  assert.match(workflow,/release-bearing/i);
+  assert.match(workflow,/Phase 1 - prepare every runtime-changing consumer PR/i);
+  assert.match(workflow,/validate all prepared PRs before any merge/i);
+  assert.match(workflow,/Phase 2 - merge frozen validated heads/i);
+  assert.match(workflow,/--match-head-commit/);
+  assert.match(workflow,/runtime-equivalent; no product repin\/release required/i);
+  assert.match(workflow,/FAMILY_UPGRADE_STATE\.json/);
   assert.match(workflow,/family-release-state\.js --repo/);
   assert.match(workflow,/exact immutable consumer releases and required distribution/i);
+  assert.match(workflow,/release \+ distribution \+ runtime readiness/i);
+  assert.match(workflow,/gh workflow run "Family Freshness"/);
+  assert.doesNotMatch(workflow,/gh workflow run "Family Compatibility"/);
 });
 
 test('repin synchronizes current Change verifier constants across Core patches',()=>{const oldSha='a'.repeat(40),sha='b'.repeat(40),text=`const core='${oldSha}';if(contract.safeCoreVersion!=='4.12.3'||contract.safeCoreCommit!==core)fail('family Core pin must remain exact');`,out=syncVerifierText(text,{sha,version:'4.12.4'});assert.match(out,new RegExp(`const core='${sha}'`));assert.match(out,/contract\.safeCoreVersion!=='4\.12\.4'/);assert.doesNotMatch(out,/4\.12\.3/);});
