@@ -4,7 +4,7 @@ Codex Safe Core 4.16.0 / Quality Platform v3 在保持共享确定性质量平�
 
 ## Runtime / Provider Contract v3
 
-Core 统一拥有 compatible Provider 的 Credential、Transport 与机器级 Runtime 解析。Consumer 默认使用 `provider.mode=auto`：产品显式 Override → 机器级 Family Runtime → 用户 Codex 配置 → 内置 OpenAI Runtime。仓库内 Provider 配置不能重定向机器凭据。HTTPS 仍是首选；私网明文继承保持机器所有、明确可见且有界。Structured Codex JSONL 采用增量消费，并独立限制 retained output 与 total transcript。
+Core 统一拥有 compatible Provider 的 Credential、Transport 与机器级 Runtime 解析。Consumer 默认使用 `provider.mode=auto`：产品显式 Override → 机器级 Family Runtime `~/.codex-safe/runtime.json` → 用户 Codex 配置 → 内置 OpenAI Runtime。Compatible Provider 保持 `credentialSource=auto|env|auth-json`，Secret 只以引用方式进入 Runtime，不进入 Repository Policy 或 Receipt。仓库内 Provider 配置不能重定向机器凭据。HTTPS 仍是首选；private-network HTTP 继承保持机器所有、明确可见且有界。Structured Codex JSONL 采用增量消费，并独立限制 retained output 与 total transcript。
 
 ## Model Routing Contract v1
 
