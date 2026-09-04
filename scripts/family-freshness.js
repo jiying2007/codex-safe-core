@@ -4,27 +4,31 @@
 const fs=require('node:fs');
 const contract=require('../core-contract.json');
 const registry=require('../family-registry.json');
-const {CONSUMERS,CORE_REPO,CORE_URL,OWNER,collectFamilyState,exactImmutableRelease,githubJson}=require('./family-release-state');
+const {CONSUMERS,CORE_REPO,OWNER,collectFamilyState,exactImmutableRelease,githubJson}=require('./family-release-state');
 
 function isSha(value){return /^[0-9a-f]{40}$/.test(String(value||''));}
+function isDigest(value){return /^[0-9a-f]{64}$/.test(String(value||''));}
 function releaseIsExact(release,{tag,headSha,tagSha}){return exactImmutableRelease(release,{tag,sha:headSha,tagSha});}
 function consumerHeadIsAligned(state,core){
   if(!state||!core||!isSha(state.sha)||!isSha(core.sha)||!state.version)return false;
-  if(state.corePin?.type!=='submodule'||state.corePin.sha!==core.sha||state.corePin.submodule_git_url!==CORE_URL)return false;
-  const product=state.productContract;
-  if(!product||Number(product.productContractVersion)!==Number(contract.productContractVersion))return false;
-  return product.safeCoreCommit===core.sha&&product.safeCoreVersion===core.version&&product.productVersion===state.version;
+  if(state.aligned!==true||state.runtimeAligned!==true||state.contractAligned!==true)return false;
+  if(!isSha(state.corePin?.sha)||!isDigest(state.corePin?.runtimeDigest)||!isDigest(core.digests?.runtimeDigest))return false;
+  return state.corePin.runtimeDigest===core.digests.runtimeDigest;
 }
 function distributionIdentity(value){return value?.receiptTag||value?.locator||value?.channel||null;}
+function ciReceiptIdentity(value){return value?.receiptDigest||value?.receipt?.receiptDigest||value?.receipt?.digest||value?.runId||value?.receipt?.runId||null;}
 function manifestMatches(manifest,{core,consumers}){
   if(!manifest||Number(manifest.schemaVersion)!==Number(contract.familyManifestVersion))return false;
   if(manifest.core?.version!==core.version||manifest.core?.sha!==core.sha||manifest.core?.release?.tagSha!==core.release?.tagSha)return false;
+  if(manifest.core?.runtimeDigest!==core.digests?.runtimeDigest||manifest.core?.governanceDigest!==core.digests?.governanceDigest)return false;
   for(const name of CONSUMERS){
     const current=consumers[name],recorded=manifest.consumers?.[name];
     if(!current||!recorded)return false;
     if(recorded.sha!==current.sha||recorded.version!==current.version)return false;
+    if(recorded.corePin?.sha!==current.corePin?.sha||recorded.corePin?.runtimeDigest!==current.corePin?.runtimeDigest||recorded.corePin?.governanceDigest!==current.corePin?.governanceDigest)return false;
     if(recorded.release?.tag!==current.release?.tag||recorded.release?.tagSha!==current.release?.tagSha||recorded.release?.immutable!==true)return false;
     if(recorded.distribution?.channel!==current.distribution?.channel||distributionIdentity(recorded.distribution)!==distributionIdentity(current.distribution))return false;
+    if(ciReceiptIdentity(recorded.ciReceipt)!==ciReceiptIdentity(current.ciReceipt))return false;
   }
   return true;
 }
@@ -48,7 +52,7 @@ async function latestFamilyManifest(core,{token=process.env.GITHUB_TOKEN}={}){
     const response=await fetch(asset.browser_download_url,{headers:{'accept':'application/vnd.github+json','user-agent':'codex-safe-family-freshness',...(token?{'authorization':`Bearer ${token}`}:{})},redirect:'follow'});
     if(!response.ok)continue;
     const manifest=await response.json();
-    if(manifest.core?.sha===core.sha)return manifest;
+    if(manifest.core?.sha===core.sha&&manifest.core?.runtimeDigest===core.digests?.runtimeDigest&&manifest.core?.governanceDigest===core.digests?.governanceDigest)return manifest;
   }
   return null;
 }
