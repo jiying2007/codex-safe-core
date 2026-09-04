@@ -1,5 +1,5 @@
 {
-  "coreVersion": "4.14.4",
+  "coreVersion": "4.15.0",
   "safeCoreMajorVersion": 4,
   "safeContractVersion": 2,
   "policySchemaVersion": 4,
@@ -26,6 +26,7 @@
   "distributionReceiptVersion": 1,
   "productContractVersion": 1,
   "tokenCalibrationVersion": 1,
+  "modelRoutingContractVersion": 1,
   "supportedNodeMajors": [
     22,
     24
