@@ -13,6 +13,7 @@ const profiles=require('../review-profile-pack');
 const diagnosis=require('../diagnosis-platform');
 const testImpact=require('../test-impact');
 const modelRouting=require('../model-routing');
+const calibrationStore=require('../token-calibration-store');
 function read(file){return fs.readFileSync(path.join(root,file),'utf8');}
 function esc(s){return String(s).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
 assert.equal(pkg.version,contract.coreVersion);
@@ -27,9 +28,10 @@ assert.equal(safe.REVIEW_PROMPT_CONTRACT_VERSION,contract.reviewPromptContractVe
 assert.equal(safe.COMMIT_PROMPT_CONTRACT_VERSION,contract.commitPromptContractVersion);
 assert.equal(lifecycle.JUDGMENT_LIFECYCLE_VERSION,contract.judgmentLifecycleVersion);
 assert.equal(modelRouting.MODEL_ROUTING_CONTRACT_VERSION,contract.modelRoutingContractVersion);
+assert.equal(calibrationStore.TOKEN_CALIBRATION_STORE_VERSION,contract.tokenCalibrationStoreVersion);
 assert.equal(Object.prototype.hasOwnProperty.call(contract,'prPromptContractVersion'),false);
 assert.equal(Object.prototype.hasOwnProperty.call(safe,'PR_PROMPT_CONTRACT_VERSION'),false);
-for(const key of ['qualityPlatformVersion','reviewProfileVersion','profilePackVersion','impactEvidenceVersion','testImpactVersion','analyzerFindingVersion','patchProposalVersion','diagnosePromptContractVersion','diagnosisContractVersion','diagnosisReceiptVersion','diagnosisInputManifestVersion','judgmentLifecycleVersion','semanticReviewVersion','evidenceManifestVersion','reviewKeyVersion','findingLedgerVersion','findingVerificationVersion','familyRegistryVersion','familySnapshotVersion','familyManifestVersion','familyStatusVersion','distributionReceiptVersion','familyUiContractVersion','productContractVersion','tokenCalibrationVersion','modelRoutingContractVersion','codexRuntimeVersion','providerContractVersion','diagnosticContractVersion'])assert.ok(Number.isInteger(contract[key])&&contract[key]>=1,`${key} must be a positive integer`);
+for(const key of ['qualityPlatformVersion','reviewProfileVersion','profilePackVersion','impactEvidenceVersion','testImpactVersion','analyzerFindingVersion','patchProposalVersion','diagnosePromptContractVersion','diagnosisContractVersion','diagnosisReceiptVersion','diagnosisInputManifestVersion','judgmentLifecycleVersion','semanticReviewVersion','evidenceManifestVersion','reviewKeyVersion','findingLedgerVersion','findingVerificationVersion','familyRegistryVersion','familySnapshotVersion','familyManifestVersion','familyStatusVersion','distributionReceiptVersion','familyUiContractVersion','productContractVersion','tokenCalibrationVersion','tokenCalibrationStoreVersion','modelRoutingContractVersion','codexRuntimeVersion','providerContractVersion','diagnosticContractVersion'])assert.ok(Number.isInteger(contract[key])&&contract[key]>=1,`${key} must be a positive integer`);
 assert.equal(contract.qualityPlatformVersion,3);
 assert.equal(contract.familyRegistryVersion,1);
 assert.equal(contract.familySnapshotVersion,2);
@@ -40,6 +42,7 @@ assert.equal(registry.schemaVersion,contract.familyRegistryVersion);
 assert.equal(contract.familyUiContractVersion,1);
 assert.equal(contract.productContractVersion,1);
 assert.equal(contract.tokenCalibrationVersion,1);
+assert.equal(contract.tokenCalibrationStoreVersion,1);
 assert.equal(contract.modelRoutingContractVersion,1);
 assert.equal(contract.profilePackVersion,profiles.PROFILE_PACK_VERSION);
 assert.equal(contract.testImpactVersion,testImpact.TEST_IMPACT_VERSION);
@@ -60,4 +63,4 @@ for(const name of ['fast','balanced','deep','scout','reviewer','adjudicator','au
 assert.match(quality,/Model Routing Contract v1/i);assert.match(quality,/cross-provider/i);assert.match(quality,/Qualification/i);
 assert.match(quality,/Test Impact/i);assert.match(quality,/Diagnosis/i);assert.match(quality,/Diagnosis Receipt v2/i);assert.match(quality,/Judgment Lifecycle/i);assert.match(quality,/classification accuracy/i);assert.match(quality,/FAMILY_MANIFEST\.json/);assert.match(quality,/snapshot/i);assert.match(quality,/semantic review contracts/i);
 const ci=read('.github/workflows/ci.yml');assert.match(ci,new RegExp(esc(contract.minimumNodeVersion)));assert.match(ci,new RegExp(esc(contract.canonicalNodeVersion)));
-console.log(`Core contract verified: ${contract.coreVersion}, Safe Contract ${contract.safeContractVersion}, Review Receipt ${contract.reviewReceiptVersion}, Judgment Lifecycle ${contract.judgmentLifecycleVersion}, Quality ${contract.qualityPlatformVersion}, Model Routing ${contract.modelRoutingContractVersion}, Family Registry/Snapshot/Manifest/Status ${contract.familyRegistryVersion}/${contract.familySnapshotVersion}/${contract.familyManifestVersion}/${contract.familyStatusVersion}, Runtime ${contract.codexRuntimeVersion}, Provider ${contract.providerContractVersion}, Diagnosis ${contract.diagnosisContractVersion}/${contract.diagnosisReceiptVersion}, Node ${pkg.engines.node}, digest ${safe.SAFE_CONTRACT_DIGEST}.`);
+console.log(`Core contract verified: ${contract.coreVersion}, Safe Contract ${contract.safeContractVersion}, Review Receipt ${contract.reviewReceiptVersion}, Judgment Lifecycle ${contract.judgmentLifecycleVersion}, Quality ${contract.qualityPlatformVersion}, Model Routing ${contract.modelRoutingContractVersion}, Token Calibration Store ${contract.tokenCalibrationStoreVersion}, Family Registry/Snapshot/Manifest/Status ${contract.familyRegistryVersion}/${contract.familySnapshotVersion}/${contract.familyManifestVersion}/${contract.familyStatusVersion}, Runtime ${contract.codexRuntimeVersion}, Provider ${contract.providerContractVersion}, Diagnosis ${contract.diagnosisContractVersion}/${contract.diagnosisReceiptVersion}, Node ${pkg.engines.node}, digest ${safe.SAFE_CONTRACT_DIGEST}.`);
