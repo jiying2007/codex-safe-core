@@ -33,6 +33,7 @@ for(const name of CONSUMERS){
   if(!recorded||recorded.sha!==sha)throw new Error(`${name} snapshot drift: ${sha} != ${recorded?.sha||'<missing>'}`);
   if(recorded.release?.tagSha!==sha||recorded.release?.immutable!==true)throw new Error(`${name} release is not exact immutable.`);
   if(!recorded.distribution?.ready)throw new Error(`${name} distribution is not verified.`);
+  if(!recorded.ciReceipt?.receiptDigest||!recorded.ciReceipt?.runId)throw new Error(`${name} Consumer CI Receipt is not verified.`);
   if(recorded.corePin?.sha!==pin)throw new Error(`${name} snapshot Core pin drift: ${pin} != ${recorded.corePin?.sha||'<missing>'}`);
   const pinnedDigests=computeCoreDigests(pinnedRoot);
   if(pinnedDigests.runtimeDigest!==currentCoreDigests.runtimeDigest)throw new Error(`${name} pinned Core runtime digest is stale.`);
@@ -50,6 +51,7 @@ for(const name of CONSUMERS){
     version:pkg.version,
     sha,
     corePin:{sha:pin,version:recorded.corePin.version,runtimeDigest:pinnedDigests.runtimeDigest,governanceDigest:pinnedDigests.governanceDigest,runtimeEquivalentToCurrent:pinnedDigests.runtimeDigest===currentCoreDigests.runtimeDigest},
+    ciReceipt:recorded.ciReceipt,
     release:recorded.release,
     distribution:recorded.distribution,
     packageLockSha256:fs.existsSync(lockPath)?fileSha(lockPath):null,
