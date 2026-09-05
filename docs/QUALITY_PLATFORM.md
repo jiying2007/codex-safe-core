@@ -1,6 +1,6 @@
 # Quality Platform
 
-Codex Safe Core 4.16.1 / Quality Platform v3 keeps the shared deterministic quality platform stable while completing Model Routing Contract v1, runtime/governance identity separation, Consumer CI Receipt v1 and the runtime-aware Family evidence chain. Safe Contract v2, Policy Schema v4, Runtime v3 and Provider Contract v3 remain the safety boundary.
+Codex Safe Core 4.17.0 / Quality Platform v3 keeps the shared deterministic quality platform stable while hardening Model Routing Contract v1 with health-aware, quality-constrained economics, making evidence-risk scoring change-aware, and making the server-side Family Ruleset contract release-authoritative. Safe Contract v2, Policy Schema v4, Runtime v3 and Provider Contract v3 remain the safety boundary.
 
 ## Runtime / Provider Contract v3
 
@@ -16,21 +16,25 @@ Model Routing Contract v1 separates stable product semantics from changing model
 - **Selection Strategy:** `auto`, `preference`, `fixed`.
 - The deterministic Safe Gate is never a model role.
 
-`auto` and `preference` choose only approved, healthy-enough registry entries. Explicit `fixed` remains an advanced benchmark/debug control. Cross-provider fallback is disabled unless explicitly enabled. Qualification remains evidence-based; discovery alone never grants authority.
+`auto` and `preference` choose only approved registry entries; unhealthy entries are ineligible and healthy entries outrank unknown-health candidates. Explicit `fixed` remains an advanced benchmark/debug control. Cross-provider fallback is disabled unless explicitly enabled. Qualification remains evidence-based; discovery alone never grants authority.
 
-Model Evidence now binds both human-readable revisions and canonical `registryDigest` / `routingPolicyDigest`. Resolved model/revision, Qualification identity, lineage, fallback/degradation and normalized token usage are recorded without credentials, prompts or source. Model Routing stays at v1: capability metadata and segmented economics are collected before any future change to the coarse `fast / balanced / frontier` classes.
+For `auto`, sufficiently sampled Model Economics may influence selection only after normal role/status/health/compatibility eligibility. An economics candidate marked quality-rejected is excluded. Eligible candidates are compared by Pareto dominance across tokens per verified finding, cost per verified finding, P95 latency, false-positive rate and coverage rather than by an opaque weighted score. This can reduce cost only when the candidate is no worse on every tracked quality/economics axis and better on at least one. The normalized economics input is bound into `routingPolicyDigest`, so a routing decision remains auditable without introducing Routing v2.
+
+Model Evidence binds human-readable revisions and canonical `registryDigest` / `routingPolicyDigest`. Resolved model/revision, Qualification identity, lineage, fallback/degradation and normalized token usage are recorded without credentials, prompts or source. Model Routing stays at v1; the stable `fast / balanced / frontier` compatibility classes remain unchanged.
 
 ## Token efficiency and calibration
 
 Token optimization is quality-constrained rather than token-minimal. Core measures actual/cached/cache-write/output/reasoning usage, tokens and cost per verified finding, coverage, false positives, verifier/scout/adjudicator call ratios and P50/P95 latency.
 
-Economics is segmented by `mode`, `role`, `provider`, `model`, `profilePack` and repository-size bucket. Promotion can require minimum total and critical-case sample counts before recall/false-positive constraints are evaluated.
+Evidence-risk scoring is change-aware. Sensitive paths such as auth/security/schema remain strong priors, while C/C++/Rust file extensions contribute only a weak systems-language prior. Lifetime, allocation, lock/concurrency, auth and compatibility indicators raise risk only when they occur on actual changed diff lines; unchanged context no longer promotes an ordinary embedded edit into the highest budget tier merely because the file is C/C++/Rust or contains nearby mutex/free/malloc text.
+
+Economics is segmented by `mode`, `role`, `provider`, `model`, `profilePack` and repository-size bucket. Promotion can require minimum total and critical-case sample counts before recall/false-positive constraints are evaluated. Routing consumes only sufficiently sampled, quality-approved economics; absence of trustworthy economics falls back to deterministic compatibility, health, class distance, priority and stable identity ordering.
 
 Token Estimator Calibration persists only numeric provider/model calibration. TTL is based on each model's actual `lastObservedAtMs`; unrelated writes cannot renew stale entries. The shared secure local-file primitive provides bounded no-follow reads, same-descriptor validation, owner/permission checks where supported, exclusive write locking, merge-on-write and atomic mode-0600 replacement.
 
 ## Promotion corpus
 
-The historical 24-case recorded baseline remains an observed regression baseline; it is not reinterpreted as universal 100% model quality. Core 4.16 adds a deterministic promotion corpus of at least 80 cases across `dev`, `holdout` and `real-regression` partitions, including at least ten clean negatives and ten real Family regressions. It spans security, concurrency, resource, correctness and test findings; small/medium/large repositories; and the engineering profile packs.
+The historical 24-case recorded baseline remains an observed regression baseline; it is not reinterpreted as universal 100% model quality. Core 4.16 introduced a deterministic promotion corpus of at least 80 cases across `dev`, `holdout` and `real-regression` partitions, including at least ten clean negatives and ten real Family regressions. It spans security, concurrency, resource, correctness and test findings; small/medium/large repositories; and the engineering profile packs.
 
 Promotion candidates must produce real evaluation results for that corpus. Core never fabricates recorded outputs for generated cases. Quality-constrained promotion rejects undersized samples even when their observed precision/recall is perfect.
 
@@ -69,9 +73,9 @@ Every active consumer product release carries an attested `CONSUMER_CI_RECEIPT.j
 
 ## Family Evidence
 
-Family Registry v1 remains the topology source. Atomic Family Snapshot v3 freezes the current exact immutable Core release and both Core digests, plus each exact consumer release, its exact pinned Core SHA/digests, Consumer CI Receipt and required distribution evidence.
+Family Registry v1 remains the topology source. Before an Atomic Family Snapshot v3 is frozen, Core verifies the live server-side Ruleset contract for every active Family repository. Snapshot v3 then freezes the current exact immutable Core release and both Core digests, plus each exact consumer release, its exact pinned Core SHA/digests, Consumer CI Receipt and required distribution evidence.
 
-Family Manifest v5 records Snapshot v3, exact Core/consumer release identities, runtime/governance digests, Product Contract/package-lock digests, CI receipt identity and distribution evidence in `FAMILY_MANIFEST.json`. It is provenance-attested and published under a digest-addressed immutable release.
+Family Manifest v5 records Snapshot v3, exact Core/consumer release identities, runtime/governance digests, Product Contract/package-lock digests, CI receipt identity and distribution evidence in `FAMILY_MANIFEST.json`. It is provenance-attested and published under a digest-addressed immutable evidence release that is explicitly not allowed to become GitHub Latest.
 
 Family Freshness requires every active consumer to be runtime-compatible with the newest released Core and to have an exact immutable current product release, verified Consumer CI Receipt and required distribution. It no longer requires all consumers to repin a governance-only Core SHA.
 
@@ -81,6 +85,6 @@ Coordinated Family Upgrade is two-phase. Phase 1 prepares every runtime-changing
 
 ## Repository governance
 
-`repository-governance-contract.json` defines the required server-side GitHub Ruleset baseline for all six Family repositories: PR-based changes, strict required checks, deletion/non-fast-forward protection and bounded bypass. `scripts/verify-repository-ruleset.js` audits that server-side state. Repository tests are not substitutes for repository administration controls.
+`repository-governance-contract.json` defines the required server-side GitHub Ruleset baseline for all six Family repositories: PR-based changes, strict required checks, deletion/non-fast-forward protection and bounded bypass. `scripts/verify-repository-ruleset.js` audits that server-side state. Core Release Validation, Family Snapshot creation and the shared Family Release Guard fail closed when this live server-side control is absent or drifted. Repository tests are not substitutes for repository administration controls.
 
 Change Safe remains a deterministic delivery product with zero model calls by default; unifying Family model evidence does not restore model-generated PR/MR narrative.
