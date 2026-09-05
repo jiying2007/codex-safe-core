@@ -1,6 +1,6 @@
 # Quality Platform
 
-Codex Safe Core 4.17.2 / Quality Platform v3 在保持共享确定性质量平台稳定的同时，强化 Model Routing Contract v1 的 Health-aware、质量约束 Economics，改为 change-aware Evidence Risk，让服务器侧 Family Ruleset Contract 真正成为 Release Authority，并让 Coordinated Family Upgrade 的 resume / rate-limit 处理保持 fail-closed 且可安全重试。Safe Contract v2、Policy Schema v4、Runtime v3 与 Provider Contract v3 继续作为安全边界。
+Codex Safe Core 4.17.3 / Quality Platform v3 在保持共享确定性质量平台稳定的同时，强化 Model Routing Contract v1 的 Health-aware、质量约束 Economics，保持 change-aware Evidence Risk，并把 Family Repository Governance 收敛到唯一 canonical `CI Gate`。Safe Contract v2、Policy Schema v4、Runtime v3 与 Provider Contract v3 继续作为安全边界。
 
 ## Runtime / Provider Contract v3
 
@@ -83,6 +83,6 @@ Coordinated Family Upgrade 使用两阶段事务：Phase 1 准备所有需要 Ru
 
 ## Repository Governance
 
-`repository-governance-contract.json` 定义六个 Family Repository 的服务器侧 GitHub Ruleset Baseline：PR-based changes、strict required checks、禁止 deletion / non-fast-forward，并限制 bypass。`scripts/verify-repository-ruleset.js` 审计服务器侧状态。Core Release Validation、Family Snapshot 生成与共享 Family Release Guard 都会在实时服务器控制缺失或漂移时 fail closed；仓库内测试不能替代 GitHub Administration 控制。
+`repository-governance-contract.json` 定义六个 Family Repository 唯一 canonical 的服务器侧 GitHub Ruleset Baseline：PR-based changes、唯一 strict required status context `CI Gate`、禁止 deletion / non-fast-forward、最多一个 `pull_request` bypass actor，并要求 repository-native `delete_branch_on_merge`。每个 Repository 仍运行完整产品 CI Matrix；`CI Gate` 使用 `if: always()` 聚合，并在任何声明依赖不是 `success` 时失败。`scripts/verify-repository-ruleset.js` 审计实时 Server State，`scripts/apply-repository-governance.js` 提供 dry-run-first 的管理员修复入口。Core Release Validation、Family Snapshot 与共享 Family Release Guard 都会在该控制缺失或漂移时 fail closed。
 
 Change Safe 继续是默认 0 model call 的确定性交付产品；统一 Family Model Evidence 不会恢复旧的 Model-generated PR/MR Narrative。
