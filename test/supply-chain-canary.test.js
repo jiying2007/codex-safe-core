@@ -10,6 +10,7 @@ const workflowDir = path.join(root, '.github', 'workflows');
 const workflows = fs.readdirSync(workflowDir)
   .filter(name => name.endsWith('.yml') || name.endsWith('.yaml'))
   .map(name => [name, fs.readFileSync(path.join(workflowDir, name), 'utf8')]);
+const ci = fs.readFileSync(path.join(workflowDir, 'ci.yml'), 'utf8');
 const canary = fs.readFileSync(path.join(workflowDir, 'codex-canary.yml'), 'utf8');
 const performanceTrend = fs.readFileSync(path.join(workflowDir, 'performance-trend.yml'), 'utf8');
 const canaryScript = fs.readFileSync(path.join(root, 'scripts', 'codex-canary.js'), 'utf8');
@@ -25,10 +26,19 @@ test('Core workflows do not use the vulnerable setup-node v7.0.0 bundle', () => 
   }
 });
 
-test('latest Codex canary validates changes before merge', () => {
-  assert.match(canary, /pull_request:/);
+test('latest Codex canary validates relevant changes before merge through CI Gate', () => {
+  assert.doesNotMatch(canary, /pull_request:/);
+  assert.match(canary, /schedule:/);
   assert.match(canary, /@openai\/codex@latest/);
   assert.match(canary, /ubuntu-latest, windows-latest, macos-latest/);
+  assert.match(ci, /canary-impact:/);
+  assert.match(ci, /core-contract\.json\|safe-contract\.js\|codex-cli\.js/);
+  assert.match(ci, /codex-canary-capability:/);
+  assert.match(ci, /codex-canary-behavioral:/);
+  assert.match(ci, /@openai\/codex@latest/);
+  assert.match(ci, /ubuntu-latest, windows-latest, macos-latest/);
+  assert.match(ci, /needs: \[verify, package-reproducibility, security, dependency-review, canary-impact, codex-canary-capability, codex-canary-behavioral\]/);
+  assert.match(ci, /CANARY_REQUIRED/);
 });
 
 test('latest Codex canary exercises Safe Contract config overrides under strict config parsing', () => {
@@ -39,7 +49,6 @@ test('latest Codex canary exercises Safe Contract config overrides under strict 
 
 test('scheduled live canary is fail-closed and gates compatibility history', () => {
   assert.match(canary, /CODEX_CANARY_OPENAI_API_KEY/);
-  assert.match(canary, /github\.event_name != 'pull_request' && env\.OPENAI_API_KEY == ''/);
   assert.match(canary, /Scheduled\/manual Codex behavioral canary requires/);
   assert.match(canary, /node scripts\/codex-behavioral-canary\.js/);
   assert.match(canary, /node scripts\/codex-quality-canary\.js/);

@@ -1,16 +1,6 @@
 name: Codex CLI Canary
 
 on:
-  pull_request:
-    paths:
-      - 'core-contract.json'
-      - 'safe-contract.js'
-      - 'codex-cli.js'
-      - 'scripts/codex-canary.js'
-      - 'scripts/codex-behavioral-canary.js'
-      - 'scripts/codex-quality-canary.js'
-      - 'scripts/write-codex-compat-record.js'
-      - '.github/workflows/codex-canary.yml'
   schedule:
     - cron: '17 2 * * *'
   workflow_dispatch:
@@ -57,24 +47,18 @@ jobs:
           node-version: '22.22.2'
       - name: Install latest Codex CLI
         run: npm install --global @openai/codex@latest
-      - name: Require protected live canary credential outside pull requests
-        if: github.event_name != 'pull_request' && env.OPENAI_API_KEY == ''
+      - name: Require protected live canary credential
+        if: env.OPENAI_API_KEY == ''
         shell: bash
         run: |
           echo 'Scheduled/manual Codex behavioral canary requires CODEX_CANARY_OPENAI_API_KEY (preferred) or OPENAI_API_KEY.' >&2
           exit 1
       - name: Live filesystem/network negative behavior check
-        if: env.OPENAI_API_KEY != ''
         run: node scripts/codex-behavioral-canary.js
       - name: Live model quality smoke
-        if: env.OPENAI_API_KEY != ''
         run: node scripts/codex-quality-canary.js
-      - name: Record pull-request credentialless canary state
-        if: github.event_name == 'pull_request' && env.OPENAI_API_KEY == ''
-        run: echo "Protected credentials are unavailable to this pull request; capability checks remain mandatory and scheduled live canary remains fail-closed."
 
   history:
-    if: github.event_name != 'pull_request'
     needs: [capability, behavioral]
     runs-on: ubuntu-latest
     permissions:

@@ -13,7 +13,9 @@ The baseline requires one active Ruleset named `Codex Safe main protection` cove
 - bypass limited to `pull_request` mode only; `always` bypass is forbidden;
 - repository-side `delete_branch_on_merge` enabled as the canonical branch-lifecycle hygiene setting.
 
-`CI Gate` is a stable aggregate context only. It does not replace or remove the underlying test matrix. Each repository's `ci.yml` runs the complete product-specific CI graph, then executes `CI Gate` with `if: always()` and fails unless every declared dependency result is exactly `success`. This keeps the Ruleset independent of matrix names, runner versions and job fan-out while retaining the same test strength.
+`CI Gate` is the single server-required merge context and therefore owns every merge-blocking pull-request check. Product tests, security analysis, dependency review, Family Release Guard and any product-specific Extension Host, GitLab system or fault-injection checks must either run directly in `ci.yml` or be invoked from it as reusable jobs before `CI Gate` completes. Weekly/manual evidence workflows may remain separate, but an independently triggered PR workflow is never relied on as a merge gate.
+
+`CI Gate` does not replace or remove the underlying test matrix. Each repository's `ci.yml` runs the complete applicable product-specific CI graph, then executes `CI Gate` with `if: always()` and fails unless every declared dependency has the explicitly allowed successful outcome. This keeps the Ruleset independent of matrix names, runner versions and job fan-out while retaining the same test strength.
 
 `Repository Governance` remains the scheduled/manual audit surface, but it is not the only enforcement point. Formal Core Release Validation executes the same **Ruleset** audit before a trusted release can publish. Family Snapshot creation executes the Ruleset audit before any snapshot or Family Manifest can be generated. The shared Family Release Guard executes it before a consumer release is authorized. Repository tests and workflow YAML are not substitutes for these server-side controls.
 

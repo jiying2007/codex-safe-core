@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.17.4 - 2026-09-05
+
+- Consolidate every merge-blocking Core pull-request check behind the canonical `CI Gate`: full Node/OS validation, package reproducibility, Security, Dependency Review and change-aware latest-Codex capability/behavior checks.
+- Keep the protected live Codex compatibility/history canary on its scheduled/manual authority path, remove redundant standalone weekly Quality Eval, and reduce read-only Family Status polling from 48 to 4 runs per day without weakening Family Freshness.
+- This is a governance-only Core release: Safe Contract v2, Policy Schema v4, Runtime/Provider Contract v3, Model Routing v1, Receipt schemas and runtime behavior remain unchanged; runtime-digest equivalence to 4.17.3 remains mandatory evidence.
+
 ## 4.17.3 - 2026-09-05
 
 - Canonicalize the six-repository server-side Ruleset contract around exactly one strict required status context, `CI Gate`, while preserving each repository's full product-specific CI matrix behind the aggregate gate.

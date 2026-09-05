@@ -1,6 +1,6 @@
 # Quality Platform
 
-Codex Safe Core 4.17.3 / Quality Platform v3 在保持共享确定性质量平台稳定的同时，强化 Model Routing Contract v1 的 Health-aware、质量约束 Economics，保持 change-aware Evidence Risk，并把 Family Repository Governance 收敛到唯一 canonical `CI Gate`。Safe Contract v2、Policy Schema v4、Runtime v3 与 Provider Contract v3 继续作为安全边界。
+Codex Safe Core 4.17.4 / Quality Platform v3 在保持共享确定性质量平台稳定的同时，强化 Model Routing Contract v1 的 Health-aware、质量约束 Economics，保持 change-aware Evidence Risk，并把 Family Repository Governance 收敛到唯一 canonical `CI Gate`。Safe Contract v2、Policy Schema v4、Runtime v3 与 Provider Contract v3 继续作为安全边界。
 
 ## Runtime / Provider Contract v3
 

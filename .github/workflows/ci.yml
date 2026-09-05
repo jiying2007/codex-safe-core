@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -54,15 +55,154 @@ jobs:
           node-version: '22.22.2'
       - run: npm run check:reproducible
 
+  security:
+    permissions:
+      contents: read
+      security-events: write
+    uses: ./.github/workflows/security.yml
+
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@94196ee1d15439c1b6651cd87ef14e88ec435966
+        with:
+          node-version: '22.22.2'
+      - id: graph
+        name: Detect GitHub Dependency Graph
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if gh api "repos/${GITHUB_REPOSITORY}/dependency-graph/sbom" >/dev/null 2>&1; then
+            echo 'enabled=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'enabled=false' >> "$GITHUB_OUTPUT"
+          fi
+      - name: GitHub dependency delta review
+        if: steps.graph.outputs.enabled == 'true'
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+          deny-licenses: GPL-2.0, GPL-3.0, AGPL-3.0
+      - name: Dependency audit fallback when graph is disabled
+        if: steps.graph.outputs.enabled != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f package-lock.json ]; then
+            npm ci --ignore-scripts --no-audit --no-fund
+            npm audit --audit-level=high --omit=dev
+            node scripts/verify-package-licenses.js .
+          else
+            node -e "const p=require('./package.json'); if(Object.keys(p.dependencies||{}).length||Object.keys(p.devDependencies||{}).length) throw new Error('dependency-bearing package must commit package-lock.json')"
+            echo 'dependency-free package verified without Dependency Graph'
+          fi
+
+  canary-impact:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      required: ${{ steps.impact.outputs.required }}
+    steps:
+      - id: impact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" != pull_request ]; then
+            echo 'required=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          required=false
+          while IFS= read -r path; do
+            case "$path" in
+              core-contract.json|safe-contract.js|codex-cli.js|scripts/codex-canary.js|scripts/codex-behavioral-canary.js|scripts/codex-quality-canary.js|scripts/write-codex-compat-record.js|.github/workflows/codex-canary.yml|.github/workflows/ci.yml)
+                required=true
+                break
+                ;;
+            esac
+          done < <(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/files?per_page=100" --jq '.[].filename')
+          echo "required=$required" >> "$GITHUB_OUTPUT"
+
+  codex-canary-capability:
+    needs: canary-impact
+    if: needs.canary-impact.outputs.required == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@94196ee1d15439c1b6651cd87ef14e88ec435966
+        with:
+          node-version: '22.22.2'
+      - name: Install latest Codex CLI
+        run: npm install --global @openai/codex@latest
+      - name: Verify Safe Contract capabilities and strict config
+        run: node scripts/codex-canary.js
+
+  codex-canary-behavioral:
+    needs: canary-impact
+    if: needs.canary-impact.outputs.required == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      OPENAI_API_KEY: ${{ secrets.CODEX_CANARY_OPENAI_API_KEY || secrets.OPENAI_API_KEY }}
+      CODEX_CANARY_MODEL: ${{ vars.CODEX_CANARY_MODEL }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@94196ee1d15439c1b6651cd87ef14e88ec435966
+        with:
+          node-version: '22.22.2'
+      - name: Install latest Codex CLI
+        run: npm install --global @openai/codex@latest
+      - name: Live filesystem/network negative behavior check
+        if: env.OPENAI_API_KEY != ''
+        run: node scripts/codex-behavioral-canary.js
+      - name: Live model quality smoke
+        if: env.OPENAI_API_KEY != ''
+        run: node scripts/codex-quality-canary.js
+      - name: Record credentialless PR canary state
+        if: env.OPENAI_API_KEY == ''
+        run: echo "Protected credentials are unavailable to this pull request; capability checks remain mandatory and the scheduled live canary remains fail-closed."
+
   ci-gate:
     name: CI Gate
     if: ${{ always() }}
-    needs: [verify, package-reproducibility]
+    needs: [verify, package-reproducibility, security, dependency-review, canary-impact, codex-canary-capability, codex-canary-behavioral]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
-      - name: Require every CI dependency to succeed
+      - name: Require every applicable CI dependency to succeed
         env:
           NEEDS_JSON: ${{ toJSON(needs) }}
+          EVENT_NAME: ${{ github.event_name }}
+          CANARY_REQUIRED: ${{ needs.canary-impact.outputs.required }}
         run: |
-          node -e "const needs=JSON.parse(process.env.NEEDS_JSON);const failed=Object.entries(needs).filter(([,v])=>v.result!=='success');if(failed.length){console.error('CI Gate blocked:',failed.map(([k,v])=>k+'='+v.result).join(', '));process.exit(1)}"
+          node - <<'NODE'
+          const needs=JSON.parse(process.env.NEEDS_JSON);
+          const failed=Object.entries(needs).filter(([name,value]) => {
+            if (value.result === 'success') return false;
+            if (name === 'dependency-review' && process.env.EVENT_NAME !== 'pull_request' && value.result === 'skipped') return false;
+            if ((name === 'codex-canary-capability' || name === 'codex-canary-behavioral') && process.env.CANARY_REQUIRED !== 'true' && value.result === 'skipped') return false;
+            return true;
+          });
+          if(failed.length){
+            console.error('CI Gate blocked:',failed.map(([k,v])=>k+'='+v.result).join(', '));
+            process.exit(1);
+          }
+          NODE
