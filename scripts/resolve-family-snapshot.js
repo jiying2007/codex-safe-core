@@ -6,7 +6,9 @@ const fs=require('node:fs');
 const path=require('node:path');
 const contract=require('../core-contract.json');
 const registry=require('../family-registry.json');
+const governanceContract=require('../repository-governance-contract.json');
 const {CONSUMERS,collectFamilyState}=require('./family-release-state');
+const {auditRepository}=require('./verify-repository-ruleset');
 
 function sha(value){return crypto.createHash('sha256').update(String(value)).digest('hex');}
 function canonicalConsumer(state){
@@ -19,7 +21,20 @@ function canonicalConsumer(state){
     distribution:state.distribution
   };
 }
+async function verifyRepositoryGovernance(token){
+  const results=[];
+  for(const repo of governanceContract.repositories)results.push(await auditRepository(repo,token));
+  const failed=results.filter(item=>!item.ok);
+  if(failed.length){
+    const error=new Error(`Family snapshot refused: repository Ruleset contract is incomplete for ${failed.map(item=>item.repository).join(', ')}`);
+    error.code='EREPOSITORYGOVERNANCE';
+    error.results=results;
+    throw error;
+  }
+  return results;
+}
 async function createSnapshot({token=process.env.GITHUB_TOKEN}={}){
+  await verifyRepositoryGovernance(token);
   const state=await collectFamilyState({token});
   if(!state.core.releaseReady)throw new Error(`Core release is not ready: ${state.core.reason}`);
   const consumers={};
@@ -44,4 +59,4 @@ async function main(){
   if(outputIndex<0&&fileIndex<0)process.stdout.write(`${JSON.stringify(snapshot,null,2)}\n`);
 }
 if(require.main===module)main().catch(error=>{console.error(error.stack||error.message||String(error));process.exitCode=1;});
-module.exports={CONSUMERS,canonicalConsumer,createSnapshot};
+module.exports={CONSUMERS,canonicalConsumer,verifyRepositoryGovernance,createSnapshot};
