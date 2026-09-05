@@ -33,7 +33,7 @@ No product may reimplement Core-owned Process/Codex/Policy/Receipt/Review-Eviden
 The current line is machine-owned by `core-contract.json`; the block below is generated and verified by `scripts/current-contract-block.js` / `scripts/verify-current-docs.js`:
 
 <!-- GENERATED:CORE-CONTRACT:START -->
-- Core 4.17.3 / Safe Core v4
+- Core 4.17.4 / Safe Core v4
 - Safe Contract v2 / Policy Schema v4
 - Review Receipt v5 / Commit Receipt v4 / Diagnosis Receipt v2
 - Review / Commit / Diagnose Prompt Contract v1
