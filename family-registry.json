@@ -66,6 +66,18 @@
         "channel": "github-release",
         "required": true
       }
+    },
+    "codex-debug": {
+      "productId": "codex-debug-safe",
+      "release": {
+        "tagPrefix": "v",
+        "artifactKind": "vsix+tgz",
+        "requiredAssets": ["CONSUMER_CI_RECEIPT.json"]
+      },
+      "distribution": {
+        "channel": "github-release",
+        "required": true
+      }
     }
   }
 }
