@@ -33,7 +33,7 @@ No product may reimplement Core-owned Process/Codex/Policy/Receipt/Review-Eviden
 The current line is machine-owned by `core-contract.json`; the block below is generated and verified by `scripts/current-contract-block.js` / `scripts/verify-current-docs.js`:
 
 <!-- GENERATED:CORE-CONTRACT:START -->
-- Core 4.17.2 / Safe Core v4
+- Core 4.17.3 / Safe Core v4
 - Safe Contract v2 / Policy Schema v4
 - Review Receipt v5 / Commit Receipt v4 / Diagnosis Receipt v2
 - Review / Commit / Diagnose Prompt Contract v1
@@ -111,4 +111,4 @@ Runtime-changing Core releases drive a two-phase Family Upgrade: prepare every r
 
 There is no permanent compatibility layer. Missing required Codex safety capabilities, obsolete Policy schemas and obsolete Receipt schemas fail closed. Runtime equivalence is a cryptographic identity rule, not a schema compatibility shim: mismatched runtime digests are never accepted. The retired PR narrative/prompt surface remains rejected.
 
-The default branch must be protected by the machine-readable `repository-governance-contract.json` Ruleset baseline requiring PR-based changes and strict required checks, blocking deletion/non-fast-forward updates and tightly limiting bypass. `scripts/verify-repository-ruleset.js` validates the server-side control; repository tests cannot substitute for it.
+The default branch is protected by the machine-readable `repository-governance-contract.json` Ruleset baseline. The canonical server-side contract requires PR-based changes, exactly one strict required status context (`CI Gate`), deletion/non-fast-forward protection, at most one `pull_request` bypass actor, and repository-native `delete_branch_on_merge`. `scripts/verify-repository-ruleset.js` validates the live server control and `scripts/apply-repository-governance.js` provides the bounded administrator repair path; repository tests cannot substitute for it.

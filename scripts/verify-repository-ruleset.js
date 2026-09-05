@@ -21,8 +21,14 @@ function branchCovered(detail, branch) {
   const include = detail?.conditions?.ref_name?.include || [];
   return include.includes('~DEFAULT_BRANCH') || include.includes(`refs/heads/${branch}`) || include.includes(branch);
 }
-function assess(detail) {
+function normalizedContexts(parameters = {}) {
+  return [...new Set((Array.isArray(parameters.required_status_checks) ? parameters.required_status_checks : [])
+    .map(item => String(item?.context || '').trim())
+    .filter(Boolean))].sort();
+}
+function assess(detail, repository = {}) {
   const reasons = [];
+  if (detail?.name !== contract.rulesetName) reasons.push(`ruleset-name:${detail?.name || 'missing'}`);
   if (detail?.enforcement !== contract.enforcement) reasons.push(`enforcement:${detail?.enforcement || 'missing'}`);
   if (!branchCovered(detail, contract.defaultBranch)) reasons.push('default-branch-not-covered');
   const rules = Array.isArray(detail?.rules) ? detail.rules : [];
@@ -34,23 +40,34 @@ function assess(detail) {
   if (contract.pullRequest.requireLastPushApproval && pr.require_last_push_approval !== true) reasons.push('last-push-approval-disabled');
   if (contract.pullRequest.requireCodeOwnerReview && pr.require_code_owner_review !== true) reasons.push('code-owner-review-disabled');
   const checks = byType.get('required_status_checks')?.parameters || {};
-  if (contract.requiredStatusChecks.requireNonEmpty && (!Array.isArray(checks.required_status_checks) || checks.required_status_checks.length === 0)) reasons.push('required-checks-empty');
+  const actualContexts = normalizedContexts(checks);
+  if (contract.requiredStatusChecks.requireNonEmpty && actualContexts.length === 0) reasons.push('required-checks-empty');
   if (contract.requiredStatusChecks.strictRequiredStatusChecksPolicy && checks.strict_required_status_checks_policy !== true) reasons.push('required-checks-not-strict');
+  if (contract.requiredStatusChecks.requireExactContexts) {
+    const expectedContexts = [...new Set(contract.requiredStatusChecks.contexts || [])].map(String).sort();
+    if (JSON.stringify(actualContexts) !== JSON.stringify(expectedContexts)) reasons.push(`required-checks-not-canonical:${actualContexts.join(',') || 'empty'}`);
+  }
   const bypass = Array.isArray(detail?.bypass_actors) ? detail.bypass_actors : [];
   if (bypass.length > Number(contract.maximumBypassActors)) reasons.push(`too-many-bypass-actors:${bypass.length}`);
+  const allowedBypassModes = new Set((contract.allowedBypassModes || []).map(String));
+  for (const actor of bypass) if (!allowedBypassModes.has(String(actor?.bypass_mode || ''))) reasons.push(`disallowed-bypass-mode:${actor?.bypass_mode || 'missing'}`);
+  if (contract.deleteBranchOnMerge && repository?.delete_branch_on_merge !== true) reasons.push('delete-branch-on-merge-disabled');
   return { ok: reasons.length === 0, reasons };
 }
 async function auditRepository(repo, token) {
   const owner = registry.owner;
+  const repository = await json(`/repos/${owner}/${repo}`, token);
   const summaries = await json(`/repos/${owner}/${repo}/rulesets`, token);
   const active = [];
+  const rejected = [];
   for (const summary of Array.isArray(summaries) ? summaries : []) {
     if (!summary?.id) continue;
     const detail = await json(`/repos/${owner}/${repo}/rulesets/${summary.id}`, token);
-    const result = assess(detail);
+    const result = assess(detail, repository);
     if (result.ok) active.push({ id: detail.id, name: detail.name });
+    else rejected.push({ id: detail.id, name: detail.name, reasons: result.reasons });
   }
-  return { repository: `${owner}/${repo}`, ok: active.length > 0, matchingRulesets: active };
+  return { repository: `${owner}/${repo}`, ok: active.length > 0, matchingRulesets: active, rejectedRulesets: rejected };
 }
 async function main() {
   if (Number(contract.schemaVersion) !== 1) throw new Error('Unsupported repository governance contract schema.');
@@ -66,4 +83,4 @@ async function main() {
   }
 }
 if (require.main === module) main().catch(error => { console.error(error.message || String(error)); process.exitCode = 2; });
-module.exports = { assess, auditRepository, branchCovered, json };
+module.exports = { assess, auditRepository, branchCovered, normalizedContexts, json };

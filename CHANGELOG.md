@@ -1,5 +1,36 @@
 # Changelog
 
+## 4.17.3 - 2026-09-05
+
+- Canonicalize the six-repository server-side Ruleset contract around exactly one strict required status context, `CI Gate`, while preserving each repository's full product-specific CI matrix behind the aggregate gate.
+- Reject `always` bypass, allow at most one `pull_request` bypass actor, and require repository-native `delete_branch_on_merge` so merge protection and branch lifecycle remain server-authoritative.
+- Add a dry-run-first administrator repair tool plus stricter live Ruleset verification, including bounded optional cleanup that deletes only merged branches whose current ref still equals the merged PR head SHA.
+- This is a governance-only Core release: Safe Contract v2, Policy Schema v4, Runtime/Provider Contract v3, Model Routing v1, Receipt schemas and all runtime behavior remain unchanged; consumers must rely on runtime-digest equivalence rather than repinning identical runtime bytes.
+
+## 4.17.2 - 2026-09-05
+
+- Fix Family readiness parsing by newline-terminating the parser output used by strict Bash reads, matching immutable release `v4.17.2` / PR #59.
+
+## 4.17.1 - 2026-09-05
+
+- Make coordinated Family Upgrade resumable and rate-limit safe while preserving fail-closed release evidence, matching immutable release `v4.17.1` / PR #58.
+
+## 4.17.0 - 2026-09-05
+
+- Close the Family P0/P1/P2 hardening gaps: release-authoritative server Rulesets, change-aware token risk, health/economics-aware model routing, Family Manifest latest-release hygiene, and stronger semantic verification, matching immutable release `v4.17.0` / PR #56.
+
+## 4.16.1 - 2026-09-04
+
+- Record the current-stage manual Marketplace distribution policy as a governance-only Core patch, matching immutable release `v4.16.1` / PR #55.
+
+## 4.16.0 - 2026-09-04
+
+- Introduce Family runtime/governance digest separation and governance-efficiency rules so runtime-equivalent consumers do not rebuild solely for governance drift, matching immutable release `v4.16.0` / PR #54.
+
+## 4.15.0 - 2026-09-04
+
+- Add Model Routing v1 and streaming token-efficiency infrastructure while keeping deterministic Safe Gate authority separate from model selection, matching immutable release `v4.15.0` / PR #53.
+
 ## 4.14.4 - 2026-09-03
 
 - Align the shared release-bearing Consumer Guard with canonical repin Changelog behavior: consumers may use either `# Changelog` followed immediately by the current release heading or a current release heading at byte zero.
