@@ -1,16 +1,7 @@
 name: Codex CLI Canary
 
 on:
-  pull_request:
-    paths:
-      - 'core-contract.json'
-      - 'safe-contract.js'
-      - 'codex-cli.js'
-      - 'scripts/codex-canary.js'
-      - 'scripts/codex-behavioral-canary.js'
-      - 'scripts/codex-quality-canary.js'
-      - 'scripts/write-codex-compat-record.js'
-      - '.github/workflows/codex-canary.yml'
+  workflow_call:
   schedule:
     - cron: '17 2 * * *'
   workflow_dispatch:
