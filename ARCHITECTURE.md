@@ -33,7 +33,7 @@ No product may reimplement Core-owned Process/Codex/Policy/Receipt/Review-Eviden
 The current line is machine-owned by `core-contract.json`; the block below is generated and verified by `scripts/current-contract-block.js` / `scripts/verify-current-docs.js`:
 
 <!-- GENERATED:CORE-CONTRACT:START -->
-- Core 4.17.0 / Safe Core v4
+- Core 4.17.1 / Safe Core v4
 - Safe Contract v2 / Policy Schema v4
 - Review Receipt v5 / Commit Receipt v4 / Diagnosis Receipt v2
 - Review / Commit / Diagnose Prompt Contract v1
@@ -105,7 +105,7 @@ Core Release Validation runs supported Node floors, reproducible package checks 
 
 The reusable Family Release Guard independently checks the exact released Trust Root, consumer Product Contract, release-bump discipline, server-side Rulesets, immutable Actions pins and Family non-goals. This lets governance-only guard upgrades remain separate from shipped consumer runtime pins.
 
-Runtime-changing Core releases drive a two-phase Family Upgrade: prepare every required consumer repin, wait for all prepared PRs to pass, freeze their head SHAs, then merge/release. Governance-only Core releases do not create product repins when the latest released consumer runtime digest is already equivalent.
+Runtime-changing Core releases drive a two-phase Family Upgrade: prepare every required consumer repin, wait for all prepared PRs to pass, freeze their head SHAs, then merge/release. Governance-only Core releases do not create product repins when the latest released consumer runtime digest is already equivalent. A resumed transaction must continue to validate an already-materialized open upgrade PR rather than mistaking its clean branch worktree for runtime equivalence; release-state polling is bounded and transient API failures are retried without weakening permanent evidence failures.
 
 ## Compatibility policy
 
