@@ -32,7 +32,7 @@ jobs:
         with:
           node-version: '22.22.2'
       - id: resolve
-        name: Freeze exact released, CI-attested and distributed consumer snapshot
+        name: Freeze exact released, CI-attested, governed and distributed consumer snapshot
         env:
           GITHUB_TOKEN: ${{ github.token }}
         shell: bash
@@ -154,7 +154,7 @@ jobs:
           if gh release view "$tag" >/dev/null 2>&1; then
             echo "digest-addressed Family manifest release already exists: $tag"
           else
-            gh release create "$tag" FAMILY_MANIFEST.json --target "$GITHUB_SHA" --title "Codex Safe Family manifest ${version} ${digest:0:12}" --notes "Machine-generated runtime-aware, CI-attested, snapshot-atomic exact Core/consumer/distribution manifest. Historical Family evidence; not an end-user product release."
+            gh release create "$tag" FAMILY_MANIFEST.json --latest=false --target "$GITHUB_SHA" --title "Codex Safe Family manifest ${version} ${digest:0:12}" --notes "Machine-generated runtime-aware, CI-attested, snapshot-atomic exact Core/consumer/distribution manifest. Historical Family evidence; not an end-user product release."
           fi
           immutable=false
           for attempt in {1..12}; do
