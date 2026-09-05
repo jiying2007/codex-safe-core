@@ -9,6 +9,7 @@
     "codex-diagnose"
   ],
   "defaultBranch": "main",
+  "rulesetName": "Codex Safe main protection",
   "enforcement": "active",
   "requiredRuleTypes": [
     "pull_request",
@@ -24,7 +25,15 @@
   },
   "requiredStatusChecks": {
     "requireNonEmpty": true,
-    "strictRequiredStatusChecksPolicy": true
+    "strictRequiredStatusChecksPolicy": true,
+    "requireExactContexts": true,
+    "contexts": [
+      "CI Gate"
+    ]
   },
-  "maximumBypassActors": 2
+  "maximumBypassActors": 1,
+  "allowedBypassModes": [
+    "pull_request"
+  ],
+  "deleteBranchOnMerge": true
 }

@@ -19,6 +19,7 @@ const modelRegistry=require('../model-registry-resolver');
 const modelLineage=require('../model-lineage');
 const modelEconomics=require('../model-economics');
 const calibrationStore=require('../token-calibration-store');
+const rulesetVerifier=require('./verify-repository-ruleset');
 const {renderCurrentContractBlock}=require('./current-contract-block');
 function read(file){return fs.readFileSync(path.join(root,file),'utf8').replace(/\r\n/g,'\n');}
 function esc(s){return String(s).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
@@ -54,6 +55,12 @@ assert.equal(contract.consumerCiReceiptVersion,1);
 assert.equal(contract.coreDigestContractVersion,1);
 assert.equal(contract.repositoryGovernanceContractVersion,1);
 assert.equal(governance.schemaVersion,contract.repositoryGovernanceContractVersion);
+assert.equal(governance.rulesetName,'Codex Safe main protection');
+assert.deepEqual(governance.requiredStatusChecks.contexts,['CI Gate']);
+assert.equal(governance.requiredStatusChecks.requireExactContexts,true);
+assert.deepEqual(governance.allowedBypassModes,['pull_request']);
+assert.equal(governance.maximumBypassActors,1);
+assert.equal(governance.deleteBranchOnMerge,true);
 assert.equal(surface.schemaVersion,contract.coreDigestContractVersion);
 assert.equal(contract.tokenCalibrationVersion,1);
 assert.equal(contract.tokenCalibrationStoreVersion,1);
@@ -82,5 +89,10 @@ for(const name of ['embedded-linux','embedded-mcu','driver','kernel','realtime']
 for(const name of ['fast','balanced','deep','scout','reviewer','adjudicator','auto','preference','fixed'])assert.match(quality,new RegExp(`\\b${name}\\b`,'i'));
 assert.match(quality,/Model Routing Contract v1/i);assert.match(quality,/cross-provider/i);assert.match(quality,/Qualification/i);
 assert.match(quality,/Test Impact/i);assert.match(quality,/Diagnosis/i);assert.match(quality,/Diagnosis Receipt v2/i);assert.match(quality,/Judgment Lifecycle/i);assert.match(quality,/classification accuracy/i);assert.match(quality,/FAMILY_MANIFEST\.json/);assert.match(quality,/snapshot/i);assert.match(quality,/semantic review contracts/i);
-const ci=read('.github/workflows/ci.yml');assert.match(ci,new RegExp(esc(contract.minimumNodeVersion)));assert.match(ci,new RegExp(esc(contract.canonicalNodeVersion)));
+const ci=read('.github/workflows/ci.yml');assert.match(ci,new RegExp(esc(contract.minimumNodeVersion)));assert.match(ci,new RegExp(esc(contract.canonicalNodeVersion)));assert.match(ci,/name: CI Gate/);assert.match(ci,/if: \$\{\{ always\(\) \}\}/);
+const canonicalRuleset={name:governance.rulesetName,enforcement:'active',conditions:{ref_name:{include:['~DEFAULT_BRANCH'],exclude:[]}},bypass_actors:[{actor_id:1,actor_type:'User',bypass_mode:'pull_request'}],rules:[{type:'deletion'},{type:'non_fast_forward'},{type:'pull_request',parameters:{required_approving_review_count:1,dismiss_stale_reviews_on_push:true,require_code_owner_review:false,require_last_push_approval:true}},{type:'required_status_checks',parameters:{strict_required_status_checks_policy:true,required_status_checks:[{context:'CI Gate'}]}}]};
+assert.equal(rulesetVerifier.assess(canonicalRuleset,{delete_branch_on_merge:true}).ok,true);
+const extraContext=JSON.parse(JSON.stringify(canonicalRuleset));extraContext.rules[3].parameters.required_status_checks.push({context:'matrix-job'});assert.equal(rulesetVerifier.assess(extraContext,{delete_branch_on_merge:true}).ok,false);
+const alwaysBypass=JSON.parse(JSON.stringify(canonicalRuleset));alwaysBypass.bypass_actors[0].bypass_mode='always';assert.equal(rulesetVerifier.assess(alwaysBypass,{delete_branch_on_merge:true}).ok,false);
+assert.equal(rulesetVerifier.assess(canonicalRuleset,{delete_branch_on_merge:false}).ok,false);
 console.log(`Core contract verified: ${contract.coreVersion}, Safe Contract ${contract.safeContractVersion}, Review Receipt ${contract.reviewReceiptVersion}, Judgment Lifecycle ${contract.judgmentLifecycleVersion}, Quality ${contract.qualityPlatformVersion}, Model Routing/Registry/Lineage/Economics ${contract.modelRoutingContractVersion}/${contract.modelRegistryVersion}/${contract.modelLineageVersion}/${contract.modelEconomicsVersion}, Token Calibration Store ${contract.tokenCalibrationStoreVersion}, Family Registry/Snapshot/Manifest/Status ${contract.familyRegistryVersion}/${contract.familySnapshotVersion}/${contract.familyManifestVersion}/${contract.familyStatusVersion}, Product/CI/Digest/Governance ${contract.productContractVersion}/${contract.consumerCiReceiptVersion}/${contract.coreDigestContractVersion}/${contract.repositoryGovernanceContractVersion}, Runtime ${contract.codexRuntimeVersion}, Provider ${contract.providerContractVersion}, Diagnosis ${contract.diagnosisContractVersion}/${contract.diagnosisReceiptVersion}, Node ${pkg.engines.node}, digest ${safe.SAFE_CONTRACT_DIGEST}.`);
