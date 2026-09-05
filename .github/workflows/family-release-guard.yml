@@ -39,7 +39,7 @@ jobs:
           node src/codex-safe-core/scripts/verify-released-core.js "$EXPECTED_CORE_SHA"
           node src/codex-safe-core/scripts/verify-consumer-product-contract.js "$EXPECTED_CORE_SHA" "$PRODUCT"
           node src/codex-safe-core/scripts/verify-consumer-release-bump.js
-          node src/codex-safe-core/scripts/verify-repository-ruleset.js
+          GITHUB_TOKEN= GH_TOKEN= node src/codex-safe-core/scripts/verify-repository-ruleset.js
           node src/codex-safe-core/scripts/verify-actions-pins.js .github/workflows
           node src/codex-safe-core/scripts/verify-non-goals.js .
           node src/codex-safe-core/scripts/family-diagnostics.js > FAMILY_DIAGNOSTICS.json
