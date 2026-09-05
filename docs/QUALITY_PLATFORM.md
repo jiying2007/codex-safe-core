@@ -1,6 +1,6 @@
 # Quality Platform
 
-Codex Safe Core 4.17.0 / Quality Platform v3 keeps the shared deterministic quality platform stable while hardening Model Routing Contract v1 with health-aware, quality-constrained economics, making evidence-risk scoring change-aware, and making the server-side Family Ruleset contract release-authoritative. Safe Contract v2, Policy Schema v4, Runtime v3 and Provider Contract v3 remain the safety boundary.
+Codex Safe Core 4.17.1 / Quality Platform v3 keeps the shared deterministic quality platform stable while hardening Model Routing Contract v1 with health-aware, quality-constrained economics, making evidence-risk scoring change-aware, making the server-side Family Ruleset contract release-authoritative, and making coordinated Family Upgrade resume/rate-limit handling fail-closed and retry-safe. Safe Contract v2, Policy Schema v4, Runtime v3 and Provider Contract v3 remain the safety boundary.
 
 ## Runtime / Provider Contract v3
 
@@ -81,7 +81,7 @@ Family Freshness requires every active consumer to be runtime-compatible with th
 
 Ordinary Family Compatibility trusts immutable consumer CI receipts and runs one Ubuntu cross-family validation. The full five-consumer × Linux/Windows/macOS matrix remains a weekly or explicit `full_matrix=true` audit, preserving test strength while removing repeated work from routine refreshes.
 
-Coordinated Family Upgrade is two-phase. Phase 1 prepares every runtime-changing consumer PR and waits for all checks before any merge. Phase 2 freezes PR head SHAs and merges only the validated set. Runtime-equivalent consumers are recorded as skipped. The transaction state is preserved as an artifact for audit/retry, and release/distribution/CI evidence must still converge before Family Freshness.
+Coordinated Family Upgrade is two-phase. Phase 1 prepares every runtime-changing consumer PR and waits for all checks before any merge. Phase 2 freezes PR head SHAs and merges only the validated set. Runtime-equivalent consumers are recorded as skipped. On retry, an existing open upgrade PR whose changes are already materialized remains `prepared` and must pass Phase 1b rather than being silently reclassified as runtime-equivalent. Release-state polling collects the Family once per attempt; transient 429/5xx/network failures are retried within the existing bound, while permanent evidence errors still fail closed. The transaction state is preserved as an artifact for audit/retry, and release/distribution/CI evidence must still converge before Family Freshness.
 
 ## Repository governance
 
