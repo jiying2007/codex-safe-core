@@ -51,8 +51,13 @@ test('two-phase coordinated upgrade validates all runtime-changing PRs before me
   assert.match(workflow,/Phase 2 - merge frozen validated heads/i);
   assert.match(workflow,/--match-head-commit/);
   assert.match(workflow,/runtime-equivalent; no product repin\/release required/i);
+  assert.match(workflow,/existing upgrade PR #\$pr is already materialized; resuming transaction/i);
   assert.match(workflow,/FAMILY_UPGRADE_STATE\.json/);
-  assert.match(workflow,/family-release-state\.js --repo/);
+  const releaseStateCalls=workflow.match(/node scripts\/family-release-state\.js/g)||[];
+  assert.equal(releaseStateCalls.length,1);
+  assert.doesNotMatch(workflow,/family-release-state\.js --repo/);
+  assert.match(workflow,/for attempt in \{1\.\.60\}/);
+  assert.match(workflow,/transient Family release-state query failure/i);
   assert.match(workflow,/exact immutable consumer releases and required distribution/i);
   assert.match(workflow,/release \+ distribution \+ runtime readiness/i);
   assert.match(workflow,/gh workflow run "Family Freshness"/);
