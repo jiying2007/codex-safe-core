@@ -33,7 +33,7 @@ No product may reimplement Core-owned Process/Codex/Policy/Receipt/Review-Eviden
 The current line is machine-owned by `core-contract.json`; the block below is generated and verified by `scripts/current-contract-block.js` / `scripts/verify-current-docs.js`:
 
 <!-- GENERATED:CORE-CONTRACT:START -->
-- Core 4.16.1 / Safe Core v4
+- Core 4.17.0 / Safe Core v4
 - Safe Contract v2 / Policy Schema v4
 - Review Receipt v5 / Commit Receipt v4 / Diagnosis Receipt v2
 - Review / Commit / Diagnose Prompt Contract v1
@@ -85,7 +85,9 @@ Model-generated wording/findings/diagnoses are untrusted inputs. They cannot byp
 
 Core `buildSemanticContext()` and Review Evidence Chunking are generic bounded primitives. Provider-specific acquisition remains outside Core. Review Service fetches immutable GitLab evidence; Change Safe queries GitHub/GitLab delivery state; neither grants provider credentials or provider tools to Codex.
 
-Model Routing v1 remains deliberately stable. Model Registry and routing-policy revisions are accompanied by canonical SHA-256 digests in Model Evidence. `fast / balanced / frontier` remain coarse compatibility classes while scalar capability metadata and segmented economics gather evidence for any future routing evolution; there is no speculative Routing v2 compatibility layer.
+Model Routing v1 remains deliberately stable. Model Registry and routing-policy revisions are accompanied by canonical SHA-256 digests in Model Evidence. `fast / balanced / frontier` remain coarse compatibility classes. Auto routing prefers healthy models over unknown-health candidates and may consume quality-approved, sufficiently sampled Model Economics evidence; economics can only influence selection after quality eligibility and is compared by Pareto dominance rather than an opaque weighted score. The economics input is included in the routing-policy digest. There is no speculative Routing v2 compatibility layer.
+
+Evidence-risk scoring is change-aware: systems languages such as C/C++/Rust are only a weak prior. Higher budgets are driven by sensitive paths and semantic/lifetime/concurrency behavior on actual changed lines rather than unchanged context or file extension alone.
 
 Machine model registries and token calibration stores use the shared secure local-file primitive: no-follow reads, same-descriptor validation, owner/permission checks where supported, bounded size, atomic replacement and bounded exclusive locking for writes.
 
@@ -93,13 +95,15 @@ Machine model registries and token calibration stores use the shared secure loca
 
 A coordinated Family state is complete when all active consumers either pin the current released Core or pin an older formally released Core with the **same runtimeDigest**, and their own exact immutable product release/distribution and CI receipt evidence are valid.
 
-Family Compatibility freezes an Atomic Family Snapshot and then generates `FAMILY_MANIFEST.json` containing exact current Core SHA/digests, exact consumer SHAs, each consumer's exact pinned Core SHA/digests, Product Contract digests, CI receipt identity, policy/runtime/protocol identity and a manifest digest. The manifest receives GitHub build-provenance attestation and immutable digest-addressed publication.
+Family Compatibility first verifies the active six-repository server-side Ruleset contract, then freezes an Atomic Family Snapshot and generates `FAMILY_MANIFEST.json` containing exact current Core SHA/digests, exact consumer SHAs, each consumer's exact pinned Core SHA/digests, Product Contract digests, CI receipt identity, policy/runtime/protocol identity and a manifest digest. The manifest receives GitHub build-provenance attestation and immutable digest-addressed publication. Historical Family-manifest evidence releases are explicitly not allowed to become GitHub Latest.
 
 Lightweight Family Compatibility consumes immutable consumer CI receipt evidence and runs cross-family checks. The full five-consumer, three-OS matrix remains a scheduled/manual audit instead of being replayed for every coordinated refresh.
 
 ## Release and supply-chain boundary
 
-Core Release Validation runs supported Node floors and reproducible package checks. `_trusted-release.yml` owns authority-bearing tag/release publication, checksums, SPDX SBOM, `CORE_DIGESTS.json` and build-provenance attestation. Existing release identities are never overwritten.
+Core Release Validation runs supported Node floors, reproducible package checks and the server-side Family Ruleset audit. `_trusted-release.yml` owns authority-bearing tag/release publication, checksums, SPDX SBOM, `CORE_DIGESTS.json` and build-provenance attestation. Existing release identities are never overwritten. A missing or drifted server-side Ruleset blocks formal release; repository-local tests cannot substitute for it.
+
+The reusable Family Release Guard independently checks the exact released Trust Root, consumer Product Contract, release-bump discipline, server-side Rulesets, immutable Actions pins and Family non-goals. This lets governance-only guard upgrades remain separate from shipped consumer runtime pins.
 
 Runtime-changing Core releases drive a two-phase Family Upgrade: prepare every required consumer repin, wait for all prepared PRs to pass, freeze their head SHAs, then merge/release. Governance-only Core releases do not create product repins when the latest released consumer runtime digest is already equivalent.
 

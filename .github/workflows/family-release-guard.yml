@@ -25,10 +25,11 @@ jobs:
       - uses: actions/setup-node@e51e5fe84fc33b4c73ebe40526b2694712b5b858
         with:
           node-version: '22.22.2'
-      - name: Verify exact released Trust Root and family governance
+      - name: Verify exact released Trust Root, server Rulesets and family governance
         env:
           EXPECTED_CORE_SHA: ${{ inputs.expected_core_sha }}
           PRODUCT: ${{ inputs.product }}
+          GITHUB_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
@@ -38,6 +39,7 @@ jobs:
           node src/codex-safe-core/scripts/verify-released-core.js "$EXPECTED_CORE_SHA"
           node src/codex-safe-core/scripts/verify-consumer-product-contract.js "$EXPECTED_CORE_SHA" "$PRODUCT"
           node src/codex-safe-core/scripts/verify-consumer-release-bump.js
+          GITHUB_TOKEN= GH_TOKEN= node src/codex-safe-core/scripts/verify-repository-ruleset.js
           node src/codex-safe-core/scripts/verify-actions-pins.js .github/workflows
           node src/codex-safe-core/scripts/verify-non-goals.js .
           node src/codex-safe-core/scripts/family-diagnostics.js > FAMILY_DIAGNOSTICS.json

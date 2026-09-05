@@ -6,8 +6,14 @@ const registry = require('../family-registry.json');
 
 const API = 'https://api.github.com';
 function headers(token) { return { accept: 'application/vnd.github+json', 'user-agent': 'codex-safe-ruleset-audit', ...(token ? { authorization: `Bearer ${token}` } : {}) }; }
+async function request(pathname, token) { return fetch(`${API}${pathname}`, { headers: headers(token) }); }
 async function json(pathname, token) {
-  const response = await fetch(`${API}${pathname}`, { headers: headers(token) });
+  let response = await request(pathname, token);
+  // GITHUB_TOKEN is repository-scoped. Family consumers are public repositories,
+  // so a scoped installation token may legitimately get 403/404 for a sibling repo
+  // even though the same Metadata endpoint is publicly readable. Retry only the
+  // read-only public API request without credentials; never substitute local state.
+  if (token && (response.status === 403 || response.status === 404)) response = await request(pathname, '');
   if (!response.ok) throw new Error(`GitHub API ${pathname} failed: ${response.status}`);
   return response.json();
 }
@@ -60,4 +66,4 @@ async function main() {
   }
 }
 if (require.main === module) main().catch(error => { console.error(error.message || String(error)); process.exitCode = 2; });
-module.exports = { assess, auditRepository, branchCovered };
+module.exports = { assess, auditRepository, branchCovered, json };
