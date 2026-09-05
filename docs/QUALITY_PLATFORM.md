@@ -1,6 +1,6 @@
 # Quality Platform
 
-Codex Safe Core 4.17.3 / Quality Platform v3 keeps the shared deterministic quality platform stable while hardening Model Routing Contract v1 with health-aware, quality-constrained economics, making evidence-risk scoring change-aware, and closing the Family repository-governance control plane around one canonical `CI Gate`. Safe Contract v2, Policy Schema v4, Runtime v3 and Provider Contract v3 remain the safety boundary.
+Codex Safe Core 4.17.4 / Quality Platform v3 keeps the shared deterministic quality platform stable while hardening Model Routing Contract v1 with health-aware, quality-constrained economics, making evidence-risk scoring change-aware, and closing the Family repository-governance control plane around one canonical `CI Gate`. Safe Contract v2, Policy Schema v4, Runtime v3 and Provider Contract v3 remain the safety boundary.
 
 ## Runtime / Provider Contract v3
 
