@@ -1,41 +1,339 @@
 'use strict';
 
-const USAGE_KEYS=Object.freeze(['inputTokens','cachedInputTokens','cacheWriteInputTokens','outputTokens','reasoningOutputTokens']);
-const SEVERITY_RISK_PATTERNS=Object.freeze({
-  highPaths:[/(^|\/)(auth|security|crypto|secrets?|permissions?|iam)(\/|\.|$)/i,/(^|\/)(migrations?|schema)(\/|\.|$)/i,/\.(c|cc|cpp|cxx|h|hh|hpp|rs)$/i],
-  mediumPaths:[/(^|\/)(api|db|database|storage|network|http|runner|worker|scheduler|runtime)(\/|\.|$)/i,/Dockerfile$/i,/\.ya?ml$/i],
-  highText:/\b(mutex|semaphore|atomic|lock|race|deadlock|use-after-free|double[- ]free|malloc|calloc|realloc|free\s*\(|password|secret|token|signature|authorization|authentication|sql|transaction|rollback|exec\s*\(|spawn\s*\(|eval\s*\(|deserialize|prototype pollution)\b/i,
-  mediumText:/\b(timeout|retry|cache|stream|socket|file descriptor|promise|async|await|thread|process|memory|resource|permission|migration|schema|api|backward compat|breaking)\b/i
+const USAGE_KEYS = Object.freeze([
+  'inputTokens',
+  'cachedInputTokens',
+  'cacheWriteInputTokens',
+  'outputTokens',
+  'reasoningOutputTokens'
+]);
+
+const SEVERITY_RISK_PATTERNS = Object.freeze({
+  highPaths: [
+    /(^|\/)(auth|security|crypto|secrets?|permissions?|iam)(\/|\.|$)/i,
+    /(^|\/)(migrations?|schema)(\/|\.|$)/i
+  ],
+  mediumPaths: [
+    /(^|\/)(api|db|database|storage|network|http|runner|worker|scheduler|runtime)(\/|\.|$)/i,
+    /Dockerfile$/i,
+    /\.ya?ml$/i
+  ],
+  languagePaths: [/\.(c|cc|cpp|cxx|h|hh|hpp|rs)$/i],
+  highChangedText: /\b(deadlock|use-after-free|double[- ]free|authorization|authentication|signature|password|secret|transaction|rollback|deserialize|prototype pollution)\b/i,
+  highChangedCalls: /\b(malloc|calloc|realloc|free|pthread_mutex_(lock|unlock)|mutex_(lock|unlock)|spin_(lock|unlock)|exec|spawn|eval)\s*\(/i,
+  mediumChangedText: /\b(timeout|retry|cache|stream|socket|file descriptor|promise|async|await|thread|process|memory|resource|permission|migration|schema|api|backward compat|breaking|atomic|semaphore|mutex|lock|race)\b/i
 });
-function clamp(value,min,max){return Math.max(min,Math.min(max,Number(value)));}
-function byteLength(value){return Buffer.byteLength(String(value||''),'utf8');}
-function usageShape(value={}){return Object.freeze({inputTokens:Number(value.input_tokens??value.inputTokens??0)||0,cachedInputTokens:Number(value.cached_input_tokens??value.cachedInputTokens??0)||0,cacheWriteInputTokens:Number(value.cache_write_input_tokens??value.cacheWriteInputTokens??0)||0,outputTokens:Number(value.output_tokens??value.outputTokens??0)||0,reasoningOutputTokens:Number(value.reasoning_output_tokens??value.reasoningOutputTokens??0)||0});}
-function usageAdd(total={},next={}){for(const key of USAGE_KEYS)total[key]=(Number(total[key])||0)+(Number(next[key])||0);return total;}
-function usageTotal(usage={}){return(Number(usage.inputTokens)||0)+(Number(usage.outputTokens)||0);}
-function extractCodexUsage(stdout){let usage=usageShape();for(const line of String(stdout||'').split(/\r?\n/).filter(Boolean)){let event;try{event=JSON.parse(line);}catch{continue;}if(event?.type==='turn.completed'&&event.usage)usage=usageShape(event.usage);}return usage;}
-function estimateTextTokens(value,bytesPerToken=2){const divisor=clamp(Number(bytesPerToken)||2,0.5,16);return Math.max(1,Math.ceil(byteLength(value)/divisor));}
-function estimateRequestTokens(input,{estimatedOutputTokens=512,bytesPerToken=2}={}){const bytes=byteLength(input),ratio=clamp(Number(bytesPerToken)||2,0.5,16),inputTokens=estimateTextTokens(input,ratio),outputTokens=Math.max(0,Math.ceil(Number(estimatedOutputTokens)||0));return Object.freeze({inputTokens,outputTokens,totalTokens:inputTokens+outputTokens,bytes});}
-function assertWithinTokenBudget(input,{maxTokens=0,estimatedOutputTokens=512,bytesPerToken=2,label='Codex request'}={}){const estimate=estimateRequestTokens(input,{estimatedOutputTokens,bytesPerToken});if(Number(maxTokens)>0&&estimate.totalTokens>Number(maxTokens)){const error=new Error(`${label} estimated token budget exceeded: ${estimate.totalTokens} > ${maxTokens}`);error.code='ETOKENBUDGET';error.estimate=estimate;error.maxTokens=Number(maxTokens);throw error;}return estimate;}
-function observedBytesPerInputToken(bytes,usage={}){const tokens=Number(usage.inputTokens??usage.input_tokens??0),size=Math.max(0,Number(bytes)||0);return tokens>0&&size>0?size/tokens:null;}
-function calibrateBytesPerToken(previous,observed,{alpha=0.2,min=1,max=6,safetyMargin=0.1}={}){const prior=Number(previous),sample=Number(observed);if(!Number.isFinite(sample)||sample<=0)return Number.isFinite(prior)&&prior>0?clamp(prior,min,max):2;const weight=clamp(alpha,0.01,1),safeSample=sample*(1-clamp(safetyMargin,0,0.5)),raw=Number.isFinite(prior)&&prior>0?(1-weight)*prior+weight*safeSample:safeSample;return clamp(raw,min,max);}
-class TokenEstimatorCalibration{
-  constructor({defaultBytesPerToken=2,alpha=0.2,min=1,max=6,safetyMargin=0.1,minSamples=3,now=()=>Date.now()}={}){this.defaultBytesPerToken=clamp(defaultBytesPerToken,min,max);this.alpha=alpha;this.min=min;this.max=max;this.safetyMargin=safetyMargin;this.minSamples=Math.max(1,Math.floor(Number(minSamples)||3));this.now=typeof now==='function'?now:()=>Date.now();this.entries=new Map();}
-  key(provider='',model=''){return`${String(provider||'default').trim()||'default'}\n${String(model||'default').trim()||'default'}`;}
-  bytesPerToken(provider='',model=''){const entry=this.entries.get(this.key(provider,model));return entry&&entry.samples>=this.minSamples?entry.ratio:this.defaultBytesPerToken;}
-  observe(provider,model,{bytes=0,usage={},observedAtMs}={}){const observed=observedBytesPerInputToken(bytes,usage),key=this.key(provider,model),old=this.entries.get(key)||{samples:0,ratio:this.defaultBytesPerToken,lastObserved:null,lastObservedAtMs:0};if(observed===null)return Object.freeze({...old,active:old.samples>=this.minSamples});const ratio=calibrateBytesPerToken(old.samples?old.ratio:this.defaultBytesPerToken,observed,{alpha:this.alpha,min:this.min,max:this.max,safetyMargin:this.safetyMargin}),timestamp=Number.isFinite(Number(observedAtMs))?Number(observedAtMs):Number(this.now()),entry={samples:old.samples+1,ratio,lastObserved:observed,lastObservedAtMs:Math.max(0,timestamp)};this.entries.set(key,entry);return Object.freeze({...entry,active:entry.samples>=this.minSamples});}
-  restore(snapshot=[],{replace=false}={}){if(!Array.isArray(snapshot))throw new TypeError('Token calibration snapshot must be an array.');if(replace)this.entries.clear();let restored=0;for(const raw of snapshot){if(!raw||typeof raw!=='object'||Array.isArray(raw))continue;let provider=String(raw.provider||'').trim(),model=String(raw.model||'').trim();if((!provider||!model)&&typeof raw.key==='string'){const parts=raw.key.split('\n');provider=provider||parts[0]||'default';model=model||parts.slice(1).join('\n')||'default';}const samples=Math.max(0,Math.floor(Number(raw.samples)||0)),ratio=Number(raw.bytesPerToken??raw.ratio),lastObserved=raw.lastObserved===null?null:Number(raw.lastObserved),lastObservedAtMs=Math.max(0,Number(raw.lastObservedAtMs??raw.updatedAtMs)||0);if(!provider||!model||!samples||!Number.isFinite(ratio)||ratio<this.min||ratio>this.max)continue;this.entries.set(this.key(provider,model),{samples,ratio,lastObserved:Number.isFinite(lastObserved)?lastObserved:null,lastObservedAtMs});restored++;}return restored;}
-  estimate(provider,model,input,options={}){return estimateRequestTokens(input,{...options,bytesPerToken:this.bytesPerToken(provider,model)});}
-  snapshot(){return Object.freeze([...this.entries.entries()].map(([key,value])=>{const split=key.indexOf('\n'),provider=split>=0?key.slice(0,split):'default',model=split>=0?key.slice(split+1):key;return Object.freeze({key,provider,model,samples:value.samples,bytesPerToken:value.ratio,lastObserved:value.lastObserved,lastObservedAtMs:value.lastObservedAtMs||0,active:value.samples>=this.minSamples});}));}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, Number(value)));
 }
-function scoreEvidenceRisk({paths=[],text=''}={}){let score=0;for(const raw of paths||[]){const path=String(raw||'').replace(/\\/g,'/');if(SEVERITY_RISK_PATTERNS.highPaths.some(pattern=>pattern.test(path)))score+=5;else if(SEVERITY_RISK_PATTERNS.mediumPaths.some(pattern=>pattern.test(path)))score+=2;if(/(^|\/)(test|tests|fixtures?|docs?)(\/|\.|$)/i.test(path))score-=1;}const source=String(text||'');if(SEVERITY_RISK_PATTERNS.highText.test(source))score+=5;if(SEVERITY_RISK_PATTERNS.mediumText.test(source))score+=2;const changedLines=(source.match(/^[+-](?![+-])/gm)||[]).length;if(changedLines>300)score+=2;else if(changedLines>100)score+=1;return Math.max(0,score);}
-function adaptiveBudget(cap,riskScore,{lowFactor=0.25,mediumFactor=0.5,min=0}={}){const limit=Math.max(0,Math.floor(Number(cap)||0));if(!limit)return 0;const factor=Number(riskScore)>=8?1:Number(riskScore)>=4?mediumFactor:lowFactor,desired=Math.floor(limit*Math.max(0,Math.min(1,Number(factor)||0)));return Math.min(limit,Math.max(Math.min(limit,Math.max(0,Math.floor(Number(min)||0))),desired));}
-function selectModel({model='',fastModel='',riskScore=0,fastThreshold=4}={}){const fast=String(fastModel||'').trim();if(fast&&Number(riskScore)<Number(fastThreshold))return fast;return String(model||'').trim();}
-function selectChunksWithinByteBudget(chunks,maxBytes,{riskFn=chunk=>scoreEvidenceRisk({paths:chunk?.paths||chunk?.files?.map(file=>file?.path)||[],text:chunk?.text||chunk?.diffText||''})}={}){const values=Array.isArray(chunks)?chunks:[],budget=Math.max(0,Math.floor(Number(maxBytes)||0)),total=values.reduce((sum,item)=>sum+(Number(item?.bytes)||byteLength(item?.text||item?.diffText||'')),0);if(!budget||total<=budget)return Object.freeze({chunks:Object.freeze(values.slice()),omitted:Object.freeze([]),bytes:total,complete:true});const ranked=values.map((chunk,index)=>({chunk,index,risk:Number(riskFn(chunk))||0,size:Number(chunk?.bytes)||byteLength(chunk?.text||chunk?.diffText||'')})).sort((a,b)=>b.risk-a.risk||a.index-b.index),selected=[],omitted=[];let bytes=0;for(const item of ranked){if(item.size<=budget-bytes){selected.push(item);bytes+=item.size;}else omitted.push(item);}selected.sort((a,b)=>a.index-b.index);omitted.sort((a,b)=>a.index-b.index);const planned=selected.map((item,index)=>Object.freeze({...item.chunk,originalIndex:item.chunk.index??item.index,index}));return Object.freeze({chunks:Object.freeze(planned),omitted:Object.freeze(omitted.map(item=>item.chunk)),bytes,complete:omitted.length===0});}
-class TokenBudgetLedger{
-  constructor(){this.byKey=new Map();this.byProject=new Map();}
-  reservedForProject(projectId){return Number(this.byProject.get(String(projectId))||0);}
-  reservedForKey(key){return Number(this.byKey.get(String(key))?.tokens||0);}
-  reserve(key,projectId,tokens,{budget=0,committed=0}={}){const amount=Math.max(0,Math.ceil(Number(tokens)||0));if(!amount)return this.reservedForKey(key);const id=String(key),project=String(projectId),current=this.byKey.get(id)||{projectId:project,tokens:0};if(current.projectId!==project)throw new Error('Token reservation project mismatch');const reserved=this.reservedForProject(project);if(Number(budget)>0&&Number(committed||0)+reserved+amount>Number(budget)){const error=new Error('Token budget would be exceeded by the next reservation');error.code='ETOKENBUDGET';error.committed=Number(committed||0);error.reserved=reserved;error.requested=amount;error.budget=Number(budget);throw error;}current.tokens+=amount;this.byKey.set(id,current);this.byProject.set(project,reserved+amount);return current.tokens;}
-  release(key){const id=String(key),current=this.byKey.get(id);if(!current)return 0;const reserved=this.reservedForProject(current.projectId),remaining=Math.max(0,reserved-current.tokens);if(remaining)this.byProject.set(current.projectId,remaining);else this.byProject.delete(current.projectId);this.byKey.delete(id);return current.tokens;}
+
+function byteLength(value) {
+  return Buffer.byteLength(String(value || ''), 'utf8');
 }
-module.exports={USAGE_KEYS,usageShape,usageAdd,usageTotal,extractCodexUsage,estimateTextTokens,estimateRequestTokens,assertWithinTokenBudget,observedBytesPerInputToken,calibrateBytesPerToken,TokenEstimatorCalibration,scoreEvidenceRisk,adaptiveBudget,selectModel,selectChunksWithinByteBudget,TokenBudgetLedger};
+
+function usageShape(value = {}) {
+  return Object.freeze({
+    inputTokens: Number(value.input_tokens ?? value.inputTokens ?? 0) || 0,
+    cachedInputTokens: Number(value.cached_input_tokens ?? value.cachedInputTokens ?? 0) || 0,
+    cacheWriteInputTokens: Number(value.cache_write_input_tokens ?? value.cacheWriteInputTokens ?? 0) || 0,
+    outputTokens: Number(value.output_tokens ?? value.outputTokens ?? 0) || 0,
+    reasoningOutputTokens: Number(value.reasoning_output_tokens ?? value.reasoningOutputTokens ?? 0) || 0
+  });
+}
+
+function usageAdd(total = {}, next = {}) {
+  for (const key of USAGE_KEYS) total[key] = (Number(total[key]) || 0) + (Number(next[key]) || 0);
+  return total;
+}
+
+function usageTotal(usage = {}) {
+  return (Number(usage.inputTokens) || 0) + (Number(usage.outputTokens) || 0);
+}
+
+function extractCodexUsage(stdout) {
+  let usage = usageShape();
+  for (const line of String(stdout || '').split(/\r?\n/).filter(Boolean)) {
+    let event;
+    try { event = JSON.parse(line); } catch { continue; }
+    if (event?.type === 'turn.completed' && event.usage) usage = usageShape(event.usage);
+  }
+  return usage;
+}
+
+function estimateTextTokens(value, bytesPerToken = 2) {
+  const divisor = clamp(Number(bytesPerToken) || 2, 0.5, 16);
+  return Math.max(1, Math.ceil(byteLength(value) / divisor));
+}
+
+function estimateRequestTokens(input, { estimatedOutputTokens = 512, bytesPerToken = 2 } = {}) {
+  const bytes = byteLength(input);
+  const ratio = clamp(Number(bytesPerToken) || 2, 0.5, 16);
+  const inputTokens = estimateTextTokens(input, ratio);
+  const outputTokens = Math.max(0, Math.ceil(Number(estimatedOutputTokens) || 0));
+  return Object.freeze({ inputTokens, outputTokens, totalTokens: inputTokens + outputTokens, bytes });
+}
+
+function assertWithinTokenBudget(input, { maxTokens = 0, estimatedOutputTokens = 512, bytesPerToken = 2, label = 'Codex request' } = {}) {
+  const estimate = estimateRequestTokens(input, { estimatedOutputTokens, bytesPerToken });
+  if (Number(maxTokens) > 0 && estimate.totalTokens > Number(maxTokens)) {
+    const error = new Error(`${label} estimated token budget exceeded: ${estimate.totalTokens} > ${maxTokens}`);
+    error.code = 'ETOKENBUDGET';
+    error.estimate = estimate;
+    error.maxTokens = Number(maxTokens);
+    throw error;
+  }
+  return estimate;
+}
+
+function observedBytesPerInputToken(bytes, usage = {}) {
+  const tokens = Number(usage.inputTokens ?? usage.input_tokens ?? 0);
+  const size = Math.max(0, Number(bytes) || 0);
+  return tokens > 0 && size > 0 ? size / tokens : null;
+}
+
+function calibrateBytesPerToken(previous, observed, { alpha = 0.2, min = 1, max = 6, safetyMargin = 0.1 } = {}) {
+  const prior = Number(previous);
+  const sample = Number(observed);
+  if (!Number.isFinite(sample) || sample <= 0) return Number.isFinite(prior) && prior > 0 ? clamp(prior, min, max) : 2;
+  const weight = clamp(alpha, 0.01, 1);
+  const safeSample = sample * (1 - clamp(safetyMargin, 0, 0.5));
+  const raw = Number.isFinite(prior) && prior > 0 ? (1 - weight) * prior + weight * safeSample : safeSample;
+  return clamp(raw, min, max);
+}
+
+class TokenEstimatorCalibration {
+  constructor({ defaultBytesPerToken = 2, alpha = 0.2, min = 1, max = 6, safetyMargin = 0.1, minSamples = 3, now = () => Date.now() } = {}) {
+    this.defaultBytesPerToken = clamp(defaultBytesPerToken, min, max);
+    this.alpha = alpha;
+    this.min = min;
+    this.max = max;
+    this.safetyMargin = safetyMargin;
+    this.minSamples = Math.max(1, Math.floor(Number(minSamples) || 3));
+    this.now = typeof now === 'function' ? now : () => Date.now();
+    this.entries = new Map();
+  }
+
+  key(provider = '', model = '') {
+    return `${String(provider || 'default').trim() || 'default'}\n${String(model || 'default').trim() || 'default'}`;
+  }
+
+  bytesPerToken(provider = '', model = '') {
+    const entry = this.entries.get(this.key(provider, model));
+    return entry && entry.samples >= this.minSamples ? entry.ratio : this.defaultBytesPerToken;
+  }
+
+  observe(provider, model, { bytes = 0, usage = {}, observedAtMs } = {}) {
+    const observed = observedBytesPerInputToken(bytes, usage);
+    const key = this.key(provider, model);
+    const old = this.entries.get(key) || { samples: 0, ratio: this.defaultBytesPerToken, lastObserved: null, lastObservedAtMs: 0 };
+    if (observed === null) return Object.freeze({ ...old, active: old.samples >= this.minSamples });
+    const ratio = calibrateBytesPerToken(old.samples ? old.ratio : this.defaultBytesPerToken, observed, {
+      alpha: this.alpha,
+      min: this.min,
+      max: this.max,
+      safetyMargin: this.safetyMargin
+    });
+    const timestamp = Number.isFinite(Number(observedAtMs)) ? Number(observedAtMs) : Number(this.now());
+    const entry = { samples: old.samples + 1, ratio, lastObserved: observed, lastObservedAtMs: Math.max(0, timestamp) };
+    this.entries.set(key, entry);
+    return Object.freeze({ ...entry, active: entry.samples >= this.minSamples });
+  }
+
+  restore(snapshot = [], { replace = false } = {}) {
+    if (!Array.isArray(snapshot)) throw new TypeError('Token calibration snapshot must be an array.');
+    if (replace) this.entries.clear();
+    let restored = 0;
+    for (const raw of snapshot) {
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) continue;
+      let provider = String(raw.provider || '').trim();
+      let model = String(raw.model || '').trim();
+      if ((!provider || !model) && typeof raw.key === 'string') {
+        const parts = raw.key.split('\n');
+        provider = provider || parts[0] || 'default';
+        model = model || parts.slice(1).join('\n') || 'default';
+      }
+      const samples = Math.max(0, Math.floor(Number(raw.samples) || 0));
+      const ratio = Number(raw.bytesPerToken ?? raw.ratio);
+      const lastObserved = raw.lastObserved === null ? null : Number(raw.lastObserved);
+      const lastObservedAtMs = Math.max(0, Number(raw.lastObservedAtMs ?? raw.updatedAtMs) || 0);
+      if (!provider || !model || !samples || !Number.isFinite(ratio) || ratio < this.min || ratio > this.max) continue;
+      this.entries.set(this.key(provider, model), {
+        samples,
+        ratio,
+        lastObserved: Number.isFinite(lastObserved) ? lastObserved : null,
+        lastObservedAtMs
+      });
+      restored++;
+    }
+    return restored;
+  }
+
+  estimate(provider, model, input, options = {}) {
+    return estimateRequestTokens(input, { ...options, bytesPerToken: this.bytesPerToken(provider, model) });
+  }
+
+  snapshot() {
+    return Object.freeze([...this.entries.entries()].map(([key, value]) => {
+      const split = key.indexOf('\n');
+      const provider = split >= 0 ? key.slice(0, split) : 'default';
+      const model = split >= 0 ? key.slice(split + 1) : key;
+      return Object.freeze({
+        key,
+        provider,
+        model,
+        samples: value.samples,
+        bytesPerToken: value.ratio,
+        lastObserved: value.lastObserved,
+        lastObservedAtMs: value.lastObservedAtMs || 0,
+        active: value.samples >= this.minSamples
+      });
+    }));
+  }
+}
+
+function changedEvidenceText(text = '') {
+  return String(text || '')
+    .split(/\r?\n/)
+    .filter(line => /^[+-](?![+-])/.test(line))
+    .join('\n');
+}
+
+function scoreEvidenceRisk({ paths = [], text = '' } = {}) {
+  let score = 0;
+  let languagePriorApplied = false;
+  for (const raw of paths || []) {
+    const path = String(raw || '').replace(/\\/g, '/');
+    if (SEVERITY_RISK_PATTERNS.highPaths.some(pattern => pattern.test(path))) score += 5;
+    else if (SEVERITY_RISK_PATTERNS.mediumPaths.some(pattern => pattern.test(path))) score += 2;
+    if (!languagePriorApplied && SEVERITY_RISK_PATTERNS.languagePaths.some(pattern => pattern.test(path))) {
+      score += 1;
+      languagePriorApplied = true;
+    }
+    if (/(^|\/)(test|tests|fixtures?|docs?)(\/|\.|$)/i.test(path)) score -= 1;
+  }
+
+  const changed = changedEvidenceText(text);
+  if (SEVERITY_RISK_PATTERNS.highChangedText.test(changed) || SEVERITY_RISK_PATTERNS.highChangedCalls.test(changed)) score += 5;
+  if (SEVERITY_RISK_PATTERNS.mediumChangedText.test(changed)) score += 2;
+
+  const changedLines = (changed.match(/^[+-](?![+-])/gm) || []).length;
+  if (changedLines > 300) score += 2;
+  else if (changedLines > 100) score += 1;
+  return Math.max(0, score);
+}
+
+function adaptiveBudget(cap, riskScore, { lowFactor = 0.25, mediumFactor = 0.5, min = 0 } = {}) {
+  const limit = Math.max(0, Math.floor(Number(cap) || 0));
+  if (!limit) return 0;
+  const factor = Number(riskScore) >= 8 ? 1 : Number(riskScore) >= 4 ? mediumFactor : lowFactor;
+  const desired = Math.floor(limit * Math.max(0, Math.min(1, Number(factor) || 0)));
+  return Math.min(limit, Math.max(Math.min(limit, Math.max(0, Math.floor(Number(min) || 0))), desired));
+}
+
+function selectModel({ model = '', fastModel = '', riskScore = 0, fastThreshold = 4 } = {}) {
+  const fast = String(fastModel || '').trim();
+  if (fast && Number(riskScore) < Number(fastThreshold)) return fast;
+  return String(model || '').trim();
+}
+
+function selectChunksWithinByteBudget(chunks, maxBytes, {
+  riskFn = chunk => scoreEvidenceRisk({
+    paths: chunk?.paths || chunk?.files?.map(file => file?.path) || [],
+    text: chunk?.text || chunk?.diffText || ''
+  })
+} = {}) {
+  const values = Array.isArray(chunks) ? chunks : [];
+  const budget = Math.max(0, Math.floor(Number(maxBytes) || 0));
+  const total = values.reduce((sum, item) => sum + (Number(item?.bytes) || byteLength(item?.text || item?.diffText || '')), 0);
+  if (!budget || total <= budget) return Object.freeze({ chunks: Object.freeze(values.slice()), omitted: Object.freeze([]), bytes: total, complete: true });
+  const ranked = values.map((chunk, index) => ({
+    chunk,
+    index,
+    risk: Number(riskFn(chunk)) || 0,
+    size: Number(chunk?.bytes) || byteLength(chunk?.text || chunk?.diffText || '')
+  })).sort((a, b) => b.risk - a.risk || a.index - b.index);
+  const selected = [];
+  const omitted = [];
+  let bytes = 0;
+  for (const item of ranked) {
+    if (item.size <= budget - bytes) {
+      selected.push(item);
+      bytes += item.size;
+    } else omitted.push(item);
+  }
+  selected.sort((a, b) => a.index - b.index);
+  omitted.sort((a, b) => a.index - b.index);
+  const planned = selected.map((item, index) => Object.freeze({ ...item.chunk, originalIndex: item.chunk.index ?? item.index, index }));
+  return Object.freeze({ chunks: Object.freeze(planned), omitted: Object.freeze(omitted.map(item => item.chunk)), bytes, complete: omitted.length === 0 });
+}
+
+class TokenBudgetLedger {
+  constructor() {
+    this.byKey = new Map();
+    this.byProject = new Map();
+  }
+
+  reservedForProject(projectId) {
+    return Number(this.byProject.get(String(projectId)) || 0);
+  }
+
+  reservedForKey(key) {
+    return Number(this.byKey.get(String(key))?.tokens || 0);
+  }
+
+  reserve(key, projectId, tokens, { budget = 0, committed = 0 } = {}) {
+    const amount = Math.max(0, Math.ceil(Number(tokens) || 0));
+    if (!amount) return this.reservedForKey(key);
+    const id = String(key);
+    const project = String(projectId);
+    const current = this.byKey.get(id) || { projectId: project, tokens: 0 };
+    if (current.projectId !== project) throw new Error('Token reservation project mismatch');
+    const reserved = this.reservedForProject(project);
+    if (Number(budget) > 0 && Number(committed || 0) + reserved + amount > Number(budget)) {
+      const error = new Error('Token budget would be exceeded by the next reservation');
+      error.code = 'ETOKENBUDGET';
+      error.committed = Number(committed || 0);
+      error.reserved = reserved;
+      error.requested = amount;
+      error.budget = Number(budget);
+      throw error;
+    }
+    current.tokens += amount;
+    this.byKey.set(id, current);
+    this.byProject.set(project, reserved + amount);
+    return current.tokens;
+  }
+
+  release(key) {
+    const id = String(key);
+    const current = this.byKey.get(id);
+    if (!current) return 0;
+    const reserved = this.reservedForProject(current.projectId);
+    const remaining = Math.max(0, reserved - current.tokens);
+    if (remaining) this.byProject.set(current.projectId, remaining);
+    else this.byProject.delete(current.projectId);
+    this.byKey.delete(id);
+    return current.tokens;
+  }
+}
+
+module.exports = {
+  USAGE_KEYS,
+  usageShape,
+  usageAdd,
+  usageTotal,
+  extractCodexUsage,
+  estimateTextTokens,
+  estimateRequestTokens,
+  assertWithinTokenBudget,
+  observedBytesPerInputToken,
+  calibrateBytesPerToken,
+  TokenEstimatorCalibration,
+  changedEvidenceText,
+  scoreEvidenceRisk,
+  adaptiveBudget,
+  selectModel,
+  selectChunksWithinByteBudget,
+  TokenBudgetLedger
+};
