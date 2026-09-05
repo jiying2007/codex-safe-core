@@ -27,14 +27,17 @@ test('Core workflows do not use the vulnerable setup-node v7.0.0 bundle', () => 
 });
 
 test('latest Codex canary validates relevant changes before merge through CI Gate', () => {
-  assert.match(canary, /workflow_call:/);
+  assert.doesNotMatch(canary, /pull_request:/);
+  assert.match(canary, /schedule:/);
   assert.match(canary, /@openai\/codex@latest/);
   assert.match(canary, /ubuntu-latest, windows-latest, macos-latest/);
   assert.match(ci, /canary-impact:/);
   assert.match(ci, /core-contract\.json\|safe-contract\.js\|codex-cli\.js/);
-  assert.match(ci, /codex-canary:\n[\s\S]*uses: \.\/\.github\/workflows\/codex-canary\.yml/);
-  assert.match(ci, /needs: \[verify, package-reproducibility, security, dependency-review, canary-impact, codex-canary\]/);
-  assert.match(ci, /name === 'codex-canary'/);
+  assert.match(ci, /codex-canary-capability:/);
+  assert.match(ci, /codex-canary-behavioral:/);
+  assert.match(ci, /@openai\/codex@latest/);
+  assert.match(ci, /ubuntu-latest, windows-latest, macos-latest/);
+  assert.match(ci, /needs: \[verify, package-reproducibility, security, dependency-review, canary-impact, codex-canary-capability, codex-canary-behavioral\]/);
   assert.match(ci, /CANARY_REQUIRED/);
 });
 
@@ -46,7 +49,6 @@ test('latest Codex canary exercises Safe Contract config overrides under strict 
 
 test('scheduled live canary is fail-closed and gates compatibility history', () => {
   assert.match(canary, /CODEX_CANARY_OPENAI_API_KEY/);
-  assert.match(canary, /github\.event_name != 'pull_request' && env\.OPENAI_API_KEY == ''/);
   assert.match(canary, /Scheduled\/manual Codex behavioral canary requires/);
   assert.match(canary, /node scripts\/codex-behavioral-canary\.js/);
   assert.match(canary, /node scripts\/codex-quality-canary\.js/);
