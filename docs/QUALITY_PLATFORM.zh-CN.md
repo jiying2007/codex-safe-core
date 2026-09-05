@@ -1,6 +1,6 @@
 # Quality Platform
 
-Codex Safe Core 4.17.0 / Quality Platform v3 在保持共享确定性质量平台稳定的同时，强化 Model Routing Contract v1 的 Health-aware、质量约束 Economics，改为 change-aware Evidence Risk，并让服务器侧 Family Ruleset Contract 真正成为 Release Authority。Safe Contract v2、Policy Schema v4、Runtime v3 与 Provider Contract v3 继续作为安全边界。
+Codex Safe Core 4.17.1 / Quality Platform v3 在保持共享确定性质量平台稳定的同时，强化 Model Routing Contract v1 的 Health-aware、质量约束 Economics，改为 change-aware Evidence Risk，让服务器侧 Family Ruleset Contract 真正成为 Release Authority，并让 Coordinated Family Upgrade 的 resume / rate-limit 处理保持 fail-closed 且可安全重试。Safe Contract v2、Policy Schema v4、Runtime v3 与 Provider Contract v3 继续作为安全边界。
 
 ## Runtime / Provider Contract v3
 
@@ -79,7 +79,7 @@ Family Freshness 要求每个活跃 Consumer 与最新 released Core **runtime-c
 
 普通 Family Compatibility 信任 immutable Consumer CI Receipt，并只运行一次 Ubuntu cross-family validation；完整 5 Consumer × Linux/Windows/macOS 矩阵保留为每周或显式 `full_matrix=true` 审计，保持测试强度但移除日常重复工作。
 
-Coordinated Family Upgrade 使用两阶段事务：Phase 1 准备所有需要 Runtime Repin 的 Consumer PR，并等待全部 CI 通过；Phase 2 冻结 PR Head SHA 后才合并。Runtime-equivalent Consumer 记录为 skipped；Transaction State 作为 Artifact 保留用于审计/重试。Release、Distribution、CI Receipt 仍必须全部收敛后才能 Family Freshness。
+Coordinated Family Upgrade 使用两阶段事务：Phase 1 准备所有需要 Runtime Repin 的 Consumer PR，并等待全部 CI 通过；Phase 2 冻结 PR Head SHA 后才合并。Runtime-equivalent Consumer 记录为 skipped。重试时，如果 upgrade branch 已经完整 materialize 且对应 Open PR 仍存在，则该 PR 必须继续保持 `prepared` 并重新经过 Phase 1b，而不能因为 branch worktree 已 clean 就误判成 runtime-equivalent。Release-state polling 每轮只采集一次完整 Family；瞬时 429/5xx/网络错误在既有有界次数内重试，永久 Evidence 错误仍 fail closed。Transaction State 作为 Artifact 保留用于审计/重试；Release、Distribution、CI Receipt 仍必须全部收敛后才能 Family Freshness。
 
 ## Repository Governance
 
