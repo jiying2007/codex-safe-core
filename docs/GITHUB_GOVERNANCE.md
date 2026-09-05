@@ -25,7 +25,7 @@ The check covers all six active repositories as one Family control. A release fr
 
 ## Administrator migration and repair
 
-The GitHub App used by normal Family automation intentionally has no repository-administration write authority. Administrators use `scripts/apply-repository-governance.js` with a short-lived token that has repository Administration write access.
+The GitHub App used by normal Family automation intentionally has no repository-administration write authority. Administrators use `scripts/apply-repository-governance.js` with a short-lived token that has repository **Administration: write** access.
 
 The script is **dry-run by default**. After `CI Gate` has successfully appeared in all six repositories, run:
 
@@ -34,7 +34,17 @@ GH_TOKEN=... node scripts/apply-repository-governance.js
 GH_TOKEN=... node scripts/apply-repository-governance.js --apply
 ```
 
-Use `--zero-bypass` when a second trusted reviewer is available and no maintainer bypass is required. Without that option, existing bounded bypass actors are retained but converted to `pull_request` mode. The apply operation also enables GitHub's native merged-branch deletion and removes only stale local branches whose current ref still exactly equals the merged PR head SHA; advanced or reused branches are preserved.
+`--apply` is the authoritative governance phase. It updates all six Rulesets, enables GitHub's native `delete_branch_on_merge`, and verifies the resulting server state before returning success. It does **not** delete historical branch refs, so the governance token does not need repository Contents write access.
+
+Use `--zero-bypass` when a second trusted reviewer is available and no maintainer bypass is required. Without that option, existing bounded bypass actors are retained but converted to `pull_request` mode.
+
+Historical merged-branch cleanup is a separate optional hygiene phase. Only when branch cleanup is desired, use a short-lived token that additionally has repository **Contents: write** and run:
+
+```bash
+GH_TOKEN=... node scripts/apply-repository-governance.js --apply --clean-branches
+```
+
+The cleanup phase removes only local branches that have a merged same-repository PR, have no open PR, and whose current ref still exactly equals the merged PR head SHA. Advanced or reused branches are preserved. A branch-cleanup permission failure cannot roll back or invalidate governance already applied in phase 1.
 
 The canonical repositories are:
 
