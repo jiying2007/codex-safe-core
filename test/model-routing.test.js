@@ -6,6 +6,7 @@ const {
   MODEL_ROUTING_CONTRACT_VERSION,
   validateModelRegistry,
   assessModelCompatibility,
+  economicsDominance,
   resolveModelSelection,
   buildModelEvidence
 } = require('../model-routing');
@@ -83,6 +84,45 @@ test('unhealthy or non-approved models are not auto eligible', () => {
     registry: registry([{ ...balancedReviewer, status: 'qualified' }, { ...frontierReviewer, health: 'unhealthy' }]),
     mode: 'balanced', role: 'reviewer', strategy: 'auto', provider: 'relay'
   }), error => error?.code === 'MODEL_UNAVAILABLE');
+});
+
+test('healthy auto candidates outrank unknown health even when unknown has closer class', () => {
+  const unknownBalanced = { ...balancedReviewer, health: 'unknown', priority: 100 };
+  const healthyFrontier = { ...frontierReviewer, priority: -100 };
+  const result = resolveModelSelection({
+    registry: registry([unknownBalanced, healthyFrontier]), mode: 'balanced', role: 'reviewer', strategy: 'auto', provider: 'relay'
+  });
+  assert.equal(result.resolvedModel, 'frontier-a');
+});
+
+test('quality-approved economics can drive auto routing when one candidate Pareto-dominates another', () => {
+  const balancedB = { ...balancedReviewer, model: 'balanced-b', id: 'relay/balanced-b', priority: 100 };
+  const result = resolveModelSelection({
+    registry: registry([balancedReviewer, balancedB]),
+    mode: 'balanced', role: 'reviewer', strategy: 'auto', provider: 'relay',
+    minimumEconomicsSamples: 5,
+    economicsByModel: {
+      'relay/balanced-a': { samples: 20, qualityApproved: true, tokensPerVerifiedFinding: 1000, costPerVerifiedFinding: 0.01, latencyP95Ms: 1000, falsePositiveRate: 0.01, coverageRatio: 0.95 },
+      'relay/balanced-b': { samples: 20, qualityApproved: true, tokensPerVerifiedFinding: 2000, costPerVerifiedFinding: 0.02, latencyP95Ms: 2000, falsePositiveRate: 0.02, coverageRatio: 0.90 }
+    }
+  });
+  assert.equal(result.resolvedModel, 'balanced-a');
+  assert.equal(economicsDominance(
+    { tokensPerVerifiedFinding: 1, costPerVerifiedFinding: 1, latencyP95Ms: 1, falsePositiveRate: 0.01, coverageRatio: 1 },
+    { tokensPerVerifiedFinding: 2, costPerVerifiedFinding: 2, latencyP95Ms: 2, falsePositiveRate: 0.02, coverageRatio: 0.9 }
+  ), -1);
+});
+
+test('quality-rejected economics candidate is excluded from auto routing', () => {
+  const balancedB = { ...balancedReviewer, model: 'balanced-b', id: 'relay/balanced-b', priority: 100 };
+  const result = resolveModelSelection({
+    registry: registry([balancedReviewer, balancedB]),
+    mode: 'balanced', role: 'reviewer', strategy: 'auto', provider: 'relay',
+    economicsByModel: {
+      'relay/balanced-b': { samples: 20, qualityApproved: false, tokensPerVerifiedFinding: 1 }
+    }
+  });
+  assert.equal(result.resolvedModel, 'balanced-a');
 });
 
 test('scout can use fast while adjudicator requires frontier', () => {
