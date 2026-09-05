@@ -32,5 +32,14 @@
     "modelMayCreateMergeRequest": false,
     "modelMayExecuteFailureLogInstructions": false,
     "pipelineLogsAreUntrustedEvidence": true
+  },
+  "debug": {
+    "modelMayExecuteCommands": false,
+    "modelMayAuthorizePatchApplication": false,
+    "modelMayCommitPushMerge": false,
+    "modelMayPromoteOwnHypothesisToConfirmed": false,
+    "failureEvidenceIsUntrusted": true,
+    "patchApplicationRequiresExplicitUserAuthority": true,
+    "verificationRequiresObservedExecutionEvidence": true
   }
 }
