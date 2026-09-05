@@ -170,7 +170,7 @@ jobs:
             all_ready=true
             for repo in "${repos[@]}"; do
               read -r ready reason < <(
-                printf '%s' "$state_json" | node -e "let s='';const repo=process.argv[1];process.stdin.on('data',c=>s+=c);process.stdin.on('end',()=>{const value=JSON.parse(s).consumers[repo];process.stdout.write(String(value?.ready===true)+' '+String(value?.reason||''));});" "$repo"
+                printf '%s' "$state_json" | node -e "let s='';const repo=process.argv[1];process.stdin.on('data',c=>s+=c);process.stdin.on('end',()=>{const value=JSON.parse(s).consumers[repo];process.stdout.write(String(value?.ready===true)+' '+String(value?.reason||'')+'\n');});" "$repo"
               )
               echo "$repo ready=$ready reason=$reason"
               [[ "$ready" == true ]] || all_ready=false

@@ -24,3 +24,7 @@ test('Family Upgrade polls Family release state once per attempt and retries onl
   assert.match(workflow,/transient Family release-state query failure/);
   assert.match(workflow,/Family consumers did not reach exact release \+ distribution \+ runtime readiness/);
 });
+
+test('Family Upgrade newline-terminates readiness parser output for Bash read under set -e',()=>{
+  assert.match(workflow,/process\.stdout\.write\([^\n]+\+'\\n'\)/);
+});
