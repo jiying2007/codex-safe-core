@@ -121,6 +121,7 @@ jobs:
           node scripts/core-digests.js . --output CORE_DIGESTS.json
           test -s SBOM.spdx.json
           test -s CORE_DIGESTS.json
+          cat CORE_DIGESTS.json
           cp core-contract.json CORE_CONTRACT.json
           cp core-ownership-manifest.json CORE_OWNERSHIP_MANIFEST.json
           sha256sum "$artifact" SBOM.spdx.json CORE_CONTRACT.json CORE_OWNERSHIP_MANIFEST.json CORE_DIGESTS.json > SHA256SUMS
