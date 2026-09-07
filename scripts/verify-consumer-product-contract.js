@@ -18,7 +18,7 @@ function verify(root=process.cwd(),expectedCoreSha='',expectedProduct='',{allowR
   const pinnedCore=JSON.parse(fs.readFileSync(path.join(pinnedRoot,'core-contract.json'),'utf8'));
   assert.equal(contract.productContractVersion,Number(pinnedCore.productContractVersion||1));
   assert.equal(contract.productContractVersion,Number(currentCore.productContractVersion||1));
-  assert.match(String(contract.productId||''),/^codex-(?:commit-safe|review-safe|review-service|diagnose|change-safe)$/);
+  assert.match(String(contract.productId||''),/^codex-(?:commit-safe|review-safe|review-service|diagnose|debug-safe|change-safe)$/);
   if(expectedProduct)assert.equal(contract.productId,expectedProduct);
   assert.equal(contract.productVersion,pkg.version);
   assert.equal(contract.safeCoreVersion,pinnedCore.coreVersion);

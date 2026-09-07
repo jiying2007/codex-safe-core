@@ -30,15 +30,27 @@ test('trusted publication is workflow_run gated to successful main validation',(
   assert.match(trusted,/test "\$remote_main" = "\$validated_sha"/);
 });
 
-test('formal release is skipped only when immutable and still exact-head',()=>{
-  assert.match(trusted,/gh release view "\$tag"[\s\S]*tag_sha=.*git ls-remote origin[\s\S]*VALIDATED_SHA/);
+test('trusted release no-ops only for an unchanged version with an existing immutable release on an older SHA',()=>{
+  assert.match(trusted,/fetch-depth: 2/);
+  assert.match(trusted,/parent_version=''/);
+  assert.match(trusted,/git show HEAD\^:core-contract\.json/);
+  assert.match(trusted,/parent_version.*==.*version/);
+  assert.match(trusted,/Core version \$\{version\} is unchanged from parent/);
+  assert.match(trusted,/reason=no-version-change/);
   assert.match(trusted,/Existing formal release \$\{tag\} is not immutable/);
+  assert.match(trusted,/Existing formal release \$\{tag\} points to \$\{tag_sha\}, expected \$\{VALIDATED_SHA\}; version changed or parent version could not prove a no-op/);
+});
+
+test('formal release is skipped when immutable and still exact-head',()=>{
+  assert.match(trusted,/gh release view "\$tag"[\s\S]*tag_sha=.*git ls-remote origin[\s\S]*VALIDATED_SHA/);
   assert.match(trusted,/release_verified=false[\s\S]*for attempt in \{1\.\.12\}; do[\s\S]*gh release verify "\$tag"/);
   assert.match(trusted,/Existing formal release \$\{tag\} attestation did not become verifiable/);
+  assert.match(trusted,/reason=exact-existing-release/);
   assert.match(trusted,/publish=false/);
   assert.match(trusted,/git ls-remote --exit-code --refs origin "refs\/tags\/\$\{tag\}"/);
   assert.match(trusted,/git rev-list -n 1 "\$tag"[\s\S]*VALIDATED_SHA/);
   assert.match(trusted,/publish=true/);
+  assert.match(trusted,/reason=new-release/);
 });
 
 test('trusted release provenance action stays SHA-pinned to v4.2.2',()=>{

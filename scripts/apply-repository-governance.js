@@ -8,7 +8,7 @@ const { assess } = require('./verify-repository-ruleset');
 const API = 'https://api.github.com';
 const apply = process.argv.includes('--apply');
 const zeroBypass = process.argv.includes('--zero-bypass');
-const cleanBranches = !process.argv.includes('--no-clean-branches');
+const cleanBranches = process.argv.includes('--clean-branches');
 const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '';
 
 if (apply && !token) throw new Error('GH_TOKEN or GITHUB_TOKEN with repository Administration write permission is required for --apply.');
@@ -22,12 +22,20 @@ function headers() {
   };
 }
 
-async function api(method, pathname, body) {
-  const response = await fetch(`${API}${pathname}`, {
+async function api(method, pathname, body, { anonymousRetry = false } = {}) {
+  const request = async authenticated => fetch(`${API}${pathname}`, {
     method,
-    headers: headers(),
+    headers: {
+      accept: 'application/vnd.github+json',
+      'content-type': 'application/json',
+      'user-agent': 'codex-safe-governance-apply',
+      ...(authenticated && token ? { authorization: `Bearer ${token}` } : {})
+    },
     ...(body === undefined ? {} : { body: JSON.stringify(body) })
   });
+
+  let response = await request(true);
+  if (anonymousRetry && token && method === 'GET' && (response.status === 403 || response.status === 404)) response = await request(false);
   if (!response.ok) {
     const text = await response.text().catch(() => '');
     const error = new Error(`GitHub API ${method} ${pathname} failed: ${response.status}${text ? ` ${text.slice(0, 300)}` : ''}`);
@@ -38,11 +46,11 @@ async function api(method, pathname, body) {
   return response.json();
 }
 
-async function pages(pathname) {
+async function pages(pathname, options) {
   const out = [];
   for (let page = 1; page <= 50; page += 1) {
     const join = pathname.includes('?') ? '&' : '?';
-    const values = await api('GET', `${pathname}${join}per_page=100&page=${page}`);
+    const values = await api('GET', `${pathname}${join}per_page=100&page=${page}`, undefined, options);
     if (!Array.isArray(values)) throw new Error(`Expected paginated array from ${pathname}`);
     out.push(...values);
     if (values.length < 100) break;
@@ -105,14 +113,14 @@ function desiredRuleset(repo, detail) {
 
 async function safeRef(owner, repo, branch) {
   const pathname = `/repos/${owner}/${repo}/git/ref/heads/${branch.split('/').map(encodeURIComponent).join('/')}`;
-  try { return await api('GET', pathname); }
+  try { return await api('GET', pathname, undefined, { anonymousRetry: true }); }
   catch (error) { if (error.status === 404) return null; throw error; }
 }
 
 async function cleanupMergedBranches(owner, repo) {
-  const open = await pages(`/repos/${owner}/${repo}/pulls?state=open`);
+  const open = await pages(`/repos/${owner}/${repo}/pulls?state=open`, { anonymousRetry: true });
   const protectedHeads = new Set(open.filter(pr => pr?.head?.repo?.full_name === `${owner}/${repo}`).map(pr => pr.head.ref));
-  const closed = await pages(`/repos/${owner}/${repo}/pulls?state=closed`);
+  const closed = await pages(`/repos/${owner}/${repo}/pulls?state=closed`, { anonymousRetry: true });
   const candidates = new Map();
   for (const pr of closed) {
     if (!pr?.merged_at || pr?.head?.repo?.full_name !== `${owner}/${repo}`) continue;
@@ -130,7 +138,16 @@ async function cleanupMergedBranches(owner, repo) {
       skipped.push({ branch, reason: 'advanced-after-merge', current, mergedHead });
       continue;
     }
-    if (apply) await api('DELETE', `/repos/${owner}/${repo}/git/refs/heads/${branch.split('/').map(encodeURIComponent).join('/')}`);
+    if (apply) {
+      try {
+        await api('DELETE', `/repos/${owner}/${repo}/git/refs/heads/${branch.split('/').map(encodeURIComponent).join('/')}`);
+      } catch (error) {
+        if (error.status === 403) {
+          error.message = `${error.message}\nHistorical branch cleanup requires fine-grained PAT Contents: write. Governance settings were already applied before cleanup started.`;
+        }
+        throw error;
+      }
+    }
     deleted.push(branch);
   }
   return { deleted, skipped };
@@ -139,13 +156,16 @@ async function cleanupMergedBranches(owner, repo) {
 async function main() {
   const owner = registry.owner;
   const results = [];
+
+  // Phase 1 is authoritative governance. Complete and verify all repositories
+  // before any optional historical branch deletion is attempted.
   for (const repoName of contract.repositories) {
     const full = `${owner}/${repoName}`;
-    const repo = await api('GET', `/repos/${full}`);
-    const summaries = await api('GET', `/repos/${full}/rulesets`);
+    const repo = await api('GET', `/repos/${full}`, undefined, { anonymousRetry: true });
+    const summaries = await api('GET', `/repos/${full}/rulesets`, undefined, { anonymousRetry: true });
     const summary = summaries.find(item => item?.name === contract.rulesetName);
     if (!summary?.id) throw new Error(`${full} is missing Ruleset ${contract.rulesetName}.`);
-    const detail = await api('GET', `/repos/${full}/rulesets/${summary.id}`);
+    const detail = await api('GET', `/repos/${full}/rulesets/${summary.id}`, undefined, { anonymousRetry: true });
     const desired = desiredRuleset(repo, detail);
 
     process.stdout.write(`${apply ? 'APPLY' : 'DRY-RUN'} ${full}: Ruleset ${summary.id} -> CI Gate; delete_branch_on_merge=true; bypass=${desired.bypass_actors.map(a => a.bypass_mode).join(',') || 'none'}\n`);
@@ -155,15 +175,25 @@ async function main() {
       await api('PUT', `/repos/${full}/rulesets/${summary.id}`, desired);
     }
 
-    const cleanup = cleanBranches ? await cleanupMergedBranches(owner, repoName) : { deleted: [], skipped: [] };
-    const postRepo = apply ? await api('GET', `/repos/${full}`) : { ...repo, delete_branch_on_merge: true };
-    const postDetail = apply ? await api('GET', `/repos/${full}/rulesets/${summary.id}`) : { ...desired, id: summary.id };
+    const postRepo = apply ? await api('GET', `/repos/${full}`, undefined, { anonymousRetry: true }) : { ...repo, delete_branch_on_merge: true };
+    const postDetail = apply ? await api('GET', `/repos/${full}/rulesets/${summary.id}`, undefined, { anonymousRetry: true }) : { ...desired, id: summary.id };
     const verdict = assess(postDetail, postRepo);
     if (!verdict.ok) throw new Error(`${full} desired governance does not satisfy contract: ${verdict.reasons.join(', ')}`);
-    results.push({ repository: full, rulesetId: summary.id, cleanup });
+    results.push({ repository: full, rulesetId: summary.id, cleanup: { requested: cleanBranches, deleted: [], skipped: [] } });
   }
+
+  // Phase 2 is optional hygiene. It is deliberately separate so a token with
+  // Administration: write can close governance without also gaining Contents: write.
+  if (cleanBranches) {
+    for (const result of results) {
+      const repoName = result.repository.slice(owner.length + 1);
+      result.cleanup = { requested: true, ...(await cleanupMergedBranches(owner, repoName)) };
+    }
+  }
+
   process.stdout.write(`${JSON.stringify({ schemaVersion: 1, mode: apply ? 'apply' : 'dry-run', zeroBypass, cleanBranches, results }, null, 2)}\n`);
-  if (!apply) process.stdout.write('Dry-run only. Re-run with --apply after CI Gate exists on main in all six repositories.\n');
+  if (!apply) process.stdout.write('Dry-run only. Re-run with --apply after CI Gate exists on main in all six repositories. Add --clean-branches only when the token also has Contents: write.\n');
+  else if (!cleanBranches) process.stdout.write('Governance applied. Historical branch cleanup was not requested; use --apply --clean-branches with Contents: write if desired.\n');
 }
 
 main().catch(error => {

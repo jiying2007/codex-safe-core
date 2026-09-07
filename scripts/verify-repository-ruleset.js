@@ -26,6 +26,9 @@ function normalizedContexts(parameters = {}) {
     .map(item => String(item?.context || '').trim())
     .filter(Boolean))].sort();
 }
+function deleteBranchOnMergeState(repository = {}) {
+  return typeof repository?.delete_branch_on_merge === 'boolean' ? repository.delete_branch_on_merge : null;
+}
 function assess(detail, repository = {}) {
   const reasons = [];
   if (detail?.name !== contract.rulesetName) reasons.push(`ruleset-name:${detail?.name || 'missing'}`);
@@ -51,8 +54,14 @@ function assess(detail, repository = {}) {
   if (bypass.length > Number(contract.maximumBypassActors)) reasons.push(`too-many-bypass-actors:${bypass.length}`);
   const allowedBypassModes = new Set((contract.allowedBypassModes || []).map(String));
   for (const actor of bypass) if (!allowedBypassModes.has(String(actor?.bypass_mode || ''))) reasons.push(`disallowed-bypass-mode:${actor?.bypass_mode || 'missing'}`);
-  if (contract.deleteBranchOnMerge && repository?.delete_branch_on_merge !== true) reasons.push('delete-branch-on-merge-disabled');
-  return { ok: reasons.length === 0, reasons };
+
+  // GitHub intentionally hides merge-related repository settings unless the caller
+  // has both Contents read and write. Release Validation stays read-only, so an
+  // absent field means "not observable", not false. An administrator/local audit
+  // sees the boolean and remains fail-closed on an explicit false value.
+  const deleteBranchOnMerge = deleteBranchOnMergeState(repository);
+  if (contract.deleteBranchOnMerge && deleteBranchOnMerge === false) reasons.push('delete-branch-on-merge-disabled');
+  return { ok: reasons.length === 0, reasons, administrativeMetadata: { deleteBranchOnMerge } };
 }
 async function auditRepository(repo, token) {
   const owner = registry.owner;
@@ -67,7 +76,17 @@ async function auditRepository(repo, token) {
     if (result.ok) active.push({ id: detail.id, name: detail.name });
     else rejected.push({ id: detail.id, name: detail.name, reasons: result.reasons });
   }
-  return { repository: `${owner}/${repo}`, ok: active.length > 0, matchingRulesets: active, rejectedRulesets: rejected };
+  const deleteBranchOnMerge = deleteBranchOnMergeState(repository);
+  return {
+    repository: `${owner}/${repo}`,
+    ok: active.length > 0,
+    matchingRulesets: active,
+    rejectedRulesets: rejected,
+    administrativeMetadata: {
+      deleteBranchOnMerge,
+      observable: deleteBranchOnMerge !== null
+    }
+  };
 }
 async function main() {
   if (Number(contract.schemaVersion) !== 1) throw new Error('Unsupported repository governance contract schema.');
@@ -83,4 +102,4 @@ async function main() {
   }
 }
 if (require.main === module) main().catch(error => { console.error(error.message || String(error)); process.exitCode = 2; });
-module.exports = { assess, auditRepository, branchCovered, normalizedContexts, json };
+module.exports = { assess, auditRepository, branchCovered, normalizedContexts, deleteBranchOnMergeState, json };

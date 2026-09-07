@@ -26,7 +26,7 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
           fetch-depth: 2
-      - uses: actions/setup-node@e51e5fe84fc33b4c73ebe40526b2694712b5b858
+      - uses: actions/setup-node@94196ee1d15439c1b6651cd87ef14e88ec435966
         with:
           node-version: '22.22.2'
       - name: Verify validated SHA is still canonical main
@@ -51,20 +51,30 @@ jobs:
           set -euo pipefail
           version=$(node -p "require('./core-contract.json').coreVersion")
           test "$version" = "$(node -p "require('./package.json').version")"
+          parent_version=''
+          if git rev-parse --verify HEAD^ >/dev/null 2>&1; then
+            parent_version=$(git show HEAD^:core-contract.json | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>process.stdout.write(String(JSON.parse(s).coreVersion||'')))")
+          fi
           tag="v${version}"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           if gh release view "$tag" >/dev/null 2>&1; then
             tag_sha=$(git ls-remote origin "refs/tags/${tag}" | awk '{print $1}')
             test -n "$tag_sha"
-            test "$tag_sha" = "$VALIDATED_SHA" || {
-              echo "Existing formal release ${tag} points to ${tag_sha}, expected ${VALIDATED_SHA}." >&2
-              exit 1
-            }
             test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${tag}" --jq '.immutable')" = true || {
               echo "Existing formal release ${tag} is not immutable." >&2
               exit 1
             }
+            if [[ "$tag_sha" != "$VALIDATED_SHA" ]]; then
+              if [[ -n "$parent_version" && "$parent_version" == "$version" ]]; then
+                echo "Core version ${version} is unchanged from parent; existing immutable ${tag} remains canonical at ${tag_sha}. No new publication is required for main ${VALIDATED_SHA}."
+                echo "publish=false" >> "$GITHUB_OUTPUT"
+                echo "reason=no-version-change" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+              echo "Existing formal release ${tag} points to ${tag_sha}, expected ${VALIDATED_SHA}; version changed or parent version could not prove a no-op." >&2
+              exit 1
+            fi
             release_verified=false
             for attempt in {1..12}; do
               if gh release verify "$tag"; then
@@ -80,6 +90,7 @@ jobs:
             }
             echo "Formal release ${tag} already exists, points to validated main, and is immutable; no new publication is required."
             echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "reason=exact-existing-release" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           if git ls-remote --exit-code --refs origin "refs/tags/${tag}" >/dev/null 2>&1; then
@@ -90,6 +101,7 @@ jobs:
             }
           fi
           echo "publish=true" >> "$GITHUB_OUTPUT"
+          echo "reason=new-release" >> "$GITHUB_OUTPUT"
       - name: Re-verify reproducible package and Core gates
         if: steps.decision.outputs.publish == 'true'
         run: |
@@ -109,6 +121,7 @@ jobs:
           node scripts/core-digests.js . --output CORE_DIGESTS.json
           test -s SBOM.spdx.json
           test -s CORE_DIGESTS.json
+          cat CORE_DIGESTS.json
           cp core-contract.json CORE_CONTRACT.json
           cp core-ownership-manifest.json CORE_OWNERSHIP_MANIFEST.json
           sha256sum "$artifact" SBOM.spdx.json CORE_CONTRACT.json CORE_OWNERSHIP_MANIFEST.json CORE_DIGESTS.json > SHA256SUMS

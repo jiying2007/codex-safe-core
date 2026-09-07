@@ -57,7 +57,9 @@ test('reads and inspects machine registry without secrets', () => {
   try {
     const registryDir = path.join(dir, '.codex-safe');
     fs.mkdirSync(registryDir, { recursive: true });
-    fs.writeFileSync(path.join(registryDir, 'models.json'), JSON.stringify(document()));
+    const registryPath = path.join(registryDir, 'models.json');
+    fs.writeFileSync(registryPath, JSON.stringify(document()));
+    fs.chmodSync(registryPath, 0o600);
     const result = resolveModelRegistry({}, { homeDir: dir, env: {} });
     assert.equal(result.source, 'machine-registry');
     assert.equal(result.registry.models.length, 1);
