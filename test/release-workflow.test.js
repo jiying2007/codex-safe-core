@@ -8,6 +8,7 @@ const root=path.resolve(__dirname,'..');
 const release=fs.readFileSync(path.join(root,'.github','workflows','release.yml'),'utf8');
 const trusted=fs.readFileSync(path.join(root,'.github','workflows','_trusted-release.yml'),'utf8');
 const family=fs.readFileSync(path.join(root,'.github','workflows','family-ci.yml'),'utf8');
+const manifestGenerator=fs.readFileSync(path.join(root,'scripts','generate-family-manifest.js'),'utf8');
 const performanceTrend=fs.readFileSync(path.join(root,'.github','workflows','performance-trend.yml'),'utf8');
 
 test('validation workflow is read-only and covers both LTS runtimes plus reproducibility',()=>{
@@ -94,6 +95,17 @@ test('Family publication has one canonical manifest and verifies immutable relea
   assert.doesNotMatch(family,/\/immutable-releases/);
   assert.match(family,/gh release verify "\$tag"/);
   assert.match(family,/gh release verify-asset "\$tag" FAMILY_MANIFEST\.json/);
+});
+
+test('Family Manifest binds canonical released Core while validating runtime-equivalent checkout',()=>{
+  assert.match(manifestGenerator,/const checkoutCoreSha=git\(\['rev-parse','HEAD'\]\)/);
+  assert.match(manifestGenerator,/const coreSha=snapshot\.core\?\.sha\|\|''/);
+  assert.match(manifestGenerator,/snapshot\.core\?\.runtimeDigest!==currentCoreDigests\.runtimeDigest/);
+  assert.match(manifestGenerator,/checkoutCoreSha===coreSha&&snapshot\.core\?\.governanceDigest!==currentCoreDigests\.governanceDigest/);
+  assert.match(manifestGenerator,/core:\{version:snapshot\.core\.version,sha:coreSha,runtimeDigest:snapshot\.core\.runtimeDigest,governanceDigest:snapshot\.core\.governanceDigest/);
+  assert.match(manifestGenerator,/releaseAssetSha256\(snapshot\.core\.release,'CORE_CONTRACT\.json'\)/);
+  assert.doesNotMatch(manifestGenerator,/snapshot\.core\?\.sha!==coreSha/);
+  assert.doesNotMatch(manifestGenerator,/runtimeDigest:currentCoreDigests\.runtimeDigest,governanceDigest:currentCoreDigests\.governanceDigest/);
 });
 
 test('Family release verification tolerates bounded release-attestation propagation delay',()=>{
