@@ -58,7 +58,8 @@ async function latestFamilyManifest(core,{token=process.env.GITHUB_TOKEN}={}){
 }
 async function familyValidationActive(core,{token=process.env.GITHUB_TOKEN}={}){
   const data=await githubJson(`/repos/${OWNER}/${CORE_REPO}/actions/workflows/family-ci.yml/runs?branch=main&per_page=10`,{token});
-  return (data.workflow_runs||[]).some(run=>run.head_sha===core.sha&&(run.status==='queued'||run.status==='in_progress'));
+  const validationSha=core?.headSha||core?.sha;
+  return (data.workflow_runs||[]).some(run=>run.head_sha===validationSha&&(run.status==='queued'||run.status==='in_progress'));
 }
 async function collectState({token=process.env.GITHUB_TOKEN}={}){
   const family=await collectFamilyState({token}),core=family.core,consumers=family.consumers;
