@@ -68,11 +68,14 @@ test('Family Freshness evaluates Core main pushes and dispatches the full compat
   assert.match(freshnessWorkflow,/family-ci\.yml[^\n]*full_matrix=true/);
 });
 
-test('production Family audits enumerate only frozen Snapshot consumers',()=>{
+test('production Family audits enumerate only frozen Snapshot consumers with Bash 3.2 portable loops',()=>{
   const enumerations=familyWorkflow.match(/Object\.keys\(require\('\.\/FAMILY_SNAPSHOT\.json'\)\.consumers\|\|\{\}\)/g)||[];
-  const nonEmptyGuards=familyWorkflow.match(/test "\$\{#repos\[@\]\}" -gt 0/g)||[];
+  const nonEmptyGuards=familyWorkflow.match(/test -n "\$repos"/g)||[];
+  const readLoops=familyWorkflow.match(/while IFS= read -r repo/g)||[];
   assert.equal(enumerations.length,2);
   assert.equal(nonEmptyGuards.length,2);
+  assert.equal(readLoops.length,2);
+  assert.doesNotMatch(familyWorkflow,/\bmapfile\b|\breadarray\b/);
   assert.doesNotMatch(familyWorkflow,/Object\.keys\(require\('\.\/family-registry\.json'\)\.consumers\)/);
   assert.doesNotMatch(familyWorkflow,/family\/codex-debug/);
 });

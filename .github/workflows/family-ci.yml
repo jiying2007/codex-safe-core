@@ -74,14 +74,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -t repos < <(node -e "for(const r of Object.keys(require('./FAMILY_SNAPSHOT.json').consumers||{})) console.log(r)")
-          test "${#repos[@]}" -gt 0
-          for repo in "${repos[@]}"; do
+          repos="$(node -e "for(const r of Object.keys(require('./FAMILY_SNAPSHOT.json').consumers||{})) console.log(r)")"
+          test -n "$repos"
+          while IFS= read -r repo; do
+            test -n "$repo"
             node scripts/verify-actions-pins.js "family/${repo}/.github/workflows"
             node scripts/verify-non-goals.js "family/${repo}"
             (cd "family/${repo}" && node "$GITHUB_WORKSPACE/scripts/verify-consumer-product-contract.js" --runtime-compatible)
             node -e "const s=require('./FAMILY_SNAPSHOT.json').consumers[process.argv[1]];if(!s.ciReceipt?.receiptDigest||!s.ciReceipt?.runId)throw new Error(process.argv[1]+' missing Consumer CI Receipt');" "$repo"
-          done
+          done <<< "$repos"
       - name: Verify consumers do not reimplement Core-owned primitives
         run: node scripts/verify-consumer-boundaries.js family
       - name: Replay Family golden corpus through every runtime-equivalent consumer Core
@@ -98,9 +99,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -t repos < <(node -e "for(const r of Object.keys(require('./FAMILY_SNAPSHOT.json').consumers||{})) console.log(r)")
-          test "${#repos[@]}" -gt 0
-          for repo in "${repos[@]}"; do
+          repos="$(node -e "for(const r of Object.keys(require('./FAMILY_SNAPSHOT.json').consumers||{})) console.log(r)")"
+          test -n "$repos"
+          while IFS= read -r repo; do
+            test -n "$repo"
             echo "::group::${repo}"
             if [[ "$RUNNER_OS" == "Linux" ]]; then
               (cd "family/${repo}" && xvfb-run -a npm run ci)
@@ -108,7 +110,7 @@ jobs:
               (cd "family/${repo}" && npm run ci)
             fi
             echo "::endgroup::"
-          done
+          done <<< "$repos"
 
   manifest:
     needs: [snapshot, family]
