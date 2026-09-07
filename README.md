@@ -130,7 +130,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md), [SECURITY.md](SECURITY.md), [Consumer Gu
 
 ## User-visible time zone
 
-Machine-readable receipts/evidence stay canonical UTC. User-visible timestamps follow the runtime time zone or `CODEX_SAFE_DISPLAY_TIME_ZONE`. Display time never participates in fingerprints or evidence digests.
+Machine-readable receipts/evidence stay canonical UTC. User-visible timestamps follow the runtime time zone or `CODEX_SAFE_DISPLAY_TIME_ZONE`; short notifications and cards use `formatDisplayTime(timestamp)`, while persistent audit summaries use `formatDisplayTime(timestamp, { includeUtc: true })`. Display time never participates in fingerprints or evidence digests.
 
 ## License
 
