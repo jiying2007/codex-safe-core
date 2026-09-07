@@ -74,7 +74,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -t repos < <(node -e "for(const r of Object.keys(require('./family-registry.json').consumers)) console.log(r)")
+          mapfile -t repos < <(node -e "for(const r of Object.keys(require('./FAMILY_SNAPSHOT.json').consumers||{})) console.log(r)")
+          test "${#repos[@]}" -gt 0
           for repo in "${repos[@]}"; do
             node scripts/verify-actions-pins.js "family/${repo}/.github/workflows"
             node scripts/verify-non-goals.js "family/${repo}"
@@ -97,7 +98,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -t repos < <(node -e "for(const r of Object.keys(require('./family-registry.json').consumers)) console.log(r)")
+          mapfile -t repos < <(node -e "for(const r of Object.keys(require('./FAMILY_SNAPSHOT.json').consumers||{})) console.log(r)")
+          test "${#repos[@]}" -gt 0
           for repo in "${repos[@]}"; do
             echo "::group::${repo}"
             if [[ "$RUNNER_OS" == "Linux" ]]; then
