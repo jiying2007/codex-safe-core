@@ -130,7 +130,7 @@ npm run check:repository-governance
 
 ## 用户可见时区
 
-机器可读 Receipt/Evidence 保持 canonical UTC。用户可见时间跟随 Runtime 时区或 `CODEX_SAFE_DISPLAY_TIME_ZONE`；展示时区永远不参与 Fingerprint 或 Evidence Digest。
+机器可读 Receipt/Evidence 保持 canonical UTC。用户可见时间跟随 Runtime 时区或 `CODEX_SAFE_DISPLAY_TIME_ZONE`：短通知与卡片使用 `formatDisplayTime(timestamp)`，持久化审计摘要使用 `formatDisplayTime(timestamp, { includeUtc: true })`；展示时区永远不参与 Fingerprint 或 Evidence Digest。
 
 ## License
 
