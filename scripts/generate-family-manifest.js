@@ -14,16 +14,20 @@ function fileSha(file){return crypto.createHash('sha256').update(fs.readFileSync
 function digest(value){return crypto.createHash('sha256').update(String(value)).digest('hex');}
 function protocolMap(){return Object.freeze(Object.fromEntries(Object.entries(contract).filter(([key,value])=>key!=='coreVersion'&&/Version$/.test(key)&&Number.isInteger(value)).sort(([a],[b])=>a.localeCompare(b))));}
 function readSnapshot(file){if(!file)throw new Error('Family Manifest v5 requires a runtime-aware snapshot.');const snapshot=JSON.parse(fs.readFileSync(file,'utf8'));const canonical={schemaVersion:snapshot.schemaVersion,registry:snapshot.registry,core:snapshot.core,consumers:snapshot.consumers};if(digest(JSON.stringify(canonical))!==snapshot.snapshotDigest)throw new Error('Family snapshot digest mismatch.');if(Number(snapshot.schemaVersion)!==Number(contract.familySnapshotVersion))throw new Error('Family snapshot version mismatch.');return snapshot;}
+function releaseAssetSha256(release,name){const value=(release?.assets||[]).find(item=>item.name===name)?.digest||'';if(!/^sha256:[0-9a-f]{64}$/.test(value))throw new Error(`Snapshot Core release asset ${name} is missing an exact SHA-256 digest.`);return value.slice('sha256:'.length);}
 
 const root=path.resolve(__dirname,'..');
 const familyDir=path.resolve(process.argv[2]||path.join(root,'family'));
 const out=path.resolve(process.argv[3]||path.join(root,'FAMILY_MANIFEST.json'));
 const snapshot=readSnapshot(path.resolve(process.argv[4]||'FAMILY_SNAPSHOT.json'));
-const coreSha=git(['rev-parse','HEAD']);
-if(snapshot.core?.sha!==coreSha)throw new Error(`Snapshot Core ${snapshot.core?.sha||'<missing>'} != ${coreSha}`);
+const checkoutCoreSha=git(['rev-parse','HEAD']);
+const coreSha=snapshot.core?.sha||'';
+if(!/^[0-9a-f]{40}$/.test(coreSha))throw new Error('Snapshot Core canonical release SHA is missing or invalid.');
+if(snapshot.core?.version!==contract.coreVersion)throw new Error(`Snapshot Core version ${snapshot.core?.version||'<missing>'} != ${contract.coreVersion}`);
 if(snapshot.core?.release?.tagSha!==coreSha||snapshot.core?.release?.immutable!==true)throw new Error('Snapshot Core release is not exact immutable.');
 const currentCoreDigests=computeCoreDigests(root);
-if(snapshot.core?.runtimeDigest!==currentCoreDigests.runtimeDigest||snapshot.core?.governanceDigest!==currentCoreDigests.governanceDigest)throw new Error('Snapshot current Core digest drift.');
+if(snapshot.core?.runtimeDigest!==currentCoreDigests.runtimeDigest)throw new Error('Snapshot current Core runtime digest drift.');
+if(checkoutCoreSha===coreSha&&snapshot.core?.governanceDigest!==currentCoreDigests.governanceDigest)throw new Error('Snapshot exact-release Core governance digest drift.');
 const registryDigest=digest(JSON.stringify(registry));
 if(snapshot.registry?.digest!==registryDigest)throw new Error('Family registry digest drift.');
 const consumers={};
@@ -36,7 +40,7 @@ for(const name of CONSUMERS){
   if(!recorded.ciReceipt?.receiptDigest||!recorded.ciReceipt?.runId)throw new Error(`${name} Consumer CI Receipt is not verified.`);
   if(recorded.corePin?.sha!==pin)throw new Error(`${name} snapshot Core pin drift: ${pin} != ${recorded.corePin?.sha||'<missing>'}`);
   const pinnedDigests=computeCoreDigests(pinnedRoot);
-  if(pinnedDigests.runtimeDigest!==currentCoreDigests.runtimeDigest)throw new Error(`${name} pinned Core runtime digest is stale.`);
+  if(pinnedDigests.runtimeDigest!==snapshot.core.runtimeDigest)throw new Error(`${name} pinned Core runtime digest is stale.`);
   if(recorded.corePin.runtimeDigest!==pinnedDigests.runtimeDigest||recorded.corePin.governanceDigest!==pinnedDigests.governanceDigest)throw new Error(`${name} snapshot pinned Core digest drift.`);
   const pkg=JSON.parse(fs.readFileSync(path.join(cwd,'package.json'),'utf8')),lockPath=path.join(cwd,'package-lock.json'),productPath=path.join(cwd,'product-contract.json');
   if(!fs.existsSync(productPath))throw new Error(`${name} must contain product-contract.json for Family Manifest v5.`);
@@ -50,7 +54,7 @@ for(const name of CONSUMERS){
     productId:productContract.productId,
     version:pkg.version,
     sha,
-    corePin:{sha:pin,version:recorded.corePin.version,runtimeDigest:pinnedDigests.runtimeDigest,governanceDigest:pinnedDigests.governanceDigest,runtimeEquivalentToCurrent:pinnedDigests.runtimeDigest===currentCoreDigests.runtimeDigest},
+    corePin:{sha:pin,version:recorded.corePin.version,runtimeDigest:pinnedDigests.runtimeDigest,governanceDigest:pinnedDigests.governanceDigest,runtimeEquivalentToCurrent:pinnedDigests.runtimeDigest===snapshot.core.runtimeDigest},
     ciReceipt:recorded.ciReceipt,
     release:recorded.release,
     distribution:recorded.distribution,
@@ -59,12 +63,13 @@ for(const name of CONSUMERS){
   };
 }
 
-const coreContractPath=path.join(root,'core-contract.json');
+const coreContractSha256=releaseAssetSha256(snapshot.core.release,'CORE_CONTRACT.json');
+const coreLockPath=path.join(root,'package-lock.json');
 const payload={
   schemaVersion:Number(contract.familyManifestVersion),
   registry:{schemaVersion:Number(registry.schemaVersion),digest:registryDigest},
   snapshot:{schemaVersion:snapshot.schemaVersion,digest:snapshot.snapshotDigest},
-  core:{version:contract.coreVersion,sha:coreSha,runtimeDigest:currentCoreDigests.runtimeDigest,governanceDigest:currentCoreDigests.governanceDigest,release:snapshot.core.release,coreContractSha256:fileSha(coreContractPath),packageLockSha256:fs.existsSync(path.join(root,'package-lock.json'))?fileSha(path.join(root,'package-lock.json')):null},
+  core:{version:snapshot.core.version,sha:coreSha,runtimeDigest:snapshot.core.runtimeDigest,governanceDigest:snapshot.core.governanceDigest,release:snapshot.core.release,coreContractSha256,packageLockSha256:checkoutCoreSha===coreSha&&fs.existsSync(coreLockPath)?fileSha(coreLockPath):null},
   protocols:protocolMap(),
   protocolFingerprint:digest(JSON.stringify(protocolMap())),
   runtime:{supportedNodeMajors:contract.supportedNodeMajors,minimumNodeVersion:contract.minimumNodeVersion,canonicalNodeVersion:contract.canonicalNodeVersion},
