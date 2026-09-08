@@ -33,13 +33,14 @@ No product may reimplement Core-owned Process/Codex/Policy/Receipt/Review-Eviden
 The current line is machine-owned by `core-contract.json`; the block below is generated and verified by `scripts/current-contract-block.js` / `scripts/verify-current-docs.js`:
 
 <!-- GENERATED:CORE-CONTRACT:START -->
-- Core 4.17.5 / Safe Core v4
+- Core 4.18.0 / Safe Core v4
 - Safe Contract v2 / Policy Schema v4
 - Review Receipt v5 / Commit Receipt v4 / Diagnosis Receipt v2
 - Review / Commit / Diagnose Prompt Contract v1
 - Runtime v3 / Provider Contract v3
 - Model Routing / Registry / Lineage / Economics v1/1/1/1
 - Token Calibration / Store v1/1
+- Finding Claim Contract v1
 - Family Snapshot v3 / Family Manifest v5 / Product Contract v2
 - Consumer CI Receipt v1 / Core Digest Contract v1 / Repository Governance Contract v1
 - Node 22 LTS >=22.22.2 <23 / Node 24 LTS >=24.19.0 <25

@@ -3,6 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const semantic = require('../semantic-review');
+const claim = require('../finding-claim');
 
 test('extractCallSymbols captures ordinary C/C++ call sites without control keywords', () => {
   const diff = [
@@ -96,4 +97,27 @@ test('chunk evidence selection keeps only path-connected evidence under budget',
   const selected = semantic.selectEvidenceForPaths(entries, ['a.c'], { maxBytes: 100 });
   assert.equal(selected.entries.length, 1);
   assert.equal(selected.entries[0].path, 'api-a.c');
+});
+
+test('finding claim identity binds anchor and controlled semantic keys without trusting prose', () => {
+  const input = { anchorFingerprint: 'a'.repeat(64), category: 'correctness', rootCauseKey: 'video_pts_gap_reintroduces_source_timeline', claimClass: 'timestamp_monotonicity' };
+  const first = claim.computeFindingClaimIdentity(input), second = claim.computeFindingClaimIdentity(input);
+  assert.equal(claim.FINDING_CLAIM_VERSION, 1);
+  assert.equal(first.state, 'known');
+  assert.match(first.claimFingerprint, /^[0-9a-f]{64}$/);
+  assert.equal(first.claimFingerprint, second.claimFingerprint);
+  assert.notEqual(first.claimFingerprint, claim.computeFindingClaimIdentity({ ...input, rootCauseKey: 'video_pts_offset_is_subtracted_twice' }).claimFingerprint);
+});
+
+test('unknown claim identity never grants discussion reuse authority', () => {
+  for (const value of ['', '中文根因', 'contains space', '../path', 'A'.repeat(97)]) assert.equal(claim.normalizeClaimKey(value), '');
+  const identity = claim.computeFindingClaimIdentity({ anchorFingerprint: 'a'.repeat(64), category: 'correctness', rootCauseKey: 'invalid key', claimClass: 'timestamp_monotonicity' });
+  assert.equal(identity.state, 'unknown');
+  assert.equal(identity.claimFingerprint, '');
+  assert.equal(identity.anchorFingerprint, 'a'.repeat(64));
+});
+
+test('same semantic key on a different anchor remains a different claim', () => {
+  const common = { category: 'correctness', rootCauseKey: 'video_pts_gap_reintroduces_source_timeline', claimClass: 'timestamp_monotonicity' };
+  assert.notEqual(claim.computeFindingClaimIdentity({ ...common, anchorFingerprint: 'a'.repeat(64) }).claimFingerprint, claim.computeFindingClaimIdentity({ ...common, anchorFingerprint: 'b'.repeat(64) }).claimFingerprint);
 });

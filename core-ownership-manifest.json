@@ -55,6 +55,7 @@
     "evidence-manifest-digests",
     "stable-review-keys",
     "stable-finding-identities",
+    "finding-claim-identities",
     "finding-resolution-primitives",
     "evidence-backed-finding-verification",
     "repeated-review-stability",
@@ -116,6 +117,8 @@
     "buildEvidenceManifest",
     "computeReviewKey",
     "computeStableFindingId",
+    "normalizeClaimKey",
+    "computeFindingClaimIdentity",
     "validateEvidenceBackedFinding",
     "compareFindingSets"
   ],

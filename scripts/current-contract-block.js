@@ -12,6 +12,7 @@ function renderCurrentContractBlock(value = contract) {
     `- Runtime v${value.codexRuntimeVersion} / Provider Contract v${value.providerContractVersion}`,
     `- Model Routing / Registry / Lineage / Economics v${value.modelRoutingContractVersion}/${value.modelRegistryVersion}/${value.modelLineageVersion}/${value.modelEconomicsVersion}`,
     `- Token Calibration / Store v${value.tokenCalibrationVersion}/${value.tokenCalibrationStoreVersion}`,
+    `- Finding Claim Contract v${value.findingClaimVersion}`,
     `- Family Snapshot v${value.familySnapshotVersion} / Family Manifest v${value.familyManifestVersion} / Product Contract v${value.productContractVersion}`,
     `- Consumer CI Receipt v${value.consumerCiReceiptVersion} / Core Digest Contract v${value.coreDigestContractVersion} / Repository Governance Contract v${value.repositoryGovernanceContractVersion}`,
     `- Node 22 LTS >=${value.minimumNodeVersion} <23 / Node 24 LTS >=${value.canonicalNodeVersion} <25`,
