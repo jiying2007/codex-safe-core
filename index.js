@@ -24,6 +24,7 @@ module.exports = Object.freeze({
   ...require('./test-impact'),
   ...require('./display-time'),
   ...require('./diagnosis-platform'),
+  ...require('./finding-claim'),
   ...require('./semantic-review'),
   ...require('./policy'),
   ...require('./review-rules')

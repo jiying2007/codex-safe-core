@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.18.0
+
+- Add provider-neutral Finding Claim Contract v1 with separate anchor and semantic claim identities. Controlled `rootCauseKey` and `claimClass` values may authorize same-claim reuse, while missing or invalid semantic identity remains explicitly `unknown` and can never authorize overwriting an existing finding.
+- Register claim identity primitives as Core-owned runtime surface so consumers share one deterministic fingerprint contract while provider-specific discussion, persistence and notification behavior remains product-owned.
+
 ## 4.17.4 - 2026-09-05
 
 - Consolidate every merge-blocking Core pull-request check behind the canonical `CI Gate`: full Node/OS validation, package reproducibility, Security, Dependency Review and change-aware latest-Codex capability/behavior checks.

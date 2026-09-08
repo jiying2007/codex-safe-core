@@ -43,6 +43,7 @@
     "reviewKeyVersion",
     "findingLedgerVersion",
     "findingVerificationVersion",
+    "findingClaimVersion",
     "codexRuntimeVersion",
     "providerContractVersion",
     "diagnosticContractVersion",
