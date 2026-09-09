@@ -28,7 +28,7 @@ function syncVerifierText(text,{sha,version,runtimeDigest=''}){
   if(version)out=out.replace(/const safeCoreVersion\s*=\s*['"][0-9]+\.[0-9]+\.[0-9]+['"];?/i,`const safeCoreVersion='${version}';`).replace(/(contract\.safeCoreVersion\s*(?:!==|===|!=|==)\s*['"])[0-9]+\.[0-9]+\.[0-9]+(['"])/g,`$1${version}$2`);
   return out;
 }
-function syncReusableWorkflowPins(root,sha){const dir=path.join(root,'.github','workflows');if(!fs.existsSync(dir))return;for(const name of fs.readdirSync(dir).filter(value=>/\.ya?ml$/i.test(value))){const file=path.join(dir,name),before=fs.readFileSync(file,'utf8'),after=before.replace(/(jiying2007\/codex-safe-core\/\.github\/workflows\/(?:family-release-guard|distribution-receipt)\.yml@)[0-9a-f]{40}/g,`$1${sha}`);if(after!==before)fs.writeFileSync(file,after);}}
+function syncReusableWorkflowPins(root,sha){const dir=path.join(root,'.github','workflows');if(!fs.existsSync(dir))return;for(const name of fs.readdirSync(dir).filter(value=>/\.ya?ml$/i.test(value))){const file=path.join(dir,name),before=fs.readFileSync(file,'utf8'),after=before.replace(/(jiying2007\/codex-safe-core\/\.github\/workflows\/(?:family-release-guard|distribution-receipt)\.yml@)[0-9a-f]{40}/g,`$1${sha}`).replace(/(expected_core_sha:\s*)[0-9a-f]{40}/g,`$1${sha}`);if(after!==before)fs.writeFileSync(file,after);}}
 function syncCurrentIdentityText(text,{oldSha,newSha,oldVersion,newVersion,oldProductVersion,newProductVersion}){
   let out=replaceAll(text,oldSha,newSha);
   if(oldVersion&&newVersion&&oldVersion!==newVersion){
