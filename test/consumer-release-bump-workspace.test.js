@@ -4,7 +4,7 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
-const {changelogBeginsWithRelease,isNextPatch}=require('../scripts/verify-consumer-release-bump');
+const {changelogBeginsWithRelease,isNextPatch,isNextRelease}=require('../scripts/verify-consumer-release-bump');
 const {CURRENT_STATE_DOCS,syncCurrentIdentityText}=require('../scripts/repin-consumer');
 
 const root=path.resolve(__dirname,'..');
@@ -17,6 +17,11 @@ test('release bump version relation is product-local and patch exact',()=>{
   assert.equal(isNextPatch('1.4.2','1.4.3'),true);
   assert.equal(isNextPatch('5.4.4','4.14.2'),false);
   assert.equal(isNextPatch('5.4.4','5.4.6'),false);
+  assert.equal(isNextRelease('7.5.5','7.5.6'),true);
+  assert.equal(isNextRelease('7.5.5','7.6.0'),true);
+  assert.equal(isNextRelease('7.5.5','8.0.0'),true);
+  assert.equal(isNextRelease('7.5.5','7.6.1'),false);
+  assert.equal(isNextRelease('7.5.5','7.7.0'),false);
 });
 
 test('consumer verifier reads product identity from the caller workspace, never Core package identity',()=>{
