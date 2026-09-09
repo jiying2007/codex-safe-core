@@ -29,6 +29,7 @@ function productFixture(productId){
   fs.writeFileSync(path.join(dir,'product-contract.json'),JSON.stringify({
     productContractVersion:core.productContractVersion,productId,productVersion:'9.9.9',safeCoreVersion:core.coreVersion,
     safeCoreMajorVersion:core.safeCoreMajorVersion,safeContractVersion:core.safeContractVersion,policySchemaVersion:core.policySchemaVersion,
+    findingClaimVersion:core.findingClaimVersion,
     safeCoreCommit:pin,safeCoreRuntimeDigest:digests.runtimeDigest,safeCoreGovernanceDigest:digests.governanceDigest,
     minimumNodeVersion:core.minimumNodeVersion,canonicalNodeVersion:core.canonicalNodeVersion,supportedNodeMajors:core.supportedNodeMajors
   }));

@@ -2,6 +2,8 @@
 
 Codex Safe Core 4.18.0 / Quality Platform v3 在保持共享确定性质量平台稳定的同时，引入 Finding Claim Contract v1，并保留 Model Routing Contract v1、change-aware Evidence Risk 与唯一 canonical `CI Gate`。Safe Contract v2、Policy Schema v4、Runtime v3 与 Provider Contract v3 继续作为安全边界。
 
+Finding 身份采用分层契约，不能互换使用。`stableFindingId` 是本地审查的证据域身份，必须结合 evidence digest 才能用于 resolution suppression；`claimFingerprint` 是远端发布身份，绑定 Controller 派生的代码锚点、category、规范化 root-cause key 与 claim class。任一身份都不能单独授权远端修改，产品还必须证明覆盖完整、快照仍为当前、远端对象属于 Service 且生命周期状态允许。Unknown 或 legacy 身份可以展示，但不能授权复用或解决。
+
 ## Runtime / Provider Contract v3
 
 Core 统一拥有 compatible Provider 的 Credential、Transport 与机器级 Runtime 解析。Consumer 默认使用 `provider.mode=auto`：产品显式 Override → 机器级 Family Runtime `~/.codex-safe/runtime.json` → 用户 Codex 配置 → 内置 OpenAI Runtime。Compatible Provider 保持 `credentialSource=auto|env|auth-json`，Secret 只以引用方式进入 Runtime，不进入 Repository Policy 或 Receipt。仓库内 Provider 配置不能重定向机器凭据。HTTPS 仍是首选；private-network HTTP 继承保持机器所有、明确可见且有界。Structured Codex JSONL 采用增量消费，并独立限制 retained output 与 total transcript。
@@ -79,7 +81,7 @@ Family Freshness 要求每个活跃 Consumer 与最新 released Core **runtime-c
 
 普通 Family Compatibility 信任 immutable Consumer CI Receipt，并只运行一次 Ubuntu cross-family validation；完整 5 Consumer × Linux/Windows/macOS 矩阵保留为每周或显式 `full_matrix=true` 审计，保持测试强度但移除日常重复工作。
 
-Coordinated Family Upgrade 使用两阶段事务：Phase 1 准备所有需要 Runtime Repin 的 Consumer PR，并等待全部 CI 通过；Phase 2 冻结 PR Head SHA 后才合并。Runtime-equivalent Consumer 记录为 skipped。重试时，如果 upgrade branch 已经完整 materialize 且对应 Open PR 仍存在，则该 PR 必须继续保持 `prepared` 并重新经过 Phase 1b，而不能因为 branch worktree 已 clean 就误判成 runtime-equivalent。Release-state polling 每轮只采集一次完整 Family；瞬时 429/5xx/网络错误在既有有界次数内重试，永久 Evidence 错误仍 fail closed。Transaction State 作为 Artifact 保留用于审计/重试；Release、Distribution、CI Receipt 仍必须全部收敛后才能 Family Freshness。
+Coordinated Family Upgrade 使用两阶段事务，并统一从生命周期感知的 Registry 投影中只枚举 `active` Consumer：Phase 1 准备所有需要 Runtime Repin 的 Consumer PR，并等待全部 CI 通过；Phase 2 冻结 PR Head SHA 后才合并。Runtime-equivalent Consumer 记录为 skipped。重试时，如果 upgrade branch 已经完整 materialize 且对应 Open PR 仍存在，则该 PR 必须继续保持 `prepared` 并重新经过 Phase 1b，而不能因为 branch worktree 已 clean 就误判成 runtime-equivalent。Release-state polling 每轮只采集一次完整 Family；瞬时 429/5xx/网络错误在既有有界次数内重试，永久 Evidence 错误仍 fail closed。Transaction State 作为 Artifact 保留用于审计/重试；Release、Distribution、CI Receipt 仍必须全部收敛后才能 Family Freshness。新的不可变 Core Release 发布后会自动触发该事务；development 和 retired Consumer 不进入 active 发布事务。
 
 ## Repository Governance
 

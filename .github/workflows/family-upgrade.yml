@@ -61,7 +61,7 @@ jobs:
           upgrade_id="v${CORE_VERSION}-${CORE_SHA:0:12}"
           state_tsv="$PWD/family-upgrade-state.tsv"
           : > "$state_tsv"
-          mapfile -t repos < <(node -e "for(const r of Object.keys(require('./family-registry.json').consumers)) console.log(r)")
+          mapfile -t repos < <(node -e "for(const r of require('./scripts/family-release-state').CONSUMERS) console.log(r)")
           for repo in "${repos[@]}"; do
             dir="$(mktemp -d)/$repo"
             git clone --quiet --recurse-submodules "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY_OWNER}/${repo}.git" "$dir"
@@ -155,7 +155,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -t repos < <(node -e "for(const r of Object.keys(require('./family-registry.json').consumers)) console.log(r)")
+          mapfile -t repos < <(node -e "for(const r of require('./scripts/family-release-state').CONSUMERS) console.log(r)")
           for attempt in {1..60}; do
             state_json=''
             if ! state_json="$(node scripts/family-release-state.js 2>family-release-state.err)"; then

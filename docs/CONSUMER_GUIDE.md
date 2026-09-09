@@ -39,6 +39,7 @@ Product Contract v2 binds `safeCoreCommit`, `safeCoreRuntimeDigest` and `safeCor
 1. Merge and formally release the reviewed Core change; verify the exact SHA and `CORE_DIGESTS.json`.
 2. Compare the released `runtimeDigest` with each consumer's pinned released Core.
 3. Prepare repin PRs only for consumers whose runtime digest changed; runtime-equivalent consumers are recorded as skipped.
+4. If a consumer branch was prepared against a pre-squash Core commit whose runtime digest matches the immutable release, use `node scripts/repin-consumer.js <consumer> <released-sha> --exact-pin --no-product-bump`. Normal runtime-equivalent repins remain skipped; exact-pin mode exists only to replace an unreleased SHA with the formally released SHA, and the consumer release guard remains authoritative.
 4. Wait for every prepared PR to pass its complete product CI before any merge.
 5. Freeze all prepared PR head SHAs, then merge only that validated set.
 6. Each changed consumer publishes an exact immutable product release, its current-stage required distribution evidence and `CONSUMER_CI_RECEIPT.json`.
