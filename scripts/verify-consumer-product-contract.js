@@ -25,6 +25,7 @@ function verify(root=process.cwd(),expectedCoreSha='',expectedProduct='',{allowR
   assert.equal(contract.safeCoreMajorVersion,pinnedCore.safeCoreMajorVersion);
   assert.equal(contract.safeContractVersion,pinnedCore.safeContractVersion);
   assert.equal(contract.policySchemaVersion,pinnedCore.policySchemaVersion);
+  if(Object.hasOwn(pinnedCore,'findingClaimVersion'))assert.equal(contract.findingClaimVersion,pinnedCore.findingClaimVersion);
   assert.equal(contract.minimumNodeVersion,pinnedCore.minimumNodeVersion);
   assert.equal(contract.canonicalNodeVersion,pinnedCore.canonicalNodeVersion);
   assert.deepEqual(contract.supportedNodeMajors,pinnedCore.supportedNodeMajors);

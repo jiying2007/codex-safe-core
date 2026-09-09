@@ -36,6 +36,8 @@ test('Family Upgrade polls Family release state once per attempt and retries onl
   assert.match(workflow,/Family consumers did not reach exact release \+ distribution \+ runtime readiness/);
 });
 
+test('Family Upgrade enumerates only active consumers in every transaction phase',()=>{const activeEnumerations=workflow.match(/require\('\.\/scripts\/family-release-state'\)\.CONSUMERS/g)||[];assert.equal(activeEnumerations.length,2);assert.doesNotMatch(workflow,/Object\.keys\(require\('\.\/family-registry\.json'\)\.consumers\)/);});
+
 test('Family Upgrade newline-terminates readiness parser output for Bash read under set -e',()=>{
   assert.match(workflow,/process\.stdout\.write\([^\n]+\+'\\n'\)/);
 });

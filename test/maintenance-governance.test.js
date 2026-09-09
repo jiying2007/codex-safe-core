@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
-const {CURRENT_CONTRACT_TESTS,CURRENT_STATE_DOCS,bumpPatch,syncContractTestText,syncCurrentIdentityText,syncProductVersionAliases,syncVerifierText}=require('../scripts/repin-consumer');
+const {CURRENT_CONTRACT_TESTS,CURRENT_STATE_DOCS,bumpPatch,readOptionalText,shouldSkipRuntimeEquivalentRepin,syncContractTestText,syncCurrentIdentityText,syncProductVersionAliases,syncReusableWorkflowPins,syncVerifierText}=require('../scripts/repin-consumer');
 
 const root = path.resolve(__dirname, '..');
 const contributing = fs.readFileSync(path.join(root, 'CONTRIBUTING.md'), 'utf8');
@@ -44,6 +44,9 @@ test('release-bearing repin synchronizes existing product version aliases only',
   assert.equal(Object.prototype.hasOwnProperty.call(generic,'diagnoseVersion'),false);
 });
 
+test('exact pin mode may replace a runtime-equivalent prerelease SHA without a product bump',()=>{assert.equal(shouldSkipRuntimeEquivalentRepin({coreChanged:true,runtimeChanged:false}),true);assert.equal(shouldSkipRuntimeEquivalentRepin({coreChanged:true,runtimeChanged:false,exactPin:true}),false);});
+test('optional repin inputs are read without an existence-check race',()=>{const dir=fs.mkdtempSync(path.join(os.tmpdir(),'repin-optional-read-'));try{const file=path.join(dir,'product-contract.json');assert.equal(readOptionalText(file),null);fs.writeFileSync(file,'{"ok":true}\n');assert.equal(readOptionalText(file),'{"ok":true}\n');assert.throws(()=>readOptionalText(dir),error=>error?.code==='EISDIR');}finally{fs.rmSync(dir,{recursive:true,force:true});}});
+
 test('two-phase coordinated upgrade validates all runtime-changing PRs before merge and then waits for durable release evidence', () => {
   const workflow=fs.readFileSync(path.join(root,'.github','workflows','family-upgrade.yml'),'utf8');
   assert.match(workflow,/Phase 1 - prepare every runtime-changing consumer PR/i);
@@ -64,7 +67,10 @@ test('two-phase coordinated upgrade validates all runtime-changing PRs before me
   assert.doesNotMatch(workflow,/gh workflow run "Family Compatibility"/);
 });
 
+test('trusted immutable Core release dispatches the coordinated Family Upgrade',()=>{const trusted=fs.readFileSync(path.join(root,'.github','workflows','_trusted-release.yml'),'utf8');assert.match(trusted,/Dispatch coordinated active-consumer upgrade/);assert.match(trusted,/gh workflow run "Family Upgrade"/);assert.match(trusted,/FAMILY_BOT_TOKEN/);});
+
 test('repin synchronizes current Change verifier constants across Core patches',()=>{const oldSha='a'.repeat(40),sha='b'.repeat(40),text=`const core='${oldSha}';if(contract.safeCoreVersion!=='4.12.3'||contract.safeCoreCommit!==core)fail('family Core pin must remain exact');`,out=syncVerifierText(text,{sha,version:'4.12.4'});assert.match(out,new RegExp(`const core='${sha}'`));assert.match(out,/contract\.safeCoreVersion!=='4\.12\.4'/);assert.doesNotMatch(out,/4\.12\.3/);});
+test('repin synchronizes derived Core assertions, runtime digest and reusable workflow pins',()=>{const old='a'.repeat(40),sha='b'.repeat(40),runtime='c'.repeat(64),text=`const expectedCore=productContract.safeCoreCommit;assert.strictEqual(expectedCore,'${old}');assert.strictEqual(productContract.safeCoreRuntimeDigest,'${'d'.repeat(64)}');assert.match(marketplace,/distribution-receipt\\.yml@${old}/);`,out=syncVerifierText(text,{sha,version:'4.18.0',runtimeDigest:runtime});assert.equal((out.match(new RegExp(sha,'g'))||[]).length,2);assert.match(out,new RegExp(runtime));const dir=fs.mkdtempSync(path.join(os.tmpdir(),'workflow-pins-'));try{fs.mkdirSync(path.join(dir,'.github','workflows'),{recursive:true});const file=path.join(dir,'.github','workflows','ci.yml');fs.writeFileSync(file,`uses: jiying2007/codex-safe-core/.github/workflows/family-release-guard.yml@${old}\nreceipt: jiying2007/codex-safe-core/.github/workflows/distribution-receipt.yml@${old}\nintegrity: jiying2007/codex-safe-core/.github/workflows/consumer-release-integrity.yml@${old}\n`);syncReusableWorkflowPins(dir,sha);const value=fs.readFileSync(file,'utf8');assert.equal((value.match(new RegExp(sha,'g'))||[]).length,2);assert.match(value,new RegExp(`consumer-release-integrity\\.yml@${old}`));}finally{fs.rmSync(dir,{recursive:true,force:true});}});
 test('repin synchronizes current docs without rewriting unrelated historical versions',()=>{const oldSha='a'.repeat(40),newSha='b'.repeat(40),text=`Codex Safe Core v4.12.3 current ${oldSha}; migration from Core 4.9.0 stays historical.`,out=syncCurrentIdentityText(text,{oldSha,newSha,oldVersion:'4.12.3',newVersion:'4.12.4'});assert.match(out,/Codex Safe Core v4\.12\.4/);assert.match(out,new RegExp(newSha));assert.match(out,/Core 4\.9\.0 stays historical/);for(const required of ['docs/DEPLOYMENT.md','docs/DEPLOYMENT.zh-CN.md','OPERATIONS.md','docs/GETTING_STARTED.md'])assert.ok(CURRENT_STATE_DOCS.includes(required),`missing current-state repin path: ${required}`);assert.equal(CURRENT_STATE_DOCS.includes('docs/OPERATIONS.md'),false);});
 test('repin synchronizes Diagnose current Core contract assertion',()=>{const out=syncContractTestText("assert.equal(contract.safeCoreVersion,'4.12.3');",{oldVersion:'4.12.3',newVersion:'4.12.4'});assert.equal(out,"assert.equal(contract.safeCoreVersion,'4.12.4');");assert.ok(CURRENT_CONTRACT_TESTS.includes('test/input-manifest-contract.test.js'));});
 test('dependency automation remains review-only and digest-pinned', () => {const renovate=JSON.parse(fs.readFileSync(path.join(root,'renovate.json'),'utf8'));assert.ok(renovate.extends.includes('config:best-practices'));assert.ok(renovate.extends.includes(':automergeDisabled'));assert.equal(renovate.minimumReleaseAge,'3 days');assert.equal(renovate.packageRules.every(rule=>rule.automerge===false),true);});

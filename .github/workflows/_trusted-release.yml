@@ -196,3 +196,14 @@ jobs:
             echo "Published release ${RELEASE_TAG} attestation did not become fully verifiable." >&2
             exit 1
           }
+      - name: Dispatch coordinated active-consumer upgrade
+        if: steps.decision.outputs.reason != 'no-version-change'
+        env:
+          GH_TOKEN: ${{ secrets.FAMILY_BOT_TOKEN }}
+          CORE_SHA: ${{ github.event.workflow_run.head_sha }}
+          CORE_VERSION: ${{ steps.decision.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$GH_TOKEN" || { echo 'FAMILY_BOT_TOKEN is required after an immutable Core release.' >&2; exit 2; }
+          gh workflow run "Family Upgrade" --repo "$GITHUB_REPOSITORY" --ref main -f core_sha="$CORE_SHA" -f core_version="$CORE_VERSION"
