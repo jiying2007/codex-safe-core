@@ -1,6 +1,6 @@
 # Quality Platform
 
-Codex Safe Core 4.18.0 / Quality Platform v3 在保持共享确定性质量平台稳定的同时，引入 Finding Claim Contract v1，并保留 Model Routing Contract v1、change-aware Evidence Risk 与唯一 canonical `CI Gate`。Safe Contract v2、Policy Schema v4、Runtime v3 与 Provider Contract v3 继续作为安全边界。
+Codex Safe Core 4.18.1 / Quality Platform v3 在保持共享确定性质量平台稳定的同时，引入 Finding Claim Contract v1，并保留 Model Routing Contract v1、change-aware Evidence Risk 与唯一 canonical `CI Gate`。Safe Contract v2、Policy Schema v4、Runtime v3 与 Provider Contract v3 继续作为安全边界。
 
 Finding 身份采用分层契约，不能互换使用。`stableFindingId` 是本地审查的证据域身份，必须结合 evidence digest 才能用于 resolution suppression；`claimFingerprint` 是远端发布身份，绑定 Controller 派生的代码锚点、category、规范化 root-cause key 与 claim class。任一身份都不能单独授权远端修改，产品还必须证明覆盖完整、快照仍为当前、远端对象属于 Service 且生命周期状态允许。Unknown 或 legacy 身份可以展示，但不能授权复用或解决。
 

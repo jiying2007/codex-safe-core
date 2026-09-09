@@ -1,6 +1,6 @@
 # Quality Platform
 
-Codex Safe Core 4.18.0 / Quality Platform v3 keeps the shared deterministic quality platform stable while adding Finding Claim Contract v1 and preserving Model Routing Contract v1, change-aware Evidence Risk and the canonical `CI Gate`. Safe Contract v2, Policy Schema v4, Runtime v3 and Provider Contract v3 remain the safety boundary.
+Codex Safe Core 4.18.1 / Quality Platform v3 keeps the shared deterministic quality platform stable while adding Finding Claim Contract v1 and preserving Model Routing Contract v1, change-aware Evidence Risk and the canonical `CI Gate`. Safe Contract v2, Policy Schema v4, Runtime v3 and Provider Contract v3 remain the safety boundary.
 
 Finding identity is layered rather than interchangeable. `stableFindingId` is an evidence-scoped local-review identity used with an evidence digest for resolution suppression. `claimFingerprint` is a remote-publication identity bound to a controller-derived code anchor, category, normalized root-cause key and claim class. Neither identity alone authorizes mutation: products must additionally prove complete current evidence, current snapshot, remote-object ownership and lifecycle state. Unknown or legacy identity can be displayed but cannot authorize reuse or resolution.
 

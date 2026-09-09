@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.18.1
+
+- Synchronize reusable Family guard inputs with exact Core pins during repin.
+- Accept the next valid SemVer feature or breaking release when a product release also carries a Core gitlink update, while keeping automatic repins patch-based.
+- Preserve the Core 4.18 runtime digest and protocol contracts.
+
 ## 4.18.0
 
 - Add provider-neutral Finding Claim Contract v1 with separate anchor and semantic claim identities. Controlled `rootCauseKey` and `claimClass` values may authorize same-claim reuse, while missing or invalid semantic identity remains explicitly `unknown` and can never authorize overwriting an existing finding.
