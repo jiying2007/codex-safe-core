@@ -15,6 +15,7 @@ const CURRENT_STATE_DOCS=[
 const CURRENT_CONTRACT_TESTS=['test/input-manifest-contract.test.js'];
 
 function isSha(value){return /^[0-9a-f]{40}$/i.test(String(value||''));}
+function readOptionalText(file){try{return fs.readFileSync(file,'utf8');}catch(error){if(error?.code==='ENOENT')return null;throw error;}}
 function esc(value){return String(value).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
 function replaceAll(text,from,to){return from&&from!==to?String(text).split(from).join(to):String(text);}
 function bumpPatch(version){const match=/^(\d+)\.(\d+)\.(\d+)$/.exec(String(version||''));if(!match)throw new Error(`product version must be MAJOR.MINOR.PATCH: ${version}`);return `${match[1]}.${match[2]}.${Number(match[3])+1}`;}
@@ -48,7 +49,7 @@ function repinConsumer(rootArg,shaArg,{bumpProduct=true,exactPin=false}={}){
   const root=path.resolve(rootArg||'.'),sha=String(shaArg||'').trim();if(!isSha(sha))throw new Error('exact 40-character Core SHA is required');
   const git=(args,cwd=root,stdio='inherit')=>execFileSync('git',args,{cwd,encoding:'utf8',stdio}),replaceFile=(relative,mutate)=>{const file=path.join(root,relative);if(!fs.existsSync(file))return;const before=fs.readFileSync(file,'utf8'),after=mutate(before);if(after!==before)fs.writeFileSync(file,after);};
   if(!fs.existsSync(path.join(root,'.gitmodules')))throw new Error('consumer is missing .gitmodules');
-  const productPath=path.join(root,'product-contract.json'),oldProduct=fs.existsSync(productPath)?JSON.parse(fs.readFileSync(productPath,'utf8')):null,oldSha=isSha(oldProduct?.safeCoreCommit)?oldProduct.safeCoreCommit:null,oldVersion=typeof oldProduct?.safeCoreVersion==='string'?oldProduct.safeCoreVersion:null,oldRuntimeDigest=/^[0-9a-f]{64}$/i.test(String(oldProduct?.safeCoreRuntimeDigest||''))?String(oldProduct.safeCoreRuntimeDigest):'';
+  const productPath=path.join(root,'product-contract.json'),oldProductText=readOptionalText(productPath),oldProduct=oldProductText===null?null:JSON.parse(oldProductText),oldSha=isSha(oldProduct?.safeCoreCommit)?oldProduct.safeCoreCommit:null,oldVersion=typeof oldProduct?.safeCoreVersion==='string'?oldProduct.safeCoreVersion:null,oldRuntimeDigest=/^[0-9a-f]{64}$/i.test(String(oldProduct?.safeCoreRuntimeDigest||''))?String(oldProduct.safeCoreRuntimeDigest):'';
   const pkgPath=path.join(root,'package.json'),pkg=JSON.parse(fs.readFileSync(pkgPath,'utf8')),oldProductVersion=String(pkg.version||''),coreChanged=oldSha!==sha;
   const sub=path.join(root,'src','codex-safe-core');git(['submodule','update','--init','--recursive']);git(['fetch','origin',sha],sub);git(['checkout','--detach',sha],sub);
   const coreContract=JSON.parse(fs.readFileSync(path.join(sub,'core-contract.json'),'utf8')),newVersion=coreContract.coreVersion,newDigests=computeCoreDigests(sub),runtimeChanged=!oldRuntimeDigest||oldRuntimeDigest!==newDigests.runtimeDigest;
@@ -68,4 +69,4 @@ function repinConsumer(rootArg,shaArg,{bumpProduct=true,exactPin=false}={}){
   console.log(`consumer repinned to ${sha} (Core ${newVersion}, runtime ${newDigests.runtimeDigest}, product ${oldProductVersion} -> ${newProductVersion}): ${root}`);return{sha,version:newVersion,oldSha,oldVersion,oldProductVersion,newProductVersion,runtimeChanged,skipped:false,runtimeDigest:newDigests.runtimeDigest,governanceDigest:newDigests.governanceDigest};
 }
 if(require.main===module){const args=process.argv.slice(2),exactPin=args.includes('--exact-pin'),noProductBump=args.includes('--no-product-bump'),values=args.filter(value=>!['--exact-pin','--no-product-bump'].includes(value));repinConsumer(values[0],values[1],{bumpProduct:!noProductBump,exactPin});}
-module.exports={CURRENT_CONTRACT_TESTS,CURRENT_STATE_DOCS,bumpPatch,prependChangelog,repinConsumer,shouldSkipRuntimeEquivalentRepin,syncContractTestText,syncCurrentIdentityText,syncProductVersionAliases,syncReusableWorkflowPins,syncVerifierText,updatePackageVersion};
+module.exports={CURRENT_CONTRACT_TESTS,CURRENT_STATE_DOCS,bumpPatch,prependChangelog,readOptionalText,repinConsumer,shouldSkipRuntimeEquivalentRepin,syncContractTestText,syncCurrentIdentityText,syncProductVersionAliases,syncReusableWorkflowPins,syncVerifierText,updatePackageVersion};

@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
-const {CURRENT_CONTRACT_TESTS,CURRENT_STATE_DOCS,bumpPatch,shouldSkipRuntimeEquivalentRepin,syncContractTestText,syncCurrentIdentityText,syncProductVersionAliases,syncReusableWorkflowPins,syncVerifierText}=require('../scripts/repin-consumer');
+const {CURRENT_CONTRACT_TESTS,CURRENT_STATE_DOCS,bumpPatch,readOptionalText,shouldSkipRuntimeEquivalentRepin,syncContractTestText,syncCurrentIdentityText,syncProductVersionAliases,syncReusableWorkflowPins,syncVerifierText}=require('../scripts/repin-consumer');
 
 const root = path.resolve(__dirname, '..');
 const contributing = fs.readFileSync(path.join(root, 'CONTRIBUTING.md'), 'utf8');
@@ -45,6 +45,7 @@ test('release-bearing repin synchronizes existing product version aliases only',
 });
 
 test('exact pin mode may replace a runtime-equivalent prerelease SHA without a product bump',()=>{assert.equal(shouldSkipRuntimeEquivalentRepin({coreChanged:true,runtimeChanged:false}),true);assert.equal(shouldSkipRuntimeEquivalentRepin({coreChanged:true,runtimeChanged:false,exactPin:true}),false);});
+test('optional repin inputs are read without an existence-check race',()=>{const dir=fs.mkdtempSync(path.join(os.tmpdir(),'repin-optional-read-'));try{const file=path.join(dir,'product-contract.json');assert.equal(readOptionalText(file),null);fs.writeFileSync(file,'{"ok":true}\n');assert.equal(readOptionalText(file),'{"ok":true}\n');assert.throws(()=>readOptionalText(dir),error=>error?.code==='EISDIR');}finally{fs.rmSync(dir,{recursive:true,force:true});}});
 
 test('two-phase coordinated upgrade validates all runtime-changing PRs before merge and then waits for durable release evidence', () => {
   const workflow=fs.readFileSync(path.join(root,'.github','workflows','family-upgrade.yml'),'utf8');
