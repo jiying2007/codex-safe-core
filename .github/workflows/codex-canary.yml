@@ -13,13 +13,32 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      identity: ${{ steps.freeze.outputs.identity }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@94196ee1d15439c1b6651cd87ef14e88ec435966
+        with:
+          node-version: '22.22.2'
+      - id: freeze
+        name: Freeze latest Codex version and distribution integrity once
+        run: node scripts/codex-canary-identity.js resolve
+
   capability:
+    needs: resolve
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 12
+    env:
+      CODEX_CANARY_IDENTITY: ${{ needs.resolve.outputs.identity }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -27,42 +46,67 @@ jobs:
       - uses: actions/setup-node@94196ee1d15439c1b6651cd87ef14e88ec435966
         with:
           node-version: '22.22.2'
-      - name: Install latest Codex CLI
-        run: npm install --global @openai/codex@latest
+      - name: Install and verify the frozen Codex package
+        run: node scripts/codex-canary-identity.js install
       - name: Verify Safe Contract capabilities and strict config
-        run: node scripts/codex-canary.js
+        shell: bash
+        run: |
+          node scripts/codex-canary.js > capability-result.json
+          node scripts/codex-canary-identity.js stage "capability-${{ runner.os }}" capability-result.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: codex-canary-stage-${{ runner.os }}-${{ github.run_attempt }}
+          path: evidence/
+          if-no-files-found: error
+          retention-days: 14
 
   behavioral:
+    needs: resolve
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
+      CODEX_CANARY_IDENTITY: ${{ needs.resolve.outputs.identity }}
       OPENAI_API_KEY: ${{ secrets.CODEX_CANARY_OPENAI_API_KEY || secrets.OPENAI_API_KEY }}
       CODEX_CANARY_MODEL: ${{ vars.CODEX_CANARY_MODEL }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@94196ee1d15439c1b6651cd87ef14e88ec435966
-        with:
-          node-version: '22.22.2'
-      - name: Install latest Codex CLI
-        run: npm install --global @openai/codex@latest
       - name: Require protected live canary credential
         if: env.OPENAI_API_KEY == ''
         shell: bash
         run: |
           echo 'Scheduled/manual Codex behavioral canary requires CODEX_CANARY_OPENAI_API_KEY (preferred) or OPENAI_API_KEY.' >&2
           exit 1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@94196ee1d15439c1b6651cd87ef14e88ec435966
+        with:
+          node-version: '22.22.2'
+      - name: Install and verify the frozen Codex package
+        run: node scripts/codex-canary-identity.js install
       - name: Live filesystem/network negative behavior check
-        run: node scripts/codex-behavioral-canary.js
+        run: |
+          node scripts/codex-behavioral-canary.js > behavioral-result.json
+          node scripts/codex-canary-identity.js stage behavioral-Linux behavioral-result.json
       - name: Live model quality smoke
-        run: node scripts/codex-quality-canary.js
+        run: |
+          node scripts/codex-quality-canary.js > quality-result.json
+          node scripts/codex-canary-identity.js stage quality-Linux quality-result.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: codex-canary-stage-live-${{ github.run_attempt }}
+          path: evidence/
+          if-no-files-found: error
+          retention-days: 14
 
   history:
-    needs: [capability, behavioral]
+    needs: [resolve, capability, behavioral]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
+      actions: read
       contents: write
+    env:
+      CODEX_CANARY_IDENTITY: ${{ needs.resolve.outputs.identity }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -70,11 +114,12 @@ jobs:
       - uses: actions/setup-node@94196ee1d15439c1b6651cd87ef14e88ec435966
         with:
           node-version: '22.22.2'
-      - name: Reconfirm latest Codex capability and write immutable record
-        run: |
-          npm install --global @openai/codex@latest
-          node scripts/codex-canary.js
-          node scripts/write-codex-compat-record.js CODEX_CLI_COMPATIBILITY.json
+      - name: Download only this run and attempt's stage evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download "$GITHUB_RUN_ID" --pattern "codex-canary-stage-*-${GITHUB_RUN_ATTEMPT}" --dir evidence
+      - name: Verify all five stage bindings and write compatibility record
+        run: node scripts/write-codex-compat-record.js CODEX_CLI_COMPATIBILITY.json evidence
       - name: Persist compatibility record as one immutable release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -87,11 +132,13 @@ jobs:
           core_short="${GITHUB_SHA:0:12}"
           asset="codex-cli-${safe}.json"
           mv CODEX_CLI_COMPATIBILITY.json "$asset"
-          tag="codex-cli-compat-v${safe}-core-v${core_version}-${core_short}"
+          tag="codex-cli-compat-v${safe}-core-v${core_version}-${core_short}-run-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           if gh release view "$tag" >/dev/null 2>&1; then
             echo "immutable compatibility evidence already exists: $tag"
+            rm -f "$asset"
+            gh release download "$tag" --pattern "$asset" --dir .
           else
-            gh release create "$tag" "$asset" --target "$GITHUB_SHA" --title "Codex CLI ${version} compatibility on Core ${core_version}" --notes "Immutable compatibility evidence produced only after mandatory multi-platform capability checks and the protected live behavioral/quality canary."
+            gh release create "$tag" "$asset" --latest=false --target "$GITHUB_SHA" --title "Codex CLI ${version} compatibility on Core ${core_version}" --notes "Immutable stage-bound compatibility evidence for one frozen Codex package and exact Core/run/attempt. Requires all three capability platforms plus successful live behavioral and quality checks."
           fi
           immutable=false
           for attempt in {1..12}; do
@@ -100,5 +147,10 @@ jobs:
             sleep 5
           done
           test "$immutable" = true || { echo "Compatibility release ${tag} is not immutable." >&2; exit 1; }
-          gh release verify "$tag"
+          release_verified=false
+          for attempt in {1..12}; do
+            if gh release verify "$tag"; then release_verified=true; break; fi
+            sleep 5
+          done
+          test "$release_verified" = true || { echo 'Compatibility release attestation is not verifiable.' >&2; exit 1; }
           gh release verify-asset "$tag" "$asset"

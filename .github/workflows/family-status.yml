@@ -25,7 +25,7 @@ jobs:
           node-version: '22.22.2'
       - name: Generate Family Status v1
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN || github.token }}
         run: node scripts/generate-family-status.js FAMILY_STATUS.json
       - name: Publish status summary
         shell: bash
