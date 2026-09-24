@@ -65,9 +65,14 @@ test('canonical Core fails closed on unversioned runtime-surface drift',()=>{
   assert.equal(result.reason,'core-surface-manifest-changed-without-version-bump');
 });
 
-test('Family Freshness evaluates Core main pushes and dispatches the full compatibility matrix',()=>{
+test('Family Freshness dispatches receipt-backed validation and preserves periodic full audits',()=>{
   assert.match(freshnessWorkflow,/push:\s*\n\s*branches:\s*\[main\]/);
-  assert.match(freshnessWorkflow,/family-ci\.yml[^\n]*full_matrix=true/);
+  assert.match(freshnessWorkflow,/family-ci\.yml[^\n]*full_matrix=false/);
+  assert.match(familyWorkflow,/schedule:\s*\n\s*- cron:/);
+  assert.match(familyWorkflow,/github\.event_name == 'schedule' \|\| inputs\.full_matrix == true/);
+  assert.match(familyWorkflow,/\["ubuntu-latest","windows-latest","macos-latest"\]/);
+  assert.match(familyWorkflow,/Full audit - re-run every released consumer CI/);
+  assert.match(familyWorkflow,/ciReceipt\?\.receiptDigest\|\|!s\.ciReceipt\?\.runId/);
 });
 
 test('production Family audits enumerate only frozen Snapshot consumers with Bash 3.2 portable loops',()=>{
