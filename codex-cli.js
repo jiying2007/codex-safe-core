@@ -37,26 +37,20 @@ function createError(code, message, cause, extra = {}) {
 }
 
 function parseCodexJsonl(stdout, { allowLeadingPartial = false } = {}) {
-  let lastAgentMessage = '';
-  const errors = [];
-  const lines = String(stdout || '').split(/\r?\n/).filter(Boolean);
-  for (let index = 0; index < lines.length; index++) {
-    const line = lines[index];
-    let event;
-    try { event = JSON.parse(line); }
-    catch {
-      if (allowLeadingPartial && index === 0) continue;
-      throw createError('ECODEXOUTPUT', 'Codex --json returned invalid JSONL.');
+  let text = String(stdout || '');
+  if (allowLeadingPartial) {
+    // Only a malformed leading capture fragment may be discarded, never a
+    // complete failure event or a malformed event later in the transcript.
+    const lines = text.split(/\r?\n/).filter(Boolean);
+    if (lines.length) {
+      try { JSON.parse(lines[0]); }
+      catch { lines.shift(); }
     }
-    if (event?.type === 'item.completed' && event?.item?.type === 'agent_message' && typeof event.item.text === 'string') {
-      lastAgentMessage = event.item.text;
-    }
-    if (event?.type === 'error') errors.push(event.message || event.error?.message || 'Codex reported an error');
-    if (event?.type === 'turn.failed') errors.push(event.error?.message || event.message || 'Codex turn failed');
+    text = lines.join('\n');
   }
-  if (!lastAgentMessage && errors.length) throw createError('ECODEXTURN', errors.join('; '));
-  if (!lastAgentMessage) throw createError('ECODEXOUTPUT', 'Codex JSONL did not contain a final agent_message.');
-  return lastAgentMessage.trim();
+  const stream = createCodexJsonlAccumulator();
+  stream.push(text);
+  return stream.finish().agentMessage;
 }
 
 function assertSafeTempPrefix(value) {
