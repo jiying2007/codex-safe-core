@@ -3,7 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const http = require('node:http');
-const { STAGES, freezeIdentity, validateIdentity, stageReceipt, verifyStages } = require('../scripts/codex-canary-identity');
+const { STAGES, freezeIdentity, validateIdentity, stageReceipt, verifyStages, npmInvocation, runNpm } = require('../scripts/codex-canary-identity');
 const { runBehavioralCanary } = require('../scripts/codex-behavioral-canary');
 const { familyGitEnvironment } = require('../scripts/family-read-auth');
 
@@ -11,6 +11,15 @@ const env = { GITHUB_SHA: 'a'.repeat(40), GITHUB_RUN_ID: '123', GITHUB_RUN_ATTEM
 const safe = 'b'.repeat(64);
 const metadata = { version: '0.130.0', dist: { integrity: 'sha512-' + Buffer.alloc(64, 1).toString('base64') } };
 const identity = freezeIdentity(metadata, env, safe);
+test('Windows npm resolves from the installed Node distribution rather than the checkout', () => {
+  assert.deepEqual(npmInvocation(['pack', '@openai/codex@0.130.0'], { platform: 'win32', execPath: 'C:\\Program Files\\nodejs\\node.exe' }), {
+    command: 'C:\\Program Files\\nodejs\\node.exe',
+    args: ['C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npm-cli.js', 'pack', '@openai/codex@0.130.0']
+  });
+});
+test('the production npm invocation works on the current real Node installation', async () => {
+  assert.match(await runNpm(['--version']), /^\d+\.\d+\.\d+$/);
+});
 function report(stage) { return { ok: true, version: 'codex-cli 0.130.0', safeContractDigest: safe,
   ...(stage === 'behavioral-Linux' ? { status: 0, filesystemWriteBlocked: true, loopbackNetworkBlocked: true } : {}),
   ...(stage === 'quality-Linux' ? { cases: 4, failures: [] } : {}) }; }

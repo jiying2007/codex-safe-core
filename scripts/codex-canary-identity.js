@@ -99,6 +99,20 @@ async function run(command, args, timeoutMs = 120000) {
   const result = await runner.runPreparedProcess(command, args, { timeoutMs, maxStdoutBytes: 2 * 1024 * 1024, maxStderrBytes: 256 * 1024 });
   return String(result.stdout || '').trim();
 }
+function npmInvocation(args, { platform = process.platform, execPath = process.execPath } = {}) {
+  // npm.cmd uses %~dp0 to locate npm's JS entrypoint. Passing a relative shim
+  // through cmd.exe can bind that directory to the checkout instead of Node.
+  // The official Windows Node distribution installs npm beside node.exe.
+  if (platform === 'win32') {
+    const cli = path.win32.join(path.win32.dirname(execPath), 'node_modules', 'npm', 'bin', 'npm-cli.js');
+    return { command: execPath, args: [cli, ...args] };
+  }
+  return { command: 'npm', args: [...args] };
+}
+async function runNpm(args) {
+  const invocation = npmInvocation(args);
+  return run(invocation.command, invocation.args);
+}
 async function installedVersion() {
   const { createProcessRunner } = require('../process-runner');
   const { createCodexCli } = require('../codex-cli');
@@ -106,10 +120,9 @@ async function installedVersion() {
   return (await createCodexCli({ runPreparedProcess: runner.runPreparedProcess }).resolveCodexExecutable('codex')).version;
 }
 async function installFrozen(identity) {
-  const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-canary-package-'));
   try {
-    const packed = JSON.parse(await run(npm, ['pack', `@openai/codex@${identity.version}`, '--json', '--ignore-scripts', '--registry=https://registry.npmjs.org', '--pack-destination', dir]));
+    const packed = JSON.parse(await runNpm(['pack', `@openai/codex@${identity.version}`, '--json', '--ignore-scripts', '--registry=https://registry.npmjs.org', '--pack-destination', dir]));
     requireValue(packed.length === 1 && /^[A-Za-z0-9._-]+\.tgz$/.test(packed[0].filename || ''), 'Unexpected Codex package archive.');
     const archive = path.join(dir, packed[0].filename);
     const fd = fs.openSync(archive, fs.constants.O_RDONLY | Number(fs.constants.O_NOFOLLOW || 0));
@@ -128,7 +141,7 @@ async function installFrozen(identity) {
       integrity = 'sha512-' + hash.digest('base64');
     } finally { fs.closeSync(fd); }
     requireValue(integrity === identity.integrity, 'Downloaded Codex package differs from the frozen distribution.');
-    await run(npm, ['install', '--global', '--ignore-scripts', '--no-audit', '--no-fund', '--registry=https://registry.npmjs.org', archive]);
+    await runNpm(['install', '--global', '--ignore-scripts', '--no-audit', '--no-fund', '--registry=https://registry.npmjs.org', archive]);
     requireValue(cliVersion(await installedVersion()) === identity.version, 'Installed CLI differs from the frozen package version.');
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 }
@@ -136,8 +149,7 @@ async function main() {
   const command = process.argv[2];
   const { SAFE_CONTRACT_DIGEST } = require('../safe-contract');
   if (command === 'resolve') {
-    const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-    const metadata = JSON.parse(await run(npm, ['view', '@openai/codex@latest', 'version', 'dist.integrity', '--json', '--registry=https://registry.npmjs.org']));
+    const metadata = JSON.parse(await runNpm(['view', '@openai/codex@latest', 'version', 'dist.integrity', '--json', '--registry=https://registry.npmjs.org']));
     const identity = freezeIdentity(metadata, process.env, SAFE_CONTRACT_DIGEST);
     fs.appendFileSync(process.env.GITHUB_OUTPUT, `identity=${JSON.stringify(identity)}\n`);
     process.stdout.write(`Frozen Codex ${identity.version} (${identity.identityDigest})\n`);
@@ -157,4 +169,4 @@ async function main() {
   throw new Error('Expected resolve, install, or stage.');
 }
 if (require.main === module) main().catch(error => { console.error(error.message); process.exitCode = 1; });
-module.exports = { STAGES, freezeIdentity, validateIdentity, cliVersion, stageReceipt, verifyStages, collectStages };
+module.exports = { STAGES, freezeIdentity, validateIdentity, cliVersion, stageReceipt, verifyStages, collectStages, npmInvocation, runNpm };

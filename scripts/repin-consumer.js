@@ -4,6 +4,9 @@ const fs=require('node:fs');
 const path=require('node:path');
 const {execFileSync}=require('node:child_process');
 const {computeCoreDigests}=require('./core-digests');
+const {secureReadText,atomicWriteText}=require('../secure-local-file');
+
+const MAX_REPIN_TEXT_BYTES=16*1024*1024;
 
 const CURRENT_STATE_DOCS=[
   'README.md','README.zh-CN.md',
@@ -15,7 +18,24 @@ const CURRENT_STATE_DOCS=[
 const CURRENT_CONTRACT_TESTS=['test/input-manifest-contract.test.js'];
 
 function isSha(value){return /^[0-9a-f]{40}$/i.test(String(value||''));}
-function readOptionalText(file){try{return fs.readFileSync(file,'utf8');}catch(error){if(error?.code==='ENOENT')return null;throw error;}}
+function readRepositoryFile(file,{allowMissing=false}={}){
+  let mode;
+  const fsImpl={...fs,fstatSync(fd){const stat=fs.fstatSync(fd);mode=stat.mode&0o777;return stat;}};
+  // Repository files may legitimately be group-writable or executable. Keep
+  // their mode from the same descriptor used for the bounded, no-follow read.
+  const text=secureReadText(file,{allowMissing,maxBytes:MAX_REPIN_TEXT_BYTES,requireOwner:false,rejectGroupOtherWrite:false,fsImpl});
+  return text===null?null:{text,mode};
+}
+function writeRepositoryFile(file,text,previous){return atomicWriteText(file,text,{mode:previous.mode,maxBytes:MAX_REPIN_TEXT_BYTES});}
+function updateRepositoryFile(file,mutate){
+  const previous=readRepositoryFile(file,{allowMissing:true});
+  if(previous===null)return false;
+  const after=mutate(previous.text);
+  if(after===previous.text)return false;
+  writeRepositoryFile(file,after,previous);
+  return true;
+}
+function readOptionalText(file){return readRepositoryFile(file,{allowMissing:true})?.text??null;}
 function esc(value){return String(value).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
 function replaceAll(text,from,to){return from&&from!==to?String(text).split(from).join(to):String(text);}
 function bumpPatch(version){const match=/^(\d+)\.(\d+)\.(\d+)$/.exec(String(version||''));if(!match)throw new Error(`product version must be MAJOR.MINOR.PATCH: ${version}`);return `${match[1]}.${match[2]}.${Number(match[3])+1}`;}
@@ -28,41 +48,44 @@ function syncVerifierText(text,{sha,version,runtimeDigest=''}){
   if(version)out=out.replace(/const safeCoreVersion\s*=\s*['"][0-9]+\.[0-9]+\.[0-9]+['"];?/i,`const safeCoreVersion='${version}';`).replace(/(contract\.safeCoreVersion\s*(?:!==|===|!=|==)\s*['"])[0-9]+\.[0-9]+\.[0-9]+(['"])/g,`$1${version}$2`);
   return out;
 }
-function syncReusableWorkflowPins(root,sha){const dir=path.join(root,'.github','workflows');if(!fs.existsSync(dir))return;for(const name of fs.readdirSync(dir).filter(value=>/\.ya?ml$/i.test(value))){const file=path.join(dir,name),before=fs.readFileSync(file,'utf8'),after=before.replace(/(jiying2007\/codex-safe-core\/\.github\/workflows\/(?:family-release-guard|distribution-receipt)\.yml@)[0-9a-f]{40}/g,`$1${sha}`).replace(/(expected_core_sha:\s*)[0-9a-f]{40}/g,`$1${sha}`);if(after!==before)fs.writeFileSync(file,after);}}
+function syncReusableWorkflowPins(root,sha){const dir=path.join(root,'.github','workflows');let names;try{names=fs.readdirSync(dir);}catch(error){if(error?.code==='ENOENT')return;throw error;}for(const name of names.filter(value=>/\.ya?ml$/i.test(value)))updateRepositoryFile(path.join(dir,name),before=>before.replace(/(jiying2007\/codex-safe-core\/\.github\/workflows\/(?:family-release-guard|distribution-receipt)\.yml@)[0-9a-f]{40}/g,`$1${sha}`).replace(/(expected_core_sha:\s*)[0-9a-f]{40}/g,`$1${sha}`));}
 function syncCurrentIdentityText(text,{oldSha,newSha,oldVersion,newVersion,oldProductVersion,newProductVersion}){
   let out=replaceAll(text,oldSha,newSha);
   if(oldVersion&&newVersion&&oldVersion!==newVersion){
     out=out.replace(new RegExp(`((?:Codex\\s+)?Safe Core\\s+v?)${esc(oldVersion)}\\b`,'g'),`$1${newVersion}`);
     out=out.replace(new RegExp('(Safe Core[:：]\\s*`?)'+esc(oldVersion)+'(`?)','g'),`$1${newVersion}$2`);
     out=out.replace(new RegExp('((?:pins|固定到) Core\\s+)'+esc(oldVersion)+'\\b','g'),`$1${newVersion}`);
+    if(isSha(newSha))out=out.replace(new RegExp('(Safe Core[:：][^\\r\\n]*'+esc(newSha)+'`?\\s*/\\s*v?)'+esc(oldVersion)+'\\b','g'),`$1${newVersion}`);
   }
   if(oldProductVersion&&newProductVersion&&oldProductVersion!==newProductVersion)out=out.replace(new RegExp(`\\b${esc(oldProductVersion)}\\b`,'g'),newProductVersion);
   return out;
 }
 function syncContractTestText(text,{oldVersion,newVersion}){if(!oldVersion||!newVersion||oldVersion===newVersion)return String(text);return String(text).replace(new RegExp(`(contract\\.safeCoreVersion\\s*,\\s*['"])${esc(oldVersion)}(['"])`,'g'),`$1${newVersion}$2`);}
 function updatePackageVersion(root,newProductVersion){
-  const pkgPath=path.join(root,'package.json'),pkg=JSON.parse(fs.readFileSync(pkgPath,'utf8'));pkg.version=newProductVersion;fs.writeFileSync(pkgPath,JSON.stringify(pkg,null,2)+'\n');
-  const lockPath=path.join(root,'package-lock.json');if(fs.existsSync(lockPath)){const lock=JSON.parse(fs.readFileSync(lockPath,'utf8'));lock.version=newProductVersion;if(lock.packages?.[''])lock.packages[''].version=newProductVersion;fs.writeFileSync(lockPath,JSON.stringify(lock,null,2)+'\n');}
+  const pkgPath=path.join(root,'package.json'),previousPackage=readRepositoryFile(pkgPath),pkg=JSON.parse(previousPackage.text);
+  const lockPath=path.join(root,'package-lock.json'),previousLock=readRepositoryFile(lockPath,{allowMissing:true}),lock=previousLock===null?null:JSON.parse(previousLock.text);
+  pkg.version=newProductVersion;writeRepositoryFile(pkgPath,JSON.stringify(pkg,null,2)+'\n',previousPackage);
+  if(previousLock!==null){lock.version=newProductVersion;if(lock.packages?.[''])lock.packages[''].version=newProductVersion;writeRepositoryFile(lockPath,JSON.stringify(lock,null,2)+'\n',previousLock);}
 }
-function prependChangelog(root,{newProductVersion,newCoreVersion,runtimeDigest}){const file=path.join(root,'CHANGELOG.md');if(!fs.existsSync(file))return;const text=fs.readFileSync(file,'utf8').replace(/\r\n/g,'\n'),heading=`## ${newProductVersion}`;if(text.includes(heading))return;const entry=`## ${newProductVersion}\n\n- Repin to Codex Safe Core ${newCoreVersion} because the shipped Core runtime digest changed to \`${runtimeDigest}\`; publish a new immutable product release and distribution receipt.\n- Refresh Product Contract v2 and generated/current-state Family identity for the exact Core pin.\n\n`;const marker='# Changelog\n\n';fs.writeFileSync(file,text.startsWith(marker)?marker+entry+text.slice(marker.length):entry+text);}
+function prependChangelog(root,{newProductVersion,newCoreVersion,runtimeDigest}){updateRepositoryFile(path.join(root,'CHANGELOG.md'),before=>{const text=before.replace(/\r\n/g,'\n'),heading=`## ${newProductVersion}`;if(text.includes(heading))return before;const entry=`## ${newProductVersion}\n\n- Repin to Codex Safe Core ${newCoreVersion} because the shipped Core runtime digest changed to \`${runtimeDigest}\`; publish a new immutable product release and distribution receipt.\n- Refresh Product Contract v2 and generated/current-state Family identity for the exact Core pin.\n\n`;const marker='# Changelog\n\n';return text.startsWith(marker)?marker+entry+text.slice(marker.length):entry+text;});}
 function repinConsumer(rootArg,shaArg,{bumpProduct=true,exactPin=false}={}){
   const root=path.resolve(rootArg||'.'),sha=String(shaArg||'').trim();if(!isSha(sha))throw new Error('exact 40-character Core SHA is required');
-  const git=(args,cwd=root,stdio='inherit')=>execFileSync('git',args,{cwd,encoding:'utf8',stdio}),replaceFile=(relative,mutate)=>{const file=path.join(root,relative);if(!fs.existsSync(file))return;const before=fs.readFileSync(file,'utf8'),after=mutate(before);if(after!==before)fs.writeFileSync(file,after);};
+  const git=(args,cwd=root,stdio='inherit')=>execFileSync('git',args,{cwd,encoding:'utf8',stdio}),replaceFile=(relative,mutate)=>updateRepositoryFile(path.join(root,relative),mutate);
   if(!fs.existsSync(path.join(root,'.gitmodules')))throw new Error('consumer is missing .gitmodules');
-  const productPath=path.join(root,'product-contract.json'),oldProductText=readOptionalText(productPath),oldProduct=oldProductText===null?null:JSON.parse(oldProductText),oldSha=isSha(oldProduct?.safeCoreCommit)?oldProduct.safeCoreCommit:null,oldVersion=typeof oldProduct?.safeCoreVersion==='string'?oldProduct.safeCoreVersion:null,oldRuntimeDigest=/^[0-9a-f]{64}$/i.test(String(oldProduct?.safeCoreRuntimeDigest||''))?String(oldProduct.safeCoreRuntimeDigest):'';
-  const pkgPath=path.join(root,'package.json'),pkg=JSON.parse(fs.readFileSync(pkgPath,'utf8')),oldProductVersion=String(pkg.version||''),coreChanged=oldSha!==sha;
+  const productPath=path.join(root,'product-contract.json'),previousProduct=readRepositoryFile(productPath,{allowMissing:true}),oldProduct=previousProduct===null?null:JSON.parse(previousProduct.text),oldSha=isSha(oldProduct?.safeCoreCommit)?oldProduct.safeCoreCommit:null,oldVersion=typeof oldProduct?.safeCoreVersion==='string'?oldProduct.safeCoreVersion:null,oldRuntimeDigest=/^[0-9a-f]{64}$/i.test(String(oldProduct?.safeCoreRuntimeDigest||''))?String(oldProduct.safeCoreRuntimeDigest):'';
+  const pkgPath=path.join(root,'package.json'),pkg=JSON.parse(readRepositoryFile(pkgPath).text),oldProductVersion=String(pkg.version||''),coreChanged=oldSha!==sha;
   const sub=path.join(root,'src','codex-safe-core');git(['submodule','update','--init','--recursive']);git(['fetch','origin',sha],sub);git(['checkout','--detach',sha],sub);
-  const coreContract=JSON.parse(fs.readFileSync(path.join(sub,'core-contract.json'),'utf8')),newVersion=coreContract.coreVersion,newDigests=computeCoreDigests(sub),runtimeChanged=!oldRuntimeDigest||oldRuntimeDigest!==newDigests.runtimeDigest;
+  const coreContract=JSON.parse(readRepositoryFile(path.join(sub,'core-contract.json')).text),newVersion=coreContract.coreVersion,newDigests=computeCoreDigests(sub),runtimeChanged=!oldRuntimeDigest||oldRuntimeDigest!==newDigests.runtimeDigest;
   if(shouldSkipRuntimeEquivalentRepin({coreChanged,runtimeChanged,exactPin})){
     if(oldSha)git(['checkout','--detach',oldSha],sub);
     console.log(`consumer runtime already matches Core ${newVersion}; governance-only repin skipped: ${root}`);
     return{sha:oldSha,requestedSha:sha,version:oldVersion,requestedVersion:newVersion,oldSha,oldVersion,oldProductVersion,newProductVersion:oldProductVersion,runtimeChanged:false,skipped:true,runtimeDigest:newDigests.runtimeDigest};
   }
   const newProductVersion=coreChanged&&runtimeChanged&&bumpProduct?bumpPatch(oldProductVersion):oldProductVersion;
-  const example=path.join(root,'.codex-safe.example.json');if(fs.existsSync(example)){const value=JSON.parse(fs.readFileSync(example,'utf8'));value.schemaVersion=coreContract.policySchemaVersion;if(typeof value.$schema==='string')value.$schema=value.$schema.replace(/(codex-safe-core\/)[0-9a-f]{40}(\/)/i,`$1${sha}$2`);fs.writeFileSync(example,JSON.stringify(value,null,2)+'\n');}
+  replaceFile('.codex-safe.example.json',text=>{const value=JSON.parse(text);value.schemaVersion=coreContract.policySchemaVersion;if(typeof value.$schema==='string')value.$schema=value.$schema.replace(/(codex-safe-core\/)[0-9a-f]{40}(\/)/i,`$1${sha}$2`);return JSON.stringify(value,null,2)+'\n';});
   replaceFile('scripts/verify-manifest.js',text=>syncVerifierText(text,{sha,version:newVersion,runtimeDigest:newDigests.runtimeDigest}));replaceFile('scripts/release.test.js',text=>syncVerifierText(text,{sha,version:newVersion,runtimeDigest:newDigests.runtimeDigest}));syncReusableWorkflowPins(root,sha);replaceFile('.github/workflows/family-release-guard.yml',text=>text.replace(/(codex-safe-core\/.github\/workflows\/family-release-guard\.yml@)[0-9a-f]{40}/i,`$1${sha}`).replace(/(expected_core_sha:\s*)[0-9a-f]{40}/i,`$1${sha}`));
   if(coreChanged&&runtimeChanged&&bumpProduct)updatePackageVersion(root,newProductVersion);
-  if(oldProduct){const value={...oldProduct,productContractVersion:coreContract.productContractVersion,safeCoreCommit:sha,safeCoreVersion:newVersion,safeCoreRuntimeDigest:newDigests.runtimeDigest,safeCoreGovernanceDigest:newDigests.governanceDigest,safeCoreMajorVersion:coreContract.safeCoreMajorVersion,safeContractVersion:coreContract.safeContractVersion,policySchemaVersion:coreContract.policySchemaVersion,minimumNodeVersion:coreContract.minimumNodeVersion,canonicalNodeVersion:coreContract.canonicalNodeVersion,supportedNodeMajors:coreContract.supportedNodeMajors,productVersion:newProductVersion};for(const key of ['reviewReceiptVersion','commitReceiptVersion','diagnosisReceiptVersion','judgmentLifecycleVersion','findingClaimVersion','codexRuntimeVersion','providerContractVersion','modelRoutingContractVersion','modelRegistryVersion','modelLineageVersion','modelEconomicsVersion','tokenCalibrationStoreVersion'])if(key in oldProduct||key in coreContract)value[key]=coreContract[key];syncProductVersionAliases(value,newProductVersion);fs.writeFileSync(productPath,JSON.stringify(value,null,2)+'\n');}
+  if(oldProduct){const value={...oldProduct,productContractVersion:coreContract.productContractVersion,safeCoreCommit:sha,safeCoreVersion:newVersion,safeCoreRuntimeDigest:newDigests.runtimeDigest,safeCoreGovernanceDigest:newDigests.governanceDigest,safeCoreMajorVersion:coreContract.safeCoreMajorVersion,safeContractVersion:coreContract.safeContractVersion,policySchemaVersion:coreContract.policySchemaVersion,minimumNodeVersion:coreContract.minimumNodeVersion,canonicalNodeVersion:coreContract.canonicalNodeVersion,supportedNodeMajors:coreContract.supportedNodeMajors,productVersion:newProductVersion};for(const key of ['reviewReceiptVersion','commitReceiptVersion','diagnosisReceiptVersion','judgmentLifecycleVersion','findingClaimVersion','codexRuntimeVersion','providerContractVersion','modelRoutingContractVersion','modelRegistryVersion','modelLineageVersion','modelEconomicsVersion','tokenCalibrationStoreVersion'])if(key in oldProduct||key in coreContract)value[key]=coreContract[key];syncProductVersionAliases(value,newProductVersion);writeRepositoryFile(productPath,JSON.stringify(value,null,2)+'\n',previousProduct);}
   if(coreChanged&&runtimeChanged&&bumpProduct)prependChangelog(root,{newProductVersion,newCoreVersion:newVersion,runtimeDigest:newDigests.runtimeDigest});
   const docsGenerator=path.join(root,'scripts','generate-contract-docs.js');if(fs.existsSync(docsGenerator))execFileSync(process.execPath,[docsGenerator],{cwd:root,stdio:'inherit'});
   for(const relative of CURRENT_STATE_DOCS)replaceFile(relative,text=>syncCurrentIdentityText(text,{oldSha,newSha:sha,oldVersion,newVersion,oldProductVersion,newProductVersion}));for(const relative of CURRENT_CONTRACT_TESTS)replaceFile(relative,text=>syncContractTestText(text,{oldVersion,newVersion}));
