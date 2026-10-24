@@ -76,8 +76,8 @@ test('package repin replaces files atomically, preserves modes and does not crea
     const file=path.join(dir,'package.json'),alias=path.join(dir,'original-package.json'),lock=path.join(dir,'package-lock.json');
     fs.writeFileSync(file,'{"version":"1.0.0"}\n');fs.linkSync(file,alias);
     updatePackageVersion(dir,'1.0.1');
-    assert.equal(fs.existsSync(lock),false);
     assert.equal(JSON.parse(fs.readFileSync(alias,'utf8')).version,'1.0.0');
+    // Exclusive creation also proves repin did not create this optional input.
     fs.writeFileSync(lock,JSON.stringify({version:'1.0.1',packages:{'':{version:'1.0.1'}}}),{flag:'wx'});
     if(process.platform!=='win32'){fs.chmodSync(file,0o644);fs.chmodSync(lock,0o664);}
     updatePackageVersion(dir,'1.0.2');
