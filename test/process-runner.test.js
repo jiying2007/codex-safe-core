@@ -119,12 +119,11 @@ for (const trigger of ['timeout', 'cancellation']) {
   test(`${trigger} kills a TERM-resistant descendant even after its parent closes`, { skip: process.platform === 'win32' }, async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-process-tree-'));
     const ready = path.join(dir, 'ready');
-    const childProgram = `process.on('SIGTERM',()=>{});require('node:fs').writeFileSync(${JSON.stringify(ready)},String(process.pid));setInterval(()=>{},1000);`;
-    const parentProgram = `const fs=require('node:fs');require('node:child_process').spawn(process.execPath,['-e',${JSON.stringify(childProgram)}],{stdio:'ignore'});const timer=setInterval(()=>{if(fs.existsSync(${JSON.stringify(ready)})){console.log(JSON.stringify({parent:process.pid,child:Number(fs.readFileSync(${JSON.stringify(ready)},'utf8'))}));clearInterval(timer);}},10);setInterval(()=>{},1000);`;
+    const parentScript = path.join(__dirname, 'fixtures', 'term-resistant-parent.cjs');
     const source = cancellationToken();
     let ids;
     try {
-      await assert.rejects(runner.runProcess(process.execPath, ['-e', parentProgram], {
+      await assert.rejects(runner.runProcess(process.execPath, [parentScript, ready], {
         timeoutMs: 1500,
         onStdoutChunk: buffer => {
           ids = JSON.parse(buffer.toString('utf8').trim());

@@ -78,7 +78,7 @@ test('package repin replaces files atomically, preserves modes and does not crea
     updatePackageVersion(dir,'1.0.1');
     assert.equal(fs.existsSync(lock),false);
     assert.equal(JSON.parse(fs.readFileSync(alias,'utf8')).version,'1.0.0');
-    fs.writeFileSync(lock,JSON.stringify({version:'1.0.1',packages:{'':{version:'1.0.1'}}}));
+    fs.writeFileSync(lock,JSON.stringify({version:'1.0.1',packages:{'':{version:'1.0.1'}}}),{flag:'wx'});
     if(process.platform!=='win32'){fs.chmodSync(file,0o644);fs.chmodSync(lock,0o664);}
     updatePackageVersion(dir,'1.0.2');
     assert.equal(JSON.parse(fs.readFileSync(file,'utf8')).version,'1.0.2');
