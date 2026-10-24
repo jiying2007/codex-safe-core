@@ -278,6 +278,9 @@ function createProcessRunner(ui = (_zh, en) => en) {
       child.once('close', code => {
         if (settled) return;
         if (terminationError) {
+          // The direct child closing its streams does not prove its descendants
+          // exited. Clear the process group before cleanup cancels escalation.
+          forceKillTree();
           settle(reject, attachDiagnostics(terminationError));
           return;
         }

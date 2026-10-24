@@ -18,8 +18,8 @@ function assertPath(filePath) {
   return path.resolve(filePath);
 }
 
-function validateOpenFile(fd, target, { maxBytes = 1024 * 1024, requireOwner = true, rejectGroupOtherWrite = true } = {}) {
-  const stat = fs.fstatSync(fd);
+function validateOpenFile(fd, target, { maxBytes = 1024 * 1024, requireOwner = true, rejectGroupOtherWrite = true, fsImpl = fs } = {}) {
+  const stat = fsImpl.fstatSync(fd);
   if (!stat.isFile()) throw localFileError('ELOCALFILE', `Machine-local path is not a regular file: ${target}.`, { filePath: target });
   if (Number(stat.size) > Number(maxBytes)) throw localFileError('ELOCALFILE', `Machine-local file exceeds ${maxBytes} bytes: ${target}.`, { filePath: target });
   if (process.platform !== 'win32') {
@@ -33,28 +33,54 @@ function validateOpenFile(fd, target, { maxBytes = 1024 * 1024, requireOwner = t
   return stat;
 }
 
-function secureReadText(filePath, { maxBytes = 1024 * 1024, allowMissing = false, requireOwner = true, rejectGroupOtherWrite = true } = {}) {
+function secureReadText(filePath, { maxBytes = 1024 * 1024, allowMissing = false, requireOwner = true, rejectGroupOtherWrite = true, fsImpl = fs } = {}) {
   const target = assertPath(filePath);
+  if (!Number.isSafeInteger(maxBytes) || maxBytes < 0) throw localFileError('ELOCALFILE', 'Machine-local read limit is invalid.');
   let fd;
   try {
     const noFollow = Number(fs.constants.O_NOFOLLOW || 0);
-    fd = fs.openSync(target, fs.constants.O_RDONLY | noFollow);
+    fd = fsImpl.openSync(target, fs.constants.O_RDONLY | noFollow);
   } catch (error) {
     if (allowMissing && error?.code === 'ENOENT') return null;
     if (['ELOOP', 'EMLINK'].includes(error?.code)) throw localFileError('ELOCALFILE', `Machine-local file must not be a symbolic link: ${target}.`, { cause: error, filePath: target });
     throw localFileError('ELOCALFILE', `Unable to open machine-local file: ${target}.`, { cause: error, filePath: target });
   }
   try {
-    validateOpenFile(fd, target, { maxBytes, requireOwner, rejectGroupOtherWrite });
-    return fs.readFileSync(fd, 'utf8');
+    const options = { maxBytes, requireOwner, rejectGroupOtherWrite, fsImpl };
+    const before = validateOpenFile(fd, target, options);
+    const assertSameTarget = () => {
+      const entry = fsImpl.lstatSync(target);
+      if (entry.isSymbolicLink() || !entry.isFile() || entry.dev !== before.dev || entry.ino !== before.ino) {
+        throw localFileError('ELOCALFILE', `Machine-local file was replaced or is a symbolic link: ${target}.`, { filePath: target });
+      }
+    };
+    // The descriptor comparison also enforces no-follow on platforms without
+    // O_NOFOLLOW. Never reopen by path after checking the descriptor.
+    assertSameTarget();
+    const chunks = [];
+    let total = 0;
+    while (total <= maxBytes) {
+      const buffer = Buffer.alloc(Math.min(64 * 1024, maxBytes + 1 - total));
+      const count = fsImpl.readSync(fd, buffer, 0, buffer.length, null);
+      if (!count) break;
+      total += count;
+      if (total > maxBytes) throw localFileError('ELOCALFILE', `Machine-local file exceeds ${maxBytes} bytes: ${target}.`, { filePath: target });
+      chunks.push(buffer.subarray(0, count));
+    }
+    const after = validateOpenFile(fd, target, options);
+    assertSameTarget();
+    if (before.size !== after.size || before.mtimeMs !== after.mtimeMs || before.ctimeMs !== after.ctimeMs) {
+      throw localFileError('ELOCALFILE', `Machine-local file changed while being read: ${target}.`, { filePath: target });
+    }
+    return Buffer.concat(chunks, total).toString('utf8');
   } finally {
-    try { fs.closeSync(fd); } catch {}
+    try { fsImpl.closeSync(fd); } catch {}
   }
 }
 
-function rejectSymlinkTarget(target) {
+function rejectSymlinkTarget(target, fsImpl = fs) {
   try {
-    const stat = fs.lstatSync(target);
+    const stat = fsImpl.lstatSync(target);
     if (stat.isSymbolicLink()) throw localFileError('ELOCALFILE', `Machine-local target must not be a symbolic link: ${target}.`, { filePath: target });
     if (!stat.isFile()) throw localFileError('ELOCALFILE', `Machine-local target is not a regular file: ${target}.`, { filePath: target });
   } catch (error) {
@@ -62,26 +88,26 @@ function rejectSymlinkTarget(target) {
   }
 }
 
-function atomicWriteText(filePath, text, { mode = 0o600, maxBytes = 8 * 1024 * 1024 } = {}) {
+function atomicWriteText(filePath, text, { mode = 0o600, maxBytes = 8 * 1024 * 1024, fsImpl = fs } = {}) {
   const target = assertPath(filePath);
   const body = String(text ?? '');
   const bytes = Buffer.byteLength(body, 'utf8');
   if (bytes > Number(maxBytes)) throw localFileError('ELOCALFILE', `Machine-local write exceeds ${maxBytes} bytes: ${target}.`, { filePath: target });
-  rejectSymlinkTarget(target);
+  rejectSymlinkTarget(target, fsImpl);
   const directory = path.dirname(target);
-  fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
+  fsImpl.mkdirSync(directory, { recursive: true, mode: 0o700 });
   const temporary = path.join(directory, `.${path.basename(target)}.${process.pid}.${crypto.randomBytes(8).toString('hex')}.tmp`);
   let fd;
   try {
-    fd = fs.openSync(temporary, fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_WRONLY, mode);
-    fs.writeFileSync(fd, body, 'utf8');
-    try { fs.fsyncSync(fd); } catch {}
-    fs.closeSync(fd); fd = undefined;
-    fs.renameSync(temporary, target);
-    try { fs.chmodSync(target, mode); } catch {}
+    fd = fsImpl.openSync(temporary, fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_WRONLY, mode);
+    fsImpl.writeFileSync(fd, body, 'utf8');
+    try { fsImpl.fsyncSync(fd); } catch {}
+    fsImpl.closeSync(fd); fd = undefined;
+    fsImpl.renameSync(temporary, target);
+    try { fsImpl.chmodSync(target, mode); } catch {}
   } finally {
-    if (fd !== undefined) try { fs.closeSync(fd); } catch {}
-    try { fs.rmSync(temporary, { force: true }); } catch {}
+    if (fd !== undefined) try { fsImpl.closeSync(fd); } catch {}
+    try { fsImpl.rmSync(temporary, { force: true }); } catch {}
   }
   return Object.freeze({ path: target, bytes });
 }

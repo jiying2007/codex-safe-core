@@ -25,5 +25,5 @@ jobs:
           node-version: '22.22.2'
       - name: Verify server-side Family Rulesets
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN || github.token }}
         run: node scripts/verify-repository-ruleset.js

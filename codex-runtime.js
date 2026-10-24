@@ -3,6 +3,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { secureReadText } = require('./secure-local-file');
 
 const PROVIDER_MODES = Object.freeze(['openai', 'openai-compatible']);
 const PROVIDER_CREDENTIAL_SOURCES = Object.freeze(['auto', 'env', 'auth-json']);
@@ -185,20 +186,15 @@ function resolveAuthJsonPath(env = process.env, homeDir = os.homedir()) {
 
 function readAuthJsonApiKey({ env = process.env, homeDir = os.homedir(), fsImpl = fs } = {}) {
   const authJsonPath = resolveAuthJsonPath(env, homeDir);
-  let stat;
-  try { stat = fsImpl.statSync(authJsonPath); }
-  catch (error) {
-    if (error?.code === 'ENOENT') return null;
-    throw runtimeError('ECODEX_CREDENTIAL', `Unable to inspect Codex auth.json: ${authJsonPath}.`, { cause: error });
+  let text;
+  try {
+    text = secureReadText(authJsonPath, { maxBytes: MAX_AUTH_JSON_BYTES, allowMissing: true, fsImpl });
+  } catch (error) {
+    throw runtimeError('ECODEX_CREDENTIAL', `Unable to securely read Codex auth.json: ${authJsonPath}.`, { cause: error });
   }
-  if (!stat?.isFile?.()) {
-    throw runtimeError('ECODEX_CREDENTIAL', `Codex auth.json is not a regular file: ${authJsonPath}.`);
-  }
-  if (Number(stat.size) > MAX_AUTH_JSON_BYTES) {
-    throw runtimeError('ECODEX_CREDENTIAL', `Codex auth.json exceeds ${MAX_AUTH_JSON_BYTES} bytes.`);
-  }
+  if (text === null) return null;
   let parsed;
-  try { parsed = JSON.parse(fsImpl.readFileSync(authJsonPath, 'utf8')); }
+  try { parsed = JSON.parse(text); }
   catch (error) {
     throw runtimeError('ECODEX_CREDENTIAL', `Codex auth.json is not valid JSON: ${authJsonPath}.`, { cause: error });
   }

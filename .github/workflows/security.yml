@@ -13,6 +13,7 @@ jobs:
   codeql:
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
       security-events: write
     steps:
@@ -26,3 +27,6 @@ jobs:
       - uses: github/codeql-action/analyze@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
         with:
           category: /language:javascript-typescript
+          output: codeql-results
+      - name: Block high and critical findings in CI Gate
+        run: node scripts/codeql-findings-gate.js codeql-results

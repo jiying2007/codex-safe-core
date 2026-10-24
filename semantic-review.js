@@ -18,7 +18,7 @@ function freeze(value) {
 }
 function sha256(value) { return crypto.createHash('sha256').update(String(value ?? ''), 'utf8').digest('hex'); }
 function byteLength(value) { return Buffer.byteLength(String(value ?? ''), 'utf8'); }
-function normalizePath(value) { return String(value || '').replace(/\\/g, '/').replace(/^\.\//, '').replace(/^a\//, '').replace(/^b\//, ''); }
+function normalizePath(value) { return String(value || '').replace(/\\/g, '/').replace(/^\.\//, ''); }
 function normalizeText(value, max = 2000) { return String(value || '').trim().replace(/\s+/g, ' ').slice(0, max); }
 function canonicalize(value) {
   if (Array.isArray(value)) return value.map(canonicalize);

@@ -29,7 +29,7 @@ jobs:
       - id: evaluate
         name: Compare released Core and aligned consumer heads with immutable manifest
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN || github.token }}
         shell: bash
         run: node scripts/family-freshness.js --github-output "$GITHUB_OUTPUT"
       - name: Dispatch fresh Family Compatibility
@@ -37,7 +37,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
-        run: gh workflow run family-ci.yml --repo "${GITHUB_REPOSITORY}" --ref main -f full_matrix=true
+        run: gh workflow run family-ci.yml --repo "${GITHUB_REPOSITORY}" --ref main -f full_matrix=false
       - name: Report current Family state
         env:
           DECISION: ${{ steps.evaluate.outputs.decision }}

@@ -81,7 +81,7 @@ jobs:
           else
             core_version="$(node -p "require('./core-contract.json').coreVersion")"
             short="${GITHUB_SHA:0:12}"
-            gh release create "$PERFORMANCE_TAG" "$PERFORMANCE_ASSET" --target "$GITHUB_SHA" --title "Codex Safe performance ${core_version} ${short}" --notes "Immutable broad performance regression snapshot for one exact Core commit."
+            gh release create "$PERFORMANCE_TAG" "$PERFORMANCE_ASSET" --latest=false --target "$GITHUB_SHA" --title "Codex Safe performance ${core_version} ${short}" --notes "Immutable broad performance regression snapshot for one exact Core commit."
           fi
           immutable=false
           for attempt in {1..12}; do
