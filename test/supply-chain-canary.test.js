@@ -18,7 +18,7 @@ const qualityCanaryScript = fs.readFileSync(path.join(root, 'scripts', 'codex-qu
 const identityScript = fs.readFileSync(path.join(root, 'scripts', 'codex-canary-identity.js'), 'utf8');
 
 const vulnerableSetupNode = 'actions/setup-node@820762786026740c76f36085b0efc47a31fe5020';
-const patchedSetupNode = 'actions/setup-node@94196ee1d15439c1b6651cd87ef14e88ec435966';
+const patchedSetupNode = 'actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1';
 
 test('Core workflows do not use the vulnerable setup-node v7.0.0 bundle', () => {
   for (const [name, workflow] of workflows) {
