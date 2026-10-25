@@ -24,9 +24,14 @@ async function json(pathname, token) {
   }
   return response.json();
 }
-function branchCovered(detail, branch) {
-  const include = detail?.conditions?.ref_name?.include || [];
-  return include.includes('~DEFAULT_BRANCH') || include.includes(`refs/heads/${branch}`) || include.includes(branch);
+function branchCovered(detail, branch, repository = {}) {
+  const include = detail?.conditions?.ref_name?.include;
+  const exclude = detail?.conditions?.ref_name?.exclude;
+  // The canonical policy uses explicit main/default-branch coverage with no
+  // exclusions. Fail closed on other patterns instead of approximating fnmatch.
+  if (detail?.target !== 'branch' || !Array.isArray(include) || !Array.isArray(exclude) || exclude.length !== 0) return false;
+  return include.includes(`refs/heads/${branch}`) || include.includes(branch)
+    || (include.includes('~DEFAULT_BRANCH') && repository.default_branch === branch);
 }
 function normalizedContexts(parameters = {}) {
   return [...new Set((Array.isArray(parameters.required_status_checks) ? parameters.required_status_checks : [])
@@ -40,7 +45,8 @@ function assess(detail, repository = {}) {
   const reasons = [];
   if (detail?.name !== contract.rulesetName) reasons.push(`ruleset-name:${detail?.name || 'missing'}`);
   if (detail?.enforcement !== contract.enforcement) reasons.push(`enforcement:${detail?.enforcement || 'missing'}`);
-  if (!branchCovered(detail, contract.defaultBranch)) reasons.push('default-branch-not-covered');
+  if (repository.default_branch !== contract.defaultBranch) reasons.push('default-branch-not-canonical');
+  if (!branchCovered(detail, contract.defaultBranch, repository)) reasons.push('default-branch-not-covered');
   const rules = Array.isArray(detail?.rules) ? detail.rules : [];
   const byType = new Map(rules.map(rule => [rule.type, rule]));
   for (const type of contract.requiredRuleTypes) if (!byType.has(type)) reasons.push(`missing-rule:${type}`);

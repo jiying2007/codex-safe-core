@@ -104,7 +104,9 @@ test('two-phase coordinated upgrade validates all runtime-changing PRs before me
   assert.match(workflow,/Phase 1 - prepare every runtime-changing consumer PR/i);
   assert.match(workflow,/validate all prepared PRs before any merge/i);
   assert.match(workflow,/Phase 2 - merge frozen validated heads/i);
-  assert.match(workflow,/--match-head-commit/);
+  assert.match(workflow,/node scripts\/family-upgrade-pr\.js validate/);
+  assert.match(workflow,/node scripts\/family-upgrade-pr\.js merge/);
+  assert.match(fs.readFileSync(path.join(root,'scripts','family-upgrade-pr.js'),'utf8'),/--match-head-commit/);
   assert.match(workflow,/runtime-equivalent; no product repin\/release required/i);
   assert.match(workflow,/existing upgrade PR #\$pr is already materialized; resuming transaction/i);
   assert.match(workflow,/FAMILY_UPGRADE_STATE\.json/);

@@ -129,29 +129,15 @@ jobs:
       - name: Phase 1b - validate all prepared PRs before any merge
         env:
           GH_TOKEN: ${{ secrets.FAMILY_BOT_TOKEN }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          node -e "for(const e of require('./FAMILY_UPGRADE_STATE.json').entries) if(e.status==='prepared') console.log(e.repository+'\t'+e.prNumber)" | while IFS=$'\t' read -r repo pr; do
-            echo "validating ${repo}#${pr}"
-            gh pr checks "$pr" --repo "${GITHUB_REPOSITORY_OWNER}/$repo" --watch --fail-fast
-          done
-          node - <<'NODE'
-          const fs=require('fs'),cp=require('child_process');const state=require('./FAMILY_UPGRADE_STATE.json');for(const e of state.entries){if(e.status!=='prepared')continue;e.headSha=cp.execFileSync('gh',['pr','view',String(e.prNumber),'--repo',`${process.env.GITHUB_REPOSITORY_OWNER}/${e.repository}`,'--json','headRefOid','--jq','.headRefOid'],{encoding:'utf8'}).trim();if(!/^[0-9a-f]{40}$/.test(e.headSha))throw new Error(`invalid frozen head for ${e.repository}`);e.status='validated';}state.phase='validated';fs.writeFileSync('FAMILY_UPGRADE_STATE.json',JSON.stringify(state,null,2)+'\n');
-          NODE
+          CORE_SHA: ${{ inputs.core_sha }}
+          CORE_VERSION: ${{ inputs.core_version }}
+        run: node scripts/family-upgrade-pr.js validate
       - name: Phase 2 - merge frozen validated heads
         env:
           GH_TOKEN: ${{ secrets.FAMILY_BOT_TOKEN }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          node -e "for(const e of require('./FAMILY_UPGRADE_STATE.json').entries) if(e.status==='validated') console.log([e.repository,e.prNumber,e.headSha].join('\t'))" | while IFS=$'\t' read -r repo pr head_sha; do
-            echo "committing ${repo}#${pr} @ ${head_sha}"
-            gh pr merge "$pr" --repo "${GITHUB_REPOSITORY_OWNER}/$repo" --squash --delete-branch --match-head-commit "$head_sha"
-          done
-          node - <<'NODE'
-          const fs=require('fs');const state=require('./FAMILY_UPGRADE_STATE.json');for(const e of state.entries)if(e.status==='validated')e.status='merged';state.phase='merged';fs.writeFileSync('FAMILY_UPGRADE_STATE.json',JSON.stringify(state,null,2)+'\n');
-          NODE
+          CORE_SHA: ${{ inputs.core_sha }}
+          CORE_VERSION: ${{ inputs.core_version }}
+        run: node scripts/family-upgrade-pr.js merge
       - name: Wait for exact immutable consumer releases and required distribution
         env:
           GITHUB_TOKEN: ${{ secrets.FAMILY_BOT_TOKEN }}
@@ -188,3 +174,10 @@ jobs:
           GH_TOKEN: ${{ secrets.FAMILY_BOT_TOKEN }}
         shell: bash
         run: gh workflow run "Family Freshness" --repo "$GITHUB_REPOSITORY" --ref main
+      - name: Preserve observed transaction state after success or failure
+        if: ${{ always() && steps.prepare.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: family-upgrade-result-${{ inputs.core_sha }}-${{ github.run_attempt }}
+          path: FAMILY_UPGRADE_STATE.json
+          if-no-files-found: error

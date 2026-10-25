@@ -49,6 +49,10 @@ For any Core merge, complete the coordinated rollout:
 
 ## Repository governance
 
-At the current product stage, server-side protection of `main` is intentionally deferred. Do **not** claim GitHub Ruleset/branch-protection enforcement while it is disabled. PR, CI, release and Family workflows remain the required engineering process, but they are not described as an unbypassable server-side control. When the project later enables main protection, that must be treated as a separate repository-administration change rather than simulated in source code.
+The canonical repository-governance contract requires active protection of the real `main` default branch, an independent approval for the latest push, and a strict `CI Gate`. Family Upgrade freezes the identity and head of every non-fork consumer PR before waiting for all checks. It validates the complete batch before any merge and rechecks each PR immediately before merging with its exact head.
+
+Automatic Family merging also requires the actual write credential's applicable canonical ruleset response to report `current_user_can_bypass: never`. An owner or other credential with bypass rights, a missing capability field, or an unreadable rule stops automatic merging; a separate read credential or anonymous response cannot supply that proof. The workflow never submits approvals or uses administrator merge flags. Repository protection remains the server-side authority if an approval or check changes after a client read.
+
+Cross-repository merging is not an atomic transaction. A later failure may leave an already merged prefix. The transaction records each confirmed merge immediately, preserves that evidence on failure, and never labels a queued, rejected, or unobserved merge as completed. Required release, provenance, distribution, and Family readiness checks still follow all successful merges.
 
 The invariant is: **Core and all five active consumers converge on one exact reviewed Core release; every consumer Core repin has its own immutable product release and required distribution evidence; Family Snapshot v2 / Manifest v4 represent those released artifacts rather than unreleased main heads; one canonical repository policy and no compatibility shim or copied-runtime path remain.**
