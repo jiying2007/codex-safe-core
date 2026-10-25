@@ -27,8 +27,8 @@ test('obsolete copied-runtime and parallel policy instructions cannot return', (
   assert.match(contributing,/Do not add parallel product policy files/i);
 });
 
-test('every actual Core gitlink change remains release-bearing and requires a consumer patch version', () => {
-  assert.match(contributing, /every Core gitlink change requires a consumer patch release/i);
+test('every actual Core gitlink change remains release-bearing with a default consumer patch version', () => {
+  assert.match(contributing, /every Core gitlink change requires a consumer release/i);
   assert.match(contributing, /immutable release/i);
   assert.equal(bumpPatch('4.7.2'),'4.7.3');
 });
@@ -45,7 +45,7 @@ test('release-bearing repin synchronizes existing product version aliases only',
   assert.equal(Object.prototype.hasOwnProperty.call(generic,'diagnoseVersion'),false);
 });
 
-test('exact pin mode may replace a runtime-equivalent prerelease SHA without a product bump',()=>{assert.equal(shouldSkipRuntimeEquivalentRepin({coreChanged:true,runtimeChanged:false}),true);assert.equal(shouldSkipRuntimeEquivalentRepin({coreChanged:true,runtimeChanged:false,exactPin:true}),false);});
+test('exact pin mode opts into changing a runtime-equivalent Core identity',()=>{assert.equal(shouldSkipRuntimeEquivalentRepin({coreChanged:true,runtimeChanged:false}),true);assert.equal(shouldSkipRuntimeEquivalentRepin({coreChanged:true,runtimeChanged:false,exactPin:true}),false);});
 test('optional repin inputs are bounded regular files and only absence is skipped',()=>{
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'repin-optional-read-'));
   try{
@@ -214,7 +214,7 @@ test('a real local consumer repin preserves release semantics and every edited f
     const skipped=repinConsumer(consumer,governanceSha);
     assert.equal(skipped.skipped,true);assert.equal(git(sub,'rev-parse','HEAD'),newSha);
     assert.equal(read('product-contract.json').safeCoreCommit,newSha);assert.equal(read('package.json').version,'1.0.1');
-    const exact=repinConsumer(consumer,governanceSha,{exactPin:true});
+    const exact=repinConsumer(consumer,governanceSha,{exactPin:true,bumpProduct:false});
     assert.equal(exact.skipped,false);assert.equal(exact.runtimeChanged,false);assert.equal(exact.newProductVersion,'1.0.1');
     assert.equal(read('product-contract.json').safeCoreCommit,governanceSha);assert.equal(read('product-contract.json').safeCoreVersion,'4.18.3');
     assert.match(fs.readFileSync(path.join(consumer,'README.zh-CN.md'),'utf8'),/\/ v4\.18\.3/);

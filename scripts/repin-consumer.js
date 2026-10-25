@@ -4,6 +4,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const {execFileSync}=require('node:child_process');
 const {computeCoreDigests}=require('./core-digests');
+const {changelogBeginsWithRelease}=require('./verify-consumer-release-bump');
 const {secureReadText,atomicWriteText}=require('../secure-local-file');
 
 const MAX_REPIN_TEXT_BYTES=16*1024*1024;
@@ -157,7 +158,17 @@ function updatePackageVersion(root,newProductVersion){
   pkg.version=newProductVersion;writeRepositoryFile(pkgPath,JSON.stringify(pkg,null,2)+'\n',previousPackage);
   if(previousLock!==null){lock.version=newProductVersion;if(lock.packages?.[''])lock.packages[''].version=newProductVersion;writeRepositoryFile(lockPath,JSON.stringify(lock,null,2)+'\n',previousLock);}
 }
-function prependChangelog(root,{newProductVersion,newCoreVersion,runtimeDigest}){updateRepositoryFile(path.join(root,'CHANGELOG.md'),before=>{const text=before.replace(/\r\n/g,'\n'),heading=`## ${newProductVersion}`;if(text.includes(heading))return before;const entry=`## ${newProductVersion}\n\n- Repin to Codex Safe Core ${newCoreVersion} because the shipped Core runtime digest changed to \`${runtimeDigest}\`; publish a new immutable product release and distribution receipt.\n- Refresh Product Contract v2 and generated/current-state Family identity for the exact Core pin.\n\n`;const marker='# Changelog\n\n';return text.startsWith(marker)?marker+entry+text.slice(marker.length):entry+text;});}
+function planChangelog(root,{newProductVersion,newCoreVersion,runtimeDigest,runtimeChanged=true}){
+  const file=path.join(root,'CHANGELOG.md'),previous=readRepositoryFile(file,{allowMissing:true});
+  if(previous===null||changelogBeginsWithRelease(previous.text,newProductVersion))return null;
+  const text=previous.text.replace(/\r\n/g,'\n');
+  if(text.split('\n').some(line=>changelogBeginsWithRelease(line,newProductVersion)))throw new Error(`CHANGELOG already contains release ${newProductVersion} below the current release; resolve its order before repinning.`);
+  const reason=runtimeChanged?`the shipped Core runtime digest changed to \`${runtimeDigest}\``:`the exact Core pin changes while its runtime digest remains \`${runtimeDigest}\``;
+  const entry=`## ${newProductVersion}\n\n- Repin to Codex Safe Core ${newCoreVersion} because ${reason}; publish a new immutable product release and required distribution evidence.\n- Refresh Product Contract v2 and generated/current-state Family identity for the exact Core pin.\n\n`,marker='# Changelog\n\n';
+  return{file,previous,text:text.startsWith(marker)?marker+entry+text.slice(marker.length):entry+text};
+}
+function writeChangelogPlan(plan){if(plan)writeRepositoryFile(plan.file,plan.text,plan.previous);}
+function prependChangelog(root,options){writeChangelogPlan(planChangelog(root,options));}
 function repinConsumer(rootArg,shaArg,{bumpProduct=true,exactPin=false}={}){
   const root=path.resolve(rootArg||'.'),sha=String(shaArg||'').trim();if(!isSha(sha))throw new Error('exact 40-character Core SHA is required');
   const git=(args,cwd=root,stdio='inherit')=>execFileSync('git',args,{cwd,encoding:'utf8',stdio}),replaceFile=(relative,mutate)=>updateRepositoryFile(path.join(root,relative),mutate);
@@ -171,15 +182,17 @@ function repinConsumer(rootArg,shaArg,{bumpProduct=true,exactPin=false}={}){
     console.log(`consumer runtime already matches Core ${newVersion}; governance-only repin skipped: ${root}`);
     return{sha:oldSha,requestedSha:sha,version:oldVersion,requestedVersion:newVersion,oldSha,oldVersion,oldProductVersion,newProductVersion:oldProductVersion,runtimeChanged:false,skipped:true,runtimeDigest:newDigests.runtimeDigest};
   }
-  const newProductVersion=coreChanged&&runtimeChanged&&bumpProduct?bumpPatch(oldProductVersion):oldProductVersion;
+  const releaseBearing=coreChanged&&bumpProduct;
+  const newProductVersion=releaseBearing?bumpPatch(oldProductVersion):oldProductVersion;
   // Validate every caller before changing any consumer file. Individual writes
   // remain atomic; the preceding Git checkout is not a multi-file transaction.
   const workflowPlan=planReusableWorkflowPins(root,sha);
+  const changelogPlan=releaseBearing?planChangelog(root,{newProductVersion,newCoreVersion:newVersion,runtimeDigest:newDigests.runtimeDigest,runtimeChanged}):null;
   replaceFile('.codex-safe.example.json',text=>{const value=JSON.parse(text);value.schemaVersion=coreContract.policySchemaVersion;if(typeof value.$schema==='string')value.$schema=value.$schema.replace(/(codex-safe-core\/)[0-9a-f]{40}(\/)/i,`$1${sha}$2`);return JSON.stringify(value,null,2)+'\n';});
   replaceFile('scripts/verify-manifest.js',text=>syncVerifierText(text,{sha,version:newVersion,runtimeDigest:newDigests.runtimeDigest}));replaceFile('scripts/release.test.js',text=>syncVerifierText(text,{sha,version:newVersion,runtimeDigest:newDigests.runtimeDigest}));writeReusableWorkflowPlan(workflowPlan);replaceFile('.github/workflows/family-release-guard.yml',text=>text.replace(/(codex-safe-core\/.github\/workflows\/family-release-guard\.yml@)[0-9a-f]{40}/i,`$1${sha}`).replace(/(expected_core_sha:\s*)[0-9a-f]{40}/i,`$1${sha}`));
-  if(coreChanged&&runtimeChanged&&bumpProduct)updatePackageVersion(root,newProductVersion);
+  if(releaseBearing)updatePackageVersion(root,newProductVersion);
   if(oldProduct){const value={...oldProduct,productContractVersion:coreContract.productContractVersion,safeCoreCommit:sha,safeCoreVersion:newVersion,safeCoreRuntimeDigest:newDigests.runtimeDigest,safeCoreGovernanceDigest:newDigests.governanceDigest,safeCoreMajorVersion:coreContract.safeCoreMajorVersion,safeContractVersion:coreContract.safeContractVersion,policySchemaVersion:coreContract.policySchemaVersion,minimumNodeVersion:coreContract.minimumNodeVersion,canonicalNodeVersion:coreContract.canonicalNodeVersion,supportedNodeMajors:coreContract.supportedNodeMajors,productVersion:newProductVersion};for(const key of ['reviewReceiptVersion','commitReceiptVersion','diagnosisReceiptVersion','judgmentLifecycleVersion','findingClaimVersion','codexRuntimeVersion','providerContractVersion','modelRoutingContractVersion','modelRegistryVersion','modelLineageVersion','modelEconomicsVersion','tokenCalibrationStoreVersion'])if(key in oldProduct||key in coreContract)value[key]=coreContract[key];syncProductVersionAliases(value,newProductVersion);writeRepositoryFile(productPath,JSON.stringify(value,null,2)+'\n',previousProduct);}
-  if(coreChanged&&runtimeChanged&&bumpProduct)prependChangelog(root,{newProductVersion,newCoreVersion:newVersion,runtimeDigest:newDigests.runtimeDigest});
+  writeChangelogPlan(changelogPlan);
   const docsGenerator=path.join(root,'scripts','generate-contract-docs.js');if(fs.existsSync(docsGenerator))execFileSync(process.execPath,[docsGenerator],{cwd:root,stdio:'inherit'});
   for(const relative of CURRENT_STATE_DOCS)replaceFile(relative,text=>syncCurrentIdentityText(text,{oldSha,newSha:sha,oldVersion,newVersion,oldProductVersion,newProductVersion}));for(const relative of CURRENT_CONTRACT_TESTS)replaceFile(relative,text=>syncContractTestText(text,{oldVersion,newVersion}));
   console.log(`consumer repinned to ${sha} (Core ${newVersion}, runtime ${newDigests.runtimeDigest}, product ${oldProductVersion} -> ${newProductVersion}): ${root}`);return{sha,version:newVersion,oldSha,oldVersion,oldProductVersion,newProductVersion,runtimeChanged,skipped:false,runtimeDigest:newDigests.runtimeDigest,governanceDigest:newDigests.governanceDigest};

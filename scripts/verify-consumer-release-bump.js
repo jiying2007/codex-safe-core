@@ -17,9 +17,9 @@ function isNextRelease(before,after){const a=parse(before),b=parse(after);return
 function readJson(file){return JSON.parse(fs.readFileSync(file,'utf8'));}
 function changelogBeginsWithRelease(text,version){
   const normalized=String(text||'').replace(/\r\n/g,'\n');
-  const expected=`## ${version}`;
-  if(normalized.startsWith('# Changelog\n\n'))return normalized.slice('# Changelog\n\n'.length).startsWith(expected);
-  return normalized.startsWith(expected);
+  const content=normalized.startsWith('# Changelog\n\n')?normalized.slice('# Changelog\n\n'.length):normalized;
+  const heading=/^## (\d+\.\d+\.\d+)(?: - \d{4}-\d{2}-\d{2})?$/.exec(content.split('\n',1)[0]);
+  return heading!==null&&heading[1]===String(version);
 }
 function verify({baseRef=process.env.GITHUB_BASE_REF,root=process.cwd()}={}){
   root=path.resolve(root);
