@@ -4,7 +4,7 @@ const crypto = require('node:crypto');
 
 const TEST_IMPACT_VERSION = 1;
 function freeze(value){if(Array.isArray(value))return Object.freeze(value.map(freeze));if(value&&typeof value==='object')return Object.freeze(Object.fromEntries(Object.entries(value).map(([k,v])=>[k,freeze(v)])));return value;}
-function normalizePath(value){return String(value||'').replace(/\\/g,'/').replace(/^\.\//,'').replace(/^a\//,'').replace(/^b\//,'');}
+function normalizePath(value){return String(value||'').replace(/\\/g,'/').replace(/^\.\//,'');}
 function basename(value){const path=normalizePath(value);return path.slice(path.lastIndexOf('/')+1);}
 function stem(value){const base=basename(value),index=base.lastIndexOf('.');return(index>0?base.slice(0,index):base).toLowerCase().replace(/(?:_test|test_|\.test|\.spec)$/,'');}
 function sha(value){return crypto.createHash('sha256').update(String(value)).digest('hex');}

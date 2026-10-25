@@ -27,7 +27,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@94196ee1d15439c1b6651cd87ef14e88ec435966
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: 22.22.2
           check-latest: false
@@ -55,16 +55,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git config --global user.name 'codex-safe-family-bot'
-          git config --global user.email 'codex-safe-family-bot@users.noreply.github.com'
-          ORCH="$PWD/scripts/repin-consumer.js"
+          export GIT_AUTHOR_NAME='codex-safe-family-bot'
+          export GIT_AUTHOR_EMAIL='codex-safe-family-bot@users.noreply.github.com'
+          export GIT_COMMITTER_NAME="$GIT_AUTHOR_NAME"
+          export GIT_COMMITTER_EMAIL="$GIT_AUTHOR_EMAIL"
+          FAMILY_GIT="$PWD/scripts/family-upgrade-git.js"
+          git() { node "$FAMILY_GIT" git "$@"; }
           upgrade_id="v${CORE_VERSION}-${CORE_SHA:0:12}"
           state_tsv="$PWD/family-upgrade-state.tsv"
           : > "$state_tsv"
           mapfile -t repos < <(node -e "for(const r of require('./scripts/family-release-state').CONSUMERS) console.log(r)")
           for repo in "${repos[@]}"; do
             dir="$(mktemp -d)/$repo"
-            git clone --quiet --recurse-submodules "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY_OWNER}/${repo}.git" "$dir"
+            git clone --quiet --recurse-submodules "https://github.com/${GITHUB_REPOSITORY_OWNER}/${repo}.git" "$dir"
             branch="family-${upgrade_id}"
             pr="$(gh pr list --repo "${GITHUB_REPOSITORY_OWNER}/$repo" --head "$branch" --state open --json number --jq '.[0].number // empty')"
             remote_branch=false
@@ -74,7 +77,7 @@ jobs:
             else
               git -C "$dir" checkout -b "$branch"
             fi
-            node "$ORCH" "$dir" "$CORE_SHA"
+            node "$FAMILY_GIT" repin "$dir" "$CORE_SHA"
             git -C "$dir" add -A
             product_version="$(node -p "require('$dir/package.json').version")"
             if git -C "$dir" diff --cached --quiet; then
@@ -86,7 +89,7 @@ jobs:
               if [ "$remote_branch" = true ]; then
                 git -C "$dir" reset --hard
                 git -C "$dir" checkout main
-                node "$ORCH" "$dir" "$CORE_SHA"
+                node "$FAMILY_GIT" repin "$dir" "$CORE_SHA"
                 git -C "$dir" add -A
                 if git -C "$dir" diff --cached --quiet; then
                   echo "$repo main runtime-equivalent; no product repin/release required"
@@ -118,7 +121,7 @@ jobs:
           const fs=require('fs');const [id,file]=process.argv.slice(2);const entries=fs.readFileSync(file,'utf8').trim().split(/\n/).filter(Boolean).map(line=>{const[repository,status,pr,branch]=line.split('\t');return{repository,status,prNumber:pr?Number(pr):null,branch,headSha:null};});fs.writeFileSync('FAMILY_UPGRADE_STATE.json',JSON.stringify({schemaVersion:1,upgradeId:id,phase:'prepared',entries},null,2)+'\n');
           NODE
       - name: Upload prepared transaction state
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: family-upgrade-${{ inputs.core_version }}-${{ inputs.core_sha }}
           path: FAMILY_UPGRADE_STATE.json
@@ -126,29 +129,15 @@ jobs:
       - name: Phase 1b - validate all prepared PRs before any merge
         env:
           GH_TOKEN: ${{ secrets.FAMILY_BOT_TOKEN }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          node -e "for(const e of require('./FAMILY_UPGRADE_STATE.json').entries) if(e.status==='prepared') console.log(e.repository+'\t'+e.prNumber)" | while IFS=$'\t' read -r repo pr; do
-            echo "validating ${repo}#${pr}"
-            gh pr checks "$pr" --repo "${GITHUB_REPOSITORY_OWNER}/$repo" --watch --fail-fast
-          done
-          node - <<'NODE'
-          const fs=require('fs'),cp=require('child_process');const state=require('./FAMILY_UPGRADE_STATE.json');for(const e of state.entries){if(e.status!=='prepared')continue;e.headSha=cp.execFileSync('gh',['pr','view',String(e.prNumber),'--repo',`${process.env.GITHUB_REPOSITORY_OWNER}/${e.repository}`,'--json','headRefOid','--jq','.headRefOid'],{encoding:'utf8'}).trim();if(!/^[0-9a-f]{40}$/.test(e.headSha))throw new Error(`invalid frozen head for ${e.repository}`);e.status='validated';}state.phase='validated';fs.writeFileSync('FAMILY_UPGRADE_STATE.json',JSON.stringify(state,null,2)+'\n');
-          NODE
+          CORE_SHA: ${{ inputs.core_sha }}
+          CORE_VERSION: ${{ inputs.core_version }}
+        run: node scripts/family-upgrade-pr.js validate
       - name: Phase 2 - merge frozen validated heads
         env:
           GH_TOKEN: ${{ secrets.FAMILY_BOT_TOKEN }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          node -e "for(const e of require('./FAMILY_UPGRADE_STATE.json').entries) if(e.status==='validated') console.log([e.repository,e.prNumber,e.headSha].join('\t'))" | while IFS=$'\t' read -r repo pr head_sha; do
-            echo "committing ${repo}#${pr} @ ${head_sha}"
-            gh pr merge "$pr" --repo "${GITHUB_REPOSITORY_OWNER}/$repo" --squash --delete-branch --match-head-commit "$head_sha"
-          done
-          node - <<'NODE'
-          const fs=require('fs');const state=require('./FAMILY_UPGRADE_STATE.json');for(const e of state.entries)if(e.status==='validated')e.status='merged';state.phase='merged';fs.writeFileSync('FAMILY_UPGRADE_STATE.json',JSON.stringify(state,null,2)+'\n');
-          NODE
+          CORE_SHA: ${{ inputs.core_sha }}
+          CORE_VERSION: ${{ inputs.core_version }}
+        run: node scripts/family-upgrade-pr.js merge
       - name: Wait for exact immutable consumer releases and required distribution
         env:
           GITHUB_TOKEN: ${{ secrets.FAMILY_BOT_TOKEN }}
@@ -185,3 +174,10 @@ jobs:
           GH_TOKEN: ${{ secrets.FAMILY_BOT_TOKEN }}
         shell: bash
         run: gh workflow run "Family Freshness" --repo "$GITHUB_REPOSITORY" --ref main
+      - name: Preserve observed transaction state after success or failure
+        if: ${{ always() && steps.prepare.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: family-upgrade-result-${{ inputs.core_sha }}-${{ github.run_attempt }}
+          path: FAMILY_UPGRADE_STATE.json
+          if-no-files-found: error

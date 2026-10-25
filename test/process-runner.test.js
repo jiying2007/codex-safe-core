@@ -2,6 +2,9 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
 const { createProcessRunner } = require('../process-runner');
 
 const runner = createProcessRunner((_zh, en) => en);
@@ -111,3 +114,35 @@ test('command and limits are validated before spawn', async () => {
     RangeError
   );
 });
+
+for (const trigger of ['timeout', 'cancellation']) {
+  test(`${trigger} kills a TERM-resistant descendant even after its parent closes`, { skip: process.platform === 'win32' }, async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-process-tree-'));
+    const ready = path.join(dir, 'ready');
+    const parentScript = path.join(__dirname, 'fixtures', 'term-resistant-parent.cjs');
+    const source = cancellationToken();
+    let ids;
+    try {
+      await assert.rejects(runner.runProcess(process.execPath, [parentScript, ready], {
+        timeoutMs: 1500,
+        onStdoutChunk: buffer => {
+          ids = JSON.parse(buffer.toString('utf8').trim());
+          if (trigger === 'cancellation') source.cancel();
+        }
+      }, '', trigger === 'cancellation' ? source.token : undefined), error => error.code === (trigger === 'timeout' ? 'ETIMEDOUT' : 'ECANCELLED'));
+      assert.ok(ids?.child, 'the descendant must start and install its TERM handler before termination');
+      const running = () => {
+        try {
+          process.kill(ids.child, 0);
+          if (process.platform === 'linux') return !['Z', 'X'].includes(fs.readFileSync(`/proc/${ids.child}/stat`, 'utf8').split(' ')[2]);
+          return true;
+        } catch (error) { if (error.code === 'ESRCH' || error.code === 'ENOENT') return false; throw error; }
+      };
+      for (let attempt = 0; attempt < 40 && running(); attempt++) await new Promise(resolve => setTimeout(resolve, 25));
+      assert.equal(running(), false, 'closing the parent must not leave a running descendant');
+    } finally {
+      if (ids) { try { process.kill(-ids.parent, 'SIGKILL'); } catch {} try { process.kill(ids.child, 'SIGKILL'); } catch {} }
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+}

@@ -197,3 +197,18 @@ test('process timeout becomes request timeout with bounded provider metadata', (
   assert.equal(classified.lastActivityMs, 37000);
   assert.match(classified.message, /verification/);
 });
+
+test('auth.json follows the same no-symlink and write-permission boundary as runtime configuration', { skip: process.platform === 'win32' }, () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-auth-trust-'));
+  try {
+    const file = resolveAuthJsonPath({}, home); fs.mkdirSync(path.dirname(file), { recursive: true });
+    const target = path.join(home, 'shared');
+    fs.writeFileSync(target, JSON.stringify({ auth_mode: 'apikey', OPENAI_API_KEY: 'fixture-only' }), { mode: 0o600 });
+    fs.symlinkSync(target, file);
+    assert.throws(() => readAuthJsonApiKey({ env: {}, homeDir: home }), error => error.code === 'ECODEX_CREDENTIAL');
+    fs.unlinkSync(file); fs.copyFileSync(target, file); fs.chmodSync(file, 0o666);
+    assert.throws(() => readAuthJsonApiKey({ env: {}, homeDir: home }), error => error.code === 'ECODEX_CREDENTIAL');
+    fs.chmodSync(file, 0o600);
+    assert.equal(readAuthJsonApiKey({ env: {}, homeDir: home }).value, 'fixture-only');
+  } finally { fs.rmSync(home, { recursive: true, force: true }); }
+});

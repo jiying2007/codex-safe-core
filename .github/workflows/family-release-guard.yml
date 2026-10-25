@@ -2,6 +2,9 @@ name: Family Release Guard
 
 on:
   workflow_call:
+    secrets:
+      CODEX_SAFE_FAMILY_READ_TOKEN:
+        required: false
     inputs:
       product:
         required: true
@@ -20,16 +23,17 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          token: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN || github.token }}
           submodules: recursive
           fetch-depth: 0
-      - uses: actions/setup-node@94196ee1d15439c1b6651cd87ef14e88ec435966
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: '22.22.2'
       - name: Verify exact released Trust Root, server Rulesets and family governance
         env:
           EXPECTED_CORE_SHA: ${{ inputs.expected_core_sha }}
           PRODUCT: ${{ inputs.product }}
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN || github.token }}
         shell: bash
         run: |
           set -euo pipefail
@@ -39,7 +43,7 @@ jobs:
           node src/codex-safe-core/scripts/verify-released-core.js "$EXPECTED_CORE_SHA"
           node src/codex-safe-core/scripts/verify-consumer-product-contract.js "$EXPECTED_CORE_SHA" "$PRODUCT"
           node src/codex-safe-core/scripts/verify-consumer-release-bump.js
-          GITHUB_TOKEN= GH_TOKEN= node src/codex-safe-core/scripts/verify-repository-ruleset.js
+          node src/codex-safe-core/scripts/verify-repository-ruleset.js
           node src/codex-safe-core/scripts/verify-actions-pins.js .github/workflows
           node src/codex-safe-core/scripts/verify-non-goals.js .
           node src/codex-safe-core/scripts/family-diagnostics.js > FAMILY_DIAGNOSTICS.json

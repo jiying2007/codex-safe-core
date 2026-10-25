@@ -15,9 +15,9 @@ Codex Safe Core is a security-sensitive shared dependency and the trust root for
 - Keep process time/output limits finite and cancellation-safe.
 - Core-owned runtime files live at repository root; do not reintroduce copied or proxy implementations in consumers.
 - Every active consumer pins one exact Core commit through `src/codex-safe-core` as a Git submodule. Branch tracking and copied-runtime synchronization are forbidden.
-- Any merged Core commit changes the canonical gitlink, including docs/tests/workflow-only changes. After Core merge, coordinated repin PRs must update all five active consumers: Codex Change Safe, Codex Review Safe, Codex Commit Safe, Codex Review Service, and Codex Diagnose Safe. Codex PR Safe remains retired only as the former product identity, not as the `codex-pr` repository path.
-- **Every Core gitlink change requires a consumer patch release.** A repin changes distributable bytes even when the consumer's product-owned source is unchanged. The package/Product Contract version must advance by exactly one patch, the changelog/current identity must move with it, and the new consumer SHA must receive its own exact immutable release. Reusing an old product tag for new Core bytes is forbidden.
-- Do not merge an isolated dependency/Core maintenance PR if doing so would move Core main without the coordinated consumer release plan. Fold it into a reviewed Core maintenance PR, validate Core, merge/release Core, then repin and release all active consumers.
+- A changed released Core runtime digest requires coordinated repin PRs for the affected active consumers: Codex Change Safe, Codex Review Safe, Codex Commit Safe, Codex Review Service, and Codex Diagnose Safe. Runtime-equivalent consumers may retain their exact older released Core pin; docs/tests/workflow-only main changes do not alone force a product release. Codex PR Safe remains retired only as the former product identity, not as the `codex-pr` repository path.
+- **Every Core gitlink change requires a consumer release.** The repin tool advances the product by one patch by default, including an explicit runtime-equivalent `--exact-pin`. The release guard requires the package/Product Contract version to advance by one valid SemVer release relative to the consumer base branch; an intentional next minor or major release is also valid. The changelog/current identity must move with it, and the new consumer SHA must receive its own exact immutable release. Reusing an old product tag for new Core bytes is forbidden. Only an already versioned, unreleased candidate may use `--no-product-bump` to preserve its pending release number; this flag does not relax the release guard.
+- Do not merge an isolated dependency/Core maintenance PR without checking its runtime and governance identity and coordinating any required consumer releases. Fold related repairs into a reviewed Core maintenance PR, validate Core, merge/release Core, then repin and release every consumer whose runtime changed.
 - Policy/runtime/protocol changes require consumer compatibility review and full consumer CI before the family is considered converged.
 - Receipt schemas are closed protocol contracts. Review Receipt v5, Commit Receipt v4 and Diagnosis Receipt v2 may change only through explicit protocol versioning, never incidental maintenance drift.
 - Review Profile Packs, Test Impact and Diagnosis primitives remain pure and product-agnostic: no repository I/O, no network fetch, no CI retry, no command execution, no SCM mutation.
@@ -34,21 +34,25 @@ npm run ci
 
 CI permanently validates Node 22.22.2 and 24.19.0 on Linux, Windows and macOS. Release validates both LTS floors again and requires reproducible package output.
 
-For any Core merge, complete the coordinated rollout:
+For a Core release, complete the coordinated rollout:
 
 1. Merge the reviewed Core PR and record the final Verified main commit SHA.
 2. Publish and verify the immutable Core release.
-3. Run the coordinated repin: update the exact Core gitlink plus Product Contract/current identity in Change, Review, Commit, Review Service and Diagnose, and bump each consumer by exactly one patch version.
-4. Run each active consumer's complete PR gates and merge only exact reviewed heads.
+3. Run the coordinated repin for active consumers whose runtime digest changed: update the exact Core gitlink plus Product Contract/current identity and advance the pending product release. Record runtime-equivalent consumers as skipped. An explicit exact repin also needs its own consumer release.
+4. Run every changed consumer's complete PR gates and merge only exact reviewed heads.
 5. Require each merged consumer SHA to publish an immutable `vX.Y.Z` release whose tag resolves exactly to that SHA; verify every release asset and provenance.
-6. Require product distribution evidence: Marketplace receipt for Review/Commit/Change, released GHCR digest for Review Service, immutable GitHub Release for Diagnose.
+6. Require the distribution evidence selected by `family-registry.json`: immutable GitHub Releases containing VSIX for Review/Commit/Change, a released GHCR digest for Review Service, and an immutable GitHub Release for Diagnose. Marketplace publication is optional at the current product stage.
 7. Only after all five consumers report `ready=true` may Family Freshness dispatch Family Compatibility.
-8. Family Compatibility must freeze Family Snapshot v2, run all three operating systems, exact-pin/ownership/golden-corpus/consumer-CI validation, then generate provenance-attested Family Manifest v4.
+8. Family Compatibility freezes Family Snapshot v3 and validates exact released identities, ownership, the golden corpus and immutable consumer CI receipts, then generates provenance-attested Family Manifest v5. Routine runs use Ubuntu; the weekly/manual `full_matrix=true` audit reruns every released consumer on Linux, Windows and macOS.
 9. Verify the digest-addressed Family Manifest release and its asset; Family Status v1 must subsequently report `family-manifest-current`.
 10. Remove temporary maintenance branches; do not leave migration workflows or compatibility residue.
 
 ## Repository governance
 
-At the current product stage, server-side protection of `main` is intentionally deferred. Do **not** claim GitHub Ruleset/branch-protection enforcement while it is disabled. PR, CI, release and Family workflows remain the required engineering process, but they are not described as an unbypassable server-side control. When the project later enables main protection, that must be treated as a separate repository-administration change rather than simulated in source code.
+The canonical repository-governance contract requires active protection of the real `main` default branch, an independent approval for the latest push, and a strict `CI Gate`. Family Upgrade freezes the identity and head of every non-fork consumer PR before waiting for all checks. It validates the complete batch before any merge and rechecks each PR immediately before merging with its exact head.
 
-The invariant is: **Core and all five active consumers converge on one exact reviewed Core release; every consumer Core repin has its own immutable product release and required distribution evidence; Family Snapshot v2 / Manifest v4 represent those released artifacts rather than unreleased main heads; one canonical repository policy and no compatibility shim or copied-runtime path remain.**
+Automatic Family merging also requires the actual write credential's applicable canonical ruleset response to report `current_user_can_bypass: never`. An owner or other credential with bypass rights, a missing capability field, or an unreadable rule stops automatic merging; a separate read credential or anonymous response cannot supply that proof. The workflow never submits approvals or uses administrator merge flags. Repository protection remains the server-side authority if an approval or check changes after a client read.
+
+Cross-repository merging is not an atomic transaction. A later failure may leave an already merged prefix. The transaction records each confirmed merge immediately, preserves that evidence on failure, and never labels a queued, rejected, or unobserved merge as completed. Required release, provenance, distribution, and Family readiness checks still follow all successful merges.
+
+The invariant is: **Core and all five active consumers converge on the released Core runtime identity, with every consumer bound to its own exact released Core pin and digests; every actual Core repin has its own immutable product release and required distribution evidence; Family Snapshot v3 / Manifest v5 represent those released artifacts rather than unreleased main heads; one canonical repository policy and no compatibility shim or copied-runtime path remain.**

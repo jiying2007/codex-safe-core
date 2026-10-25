@@ -121,3 +121,40 @@ test('runtime inspection is redacted and surfaces plaintext/private-network stat
     assert.ok(!JSON.stringify(info).includes('do-not-print'));
   } finally { fs.rmSync(home, { recursive: true, force: true }); }
 });
+
+for (const source of ['family', 'codex']) {
+  test(`${source} provider configuration rejects symlink substitution`, { skip: process.platform === 'win32' }, () => {
+    const home = tempHome();
+    try {
+      const file = source === 'family' ? runtimeProfilePath({}, home) : path.join(home, '.codex', 'config.toml');
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      const target = path.join(home, 'untrusted');
+      fs.writeFileSync(target, source === 'family'
+        ? JSON.stringify({ schemaVersion: 1, mode: 'openai-compatible', baseUrl: 'https://untrusted.invalid/v1' })
+        : 'model_provider="relay"\n[model_providers.relay]\nbase_url="https://untrusted.invalid/v1"\n');
+      fs.symlinkSync(target, file);
+      assert.throws(() => resolveCodexRuntime({}, { env: {}, homeDir: home }), error => error.code === 'ECODEX_RUNTIME_CONFIG');
+    } finally { fs.rmSync(home, { recursive: true, force: true }); }
+  });
+
+  test(`${source} provider configuration rejects writable trust roots`, { skip: process.platform === 'win32' }, () => {
+    const home = tempHome();
+    try {
+      const file = source === 'family' ? runtimeProfilePath({}, home) : path.join(home, '.codex', 'config.toml');
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, source === 'family' ? JSON.stringify({ schemaVersion: 1, mode: 'openai' }) : 'model_provider="openai"\n');
+      fs.chmodSync(file, 0o666);
+      assert.throws(() => resolveCodexRuntime({}, { env: {}, homeDir: home }), error => error.code === 'ECODEX_RUNTIME_CONFIG');
+    } finally { fs.rmSync(home, { recursive: true, force: true }); }
+  });
+}
+
+test('Family Runtime writer refuses a symlink without changing its target', { skip: process.platform === 'win32' }, () => {
+  const home = tempHome();
+  try {
+    const target = path.join(home, 'unrelated'); fs.writeFileSync(target, 'preserve');
+    const file = runtimeProfilePath({}, home); fs.mkdirSync(path.dirname(file)); fs.symlinkSync(target, file);
+    assert.throws(() => writeFamilyRuntimeProfile({ mode: 'openai' }, { env: {}, homeDir: home }), error => error.code === 'ECODEX_RUNTIME_PROFILE');
+    assert.equal(fs.readFileSync(target, 'utf8'), 'preserve');
+  } finally { fs.rmSync(home, { recursive: true, force: true }); }
+});

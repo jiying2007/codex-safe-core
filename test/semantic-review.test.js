@@ -121,3 +121,16 @@ test('same semantic key on a different anchor remains a different claim', () => 
   const common = { category: 'correctness', rootCauseKey: 'video_pts_gap_reintroduces_source_timeline', claimClass: 'timestamp_monotonicity' };
   assert.notEqual(claim.computeFindingClaimIdentity({ ...common, anchorFingerprint: 'a'.repeat(64) }).claimFingerprint, claim.computeFindingClaimIdentity({ ...common, anchorFingerprint: 'b'.repeat(64) }).claimFingerprint);
 });
+
+test('real a/ and b/ directories remain distinct evidence and finding identities', () => {
+  const paths = ['a/driver.c', 'b/driver.c', 'driver.c'];
+  const entries = paths.map(file => ({ kind: 'dependency', path: file, content: 'same bytes', relatedPaths: [file] }));
+  const manifest = semantic.buildEvidenceManifest(entries);
+  assert.deepEqual(new Set(manifest.entries.map(entry => entry.path)), new Set(paths));
+  assert.equal(new Set(manifest.entries.map(entry => entry.id)).size, 3);
+  assert.equal(new Set(paths.map(file => semantic.computeStableFindingId({ file, category: 'correctness', rootCauseSymbol: 'driver', anchorContextDigest: 'same-anchor' }))).size, 3);
+  for (const file of paths) {
+    assert.equal(semantic.normalizeHypothesis({ file }).file, file);
+    assert.deepEqual(semantic.selectEvidenceForPaths(entries, [file]).entries.map(entry => entry.path), [file]);
+  }
+});

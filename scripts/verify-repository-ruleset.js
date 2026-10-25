@@ -6,20 +6,32 @@ const registry = require('../family-registry.json');
 
 const API = 'https://api.github.com';
 function headers(token) { return { accept: 'application/vnd.github+json', 'user-agent': 'codex-safe-ruleset-audit', ...(token ? { authorization: `Bearer ${token}` } : {}) }; }
-async function request(pathname, token) { return fetch(`${API}${pathname}`, { headers: headers(token) }); }
+async function request(pathname, token) { return fetch(`${API}${pathname}`, { headers: headers(token), redirect: 'error', signal: AbortSignal.timeout(30000) }); }
 async function json(pathname, token) {
   let response = await request(pathname, token);
-  // GITHUB_TOKEN is repository-scoped. Family consumers are public repositories,
-  // so a scoped installation token may legitimately get 403/404 for a sibling repo
+  // GITHUB_TOKEN is repository-scoped. A public Family consumer may legitimately
+  // return 403/404 for a sibling repository's scoped installation token
   // even though the same Metadata endpoint is publicly readable. Retry only the
   // read-only public API request without credentials; never substitute local state.
-  if (token && (response.status === 403 || response.status === 404)) response = await request(pathname, '');
-  if (!response.ok) throw new Error(`GitHub API ${pathname} failed: ${response.status}`);
+  if (token && (response.status === 403 || response.status === 404)) {
+    const anonymous = await request(pathname, '');
+    // Retain an authenticated entitlement/permission error for private repos.
+    if (anonymous.ok) response = anonymous;
+  }
+  if (!response.ok) {
+    const value = await response.json().catch(() => ({}));
+    throw new Error(`GitHub API ${pathname} failed: ${response.status}${value.message ? ` (${String(value.message).slice(0,300)})` : ''}`);
+  }
   return response.json();
 }
-function branchCovered(detail, branch) {
-  const include = detail?.conditions?.ref_name?.include || [];
-  return include.includes('~DEFAULT_BRANCH') || include.includes(`refs/heads/${branch}`) || include.includes(branch);
+function branchCovered(detail, branch, repository = {}) {
+  const include = detail?.conditions?.ref_name?.include;
+  const exclude = detail?.conditions?.ref_name?.exclude;
+  // The canonical policy uses explicit main/default-branch coverage with no
+  // exclusions. Fail closed on other patterns instead of approximating fnmatch.
+  if (detail?.target !== 'branch' || !Array.isArray(include) || !Array.isArray(exclude) || exclude.length !== 0) return false;
+  return include.includes(`refs/heads/${branch}`) || include.includes(branch)
+    || (include.includes('~DEFAULT_BRANCH') && repository.default_branch === branch);
 }
 function normalizedContexts(parameters = {}) {
   return [...new Set((Array.isArray(parameters.required_status_checks) ? parameters.required_status_checks : [])
@@ -33,7 +45,8 @@ function assess(detail, repository = {}) {
   const reasons = [];
   if (detail?.name !== contract.rulesetName) reasons.push(`ruleset-name:${detail?.name || 'missing'}`);
   if (detail?.enforcement !== contract.enforcement) reasons.push(`enforcement:${detail?.enforcement || 'missing'}`);
-  if (!branchCovered(detail, contract.defaultBranch)) reasons.push('default-branch-not-covered');
+  if (repository.default_branch !== contract.defaultBranch) reasons.push('default-branch-not-canonical');
+  if (!branchCovered(detail, contract.defaultBranch, repository)) reasons.push('default-branch-not-covered');
   const rules = Array.isArray(detail?.rules) ? detail.rules : [];
   const byType = new Map(rules.map(rule => [rule.type, rule]));
   for (const type of contract.requiredRuleTypes) if (!byType.has(type)) reasons.push(`missing-rule:${type}`);
@@ -90,9 +103,12 @@ async function auditRepository(repo, token) {
 }
 async function main() {
   if (Number(contract.schemaVersion) !== 1) throw new Error('Unsupported repository governance contract schema.');
-  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || '';
+  const token = process.env.CODEX_SAFE_FAMILY_READ_TOKEN || process.env.GITHUB_TOKEN || process.env.GH_TOKEN || '';
   const results = [];
-  for (const repo of contract.repositories) results.push(await auditRepository(repo, token));
+  for (const repo of contract.repositories) {
+    try { results.push(await auditRepository(repo, token)); }
+    catch (error) { results.push({ repository: `${registry.owner}/${repo}`, ok: false, error: error.message }); }
+  }
   const failed = results.filter(item => !item.ok);
   process.stdout.write(`${JSON.stringify({ schemaVersion: 1, ok: failed.length === 0, results }, null, 2)}\n`);
   if (failed.length) {

@@ -39,11 +39,13 @@ Product Contract v2 binds `safeCoreCommit`, `safeCoreRuntimeDigest` and `safeCor
 1. Merge and formally release the reviewed Core change; verify the exact SHA and `CORE_DIGESTS.json`.
 2. Compare the released `runtimeDigest` with each consumer's pinned released Core.
 3. Prepare repin PRs only for consumers whose runtime digest changed; runtime-equivalent consumers are recorded as skipped.
-4. If a consumer branch was prepared against a pre-squash Core commit whose runtime digest matches the immutable release, use `node scripts/repin-consumer.js <consumer> <released-sha> --exact-pin --no-product-bump`. Normal runtime-equivalent repins remain skipped; exact-pin mode exists only to replace an unreleased SHA with the formally released SHA, and the consumer release guard remains authoritative.
-4. Wait for every prepared PR to pass its complete product CI before any merge.
-5. Freeze all prepared PR head SHAs, then merge only that validated set.
-6. Each changed consumer publishes an exact immutable product release, its current-stage required distribution evidence and `CONSUMER_CI_RECEIPT.json`.
-7. Family Freshness verifies runtime compatibility, release/required-distribution and CI receipts, then dispatches Family Compatibility when the immutable Family Manifest is stale.
+4. An explicit `--exact-pin` also replaces a runtime-equivalent Core identity and advances the consumer by one patch by default. If a consumer branch already carries its pending product release and was prepared against a pre-squash Core commit whose runtime digest matches the immutable release, use `node scripts/repin-consumer.js <consumer> <released-sha> --exact-pin --no-product-bump` to preserve that pending version. The consumer release guard still requires a valid version advance relative to its base branch.
+5. Freeze every prepared PR's canonical repository, base, branch and head SHA before waiting for CI.
+6. Wait for the full frozen batch to pass all required CI and independent-review controls before any merge. Immediately recheck each unchanged frozen head and its authorization, then merge with that exact head as the lease.
+7. Each changed consumer publishes an exact immutable product release, its current-stage required distribution evidence and `CONSUMER_CI_RECEIPT.json`.
+8. Family Freshness verifies runtime compatibility, release/required-distribution and CI receipts, then dispatches Family Compatibility when the immutable Family Manifest is stale.
+
+Release changelogs begin with the exact `## X.Y.Z` heading, optionally followed by ` - YYYY-MM-DD`, with or without the leading `# Changelog` title and blank line. A longer version sharing the same prefix is a different release. Repin rejects an existing target release below the current top release before writing consumer files; resolve that history first. The prior Core submodule checkout is not a multi-file transaction.
 
 The two-phase transaction prevents a partially merged rollout from being treated as complete. The exact consumer Core gitlink remains an auditable lock; governance-only Core updates simply do not require moving it when runtime identity is unchanged.
 

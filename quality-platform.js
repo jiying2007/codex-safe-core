@@ -17,7 +17,7 @@ const RESOLUTION_VALUES = Object.freeze(['fixed','false_positive','accepted_risk
 function freeze(value){if(Array.isArray(value))return Object.freeze(value.map(freeze));if(value&&typeof value==='object')return Object.freeze(Object.fromEntries(Object.entries(value).map(([k,v])=>[k,freeze(v)])));return value;}
 function byteLength(value){return Buffer.byteLength(String(value||''),'utf8');}
 function sha(value){return crypto.createHash('sha256').update(String(value)).digest('hex');}
-function normalizePath(value){return String(value||'').replace(/\\/g,'/').replace(/^\.\//,'').replace(/^a\//,'').replace(/^b\//,'');}
+function normalizePath(value){return String(value||'').replace(/\\/g,'/').replace(/^\.\//,'');}
 function basename(value){const p=normalizePath(value);return p.slice(p.lastIndexOf('/')+1);}
 function stem(value){const b=basename(value),i=b.lastIndexOf('.');return(i>0?b.slice(0,i):b).toLowerCase();}
 

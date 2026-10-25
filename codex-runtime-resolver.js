@@ -4,6 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const net = require('net');
+const { secureReadText, atomicWriteText } = require('./secure-local-file');
 const {
   normalizeCodexRuntimeOptions,
   resolveCodexHome,
@@ -60,16 +61,11 @@ function isPrivateNetworkHost(host) {
 }
 
 function readBoundedText(filePath, fsImpl = fs) {
-  let stat;
-  try { stat = fsImpl.statSync(filePath); }
-  catch (error) {
-    if (error?.code === 'ENOENT') return null;
-    throw resolverError('ECODEX_RUNTIME_CONFIG', `Unable to inspect runtime configuration: ${filePath}.`, { cause: error, configPath: filePath });
+  try {
+    return secureReadText(filePath, { maxBytes: MAX_CONFIG_BYTES, allowMissing: true, fsImpl });
+  } catch (error) {
+    throw resolverError('ECODEX_RUNTIME_CONFIG', `Unable to securely read runtime configuration: ${filePath}.`, { cause: error, configPath: filePath });
   }
-  if (!stat?.isFile?.()) throw resolverError('ECODEX_RUNTIME_CONFIG', `Runtime configuration is not a regular file: ${filePath}.`, { configPath: filePath });
-  if (Number(stat.size) > MAX_CONFIG_BYTES) throw resolverError('ECODEX_RUNTIME_CONFIG', `Runtime configuration exceeds ${MAX_CONFIG_BYTES} bytes: ${filePath}.`, { configPath: filePath });
-  try { return fsImpl.readFileSync(filePath, 'utf8'); }
-  catch (error) { throw resolverError('ECODEX_RUNTIME_CONFIG', `Unable to read runtime configuration: ${filePath}.`, { cause: error, configPath: filePath }); }
 }
 
 function stripTomlComment(line) {
@@ -281,13 +277,10 @@ function writeFamilyRuntimeProfile(profile, { env = process.env, homeDir = os.ho
     })
   };
   parseFamilyRuntimeProfile(JSON.stringify(value), undefined, target);
-  fsImpl.mkdirSync(path.dirname(target), { recursive: true, mode: 0o700 });
-  const temp = `${target}.${process.pid}.${Date.now()}.tmp`;
   try {
-    fsImpl.writeFileSync(temp, `${JSON.stringify(value, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 });
-    fsImpl.renameSync(temp, target);
-  } finally {
-    try { fsImpl.rmSync(temp, { force: true }); } catch {}
+    atomicWriteText(target, `${JSON.stringify(value, null, 2)}\n`, { mode: 0o600, maxBytes: MAX_CONFIG_BYTES, fsImpl });
+  } catch (error) {
+    throw resolverError('ECODEX_RUNTIME_PROFILE', `Unable to securely write Family Runtime profile: ${target}.`, { cause: error, configPath: target });
   }
   return target;
 }

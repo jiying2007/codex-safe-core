@@ -15,3 +15,11 @@ test('quality eval locks critical recall and cost-quality metrics',()=>{const ca
 test('patch proposal cannot escape reviewed paths',()=>{const patch='diff --git a/src/a.c b/src/a.c\n--- a/src/a.c\n+++ b/src/a.c\n@@ -1 +1 @@\n-old\n+new\n',value=validatePatchProposal({patch,rationale:'fix'},{allowedPaths:['src/a.c']});assert.deepEqual(value.touchedPaths,['src/a.c']);assert.throws(()=>validatePatchProposal({patch:patch.replaceAll('src/a.c','src/b.c')},{allowedPaths:['src/a.c']}),/outside reviewed evidence/);});
 
 test('relative performance regression comparison is deterministic',()=>{assert.equal(comparePerformanceSnapshot({latencyMs:105,rssBytes:100,artifactBytes:100},{latencyMs:100,rssBytes:100,artifactBytes:100}).ok,true);assert.equal(comparePerformanceSnapshot({latencyMs:120,rssBytes:100,artifactBytes:100},{latencyMs:100,rssBytes:100,artifactBytes:100}).ok,false);});
+
+test('patch authorization distinguishes literal a/ and b/ repository directories', () => {
+  const patch = 'diff --git a/a/file.c b/a/file.c\n--- a/a/file.c\n+++ b/a/file.c\n@@ -1 +1 @@\n-old\n+new\n';
+  assert.deepEqual(validatePatchProposal({ patch }, { allowedPaths: ['a/file.c'] }).touchedPaths, ['a/file.c']);
+  for (const allowed of ['b/file.c', 'file.c']) {
+    assert.throws(() => validatePatchProposal({ patch }, { allowedPaths: [allowed] }), /outside reviewed evidence/);
+  }
+});

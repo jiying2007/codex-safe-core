@@ -33,8 +33,8 @@ function createRunner({
       if (failExec) throw failExec;
       return {
         stdout: execStdoutPrefix + [
-          JSON.stringify({ type: 'turn.completed', usage: { input_tokens: 100, cached_input_tokens: 30, output_tokens: 20, reasoning_output_tokens: 7 } }),
-          JSON.stringify({ type: 'item.completed', item: { type: 'agent_message', text: finalText } })
+          JSON.stringify({ type: 'item.completed', item: { type: 'agent_message', text: finalText } }),
+          JSON.stringify({ type: 'turn.completed', usage: { input_tokens: 100, cached_input_tokens: 30, output_tokens: 20, reasoning_output_tokens: 7 } })
         ].join('\n') + '\n',
         stderr: '',
         ...execMetadata
@@ -48,7 +48,8 @@ function createRunner({
 test('JSONL parser returns the last agent message and rejects malformed output', () => {
   const stdout = [
     JSON.stringify({ type: 'item.completed', item: { type: 'agent_message', text: 'first' } }),
-    JSON.stringify({ type: 'item.completed', item: { type: 'agent_message', text: 'second' } })
+    JSON.stringify({ type: 'item.completed', item: { type: 'agent_message', text: 'second' } }),
+    JSON.stringify({ type: 'turn.completed' })
   ].join('\n');
   assert.equal(parseCodexJsonl(stdout), 'second');
   assert.throws(() => parseCodexJsonl('{bad'), error => error?.code === 'ECODEXOUTPUT');
@@ -59,7 +60,7 @@ test('JSONL parser returns the last agent message and rejects malformed output',
 });
 
 test('JSONL parser can ignore only a truncated leading fragment', () => {
-  const final = JSON.stringify({ type: 'item.completed', item: { type: 'agent_message', text: '{"ok":true}' } });
+  const final = JSON.stringify({ type: 'item.completed', item: { type: 'agent_message', text: '{"ok":true}' } }) + '\n' + JSON.stringify({ type: 'turn.completed' });
   assert.equal(parseCodexJsonl(`partial-json-fragment\n${final}\n`, { allowLeadingPartial: true }), '{"ok":true}');
   assert.throws(
     () => parseCodexJsonl(`partial-json-fragment\n${final}\n`),
@@ -268,4 +269,64 @@ test('provider DNS failures are classified with endpoint metadata', async () => 
     }),
     value => value?.code === 'ECODEX_DNS' && value.provider?.endpointHost === 'relay.example.com'
   );
+});
+
+for (const streaming of [false, true]) {
+  test(`structured execution requires success terminal (streaming=${streaming})`, async () => {
+    const agent = JSON.stringify({ type: 'item.completed', item: { type: 'agent_message', text: '{"ok":true}' } }) + '\n';
+    for (const suffix of ['', JSON.stringify({ type: 'turn.failed', error: { message: 'terminal failure' } }) + '\n']) {
+      const fake = createRunner();
+      const cli = createCodexCli({ runPreparedProcess: async (...args) => {
+        if (!args[1].includes('--output-schema')) return fake.runPreparedProcess(...args);
+        const stdout = agent + suffix;
+        if (streaming) args[2].onStdoutChunk(Buffer.from(stdout));
+        return { stdout: streaming ? '' : stdout, stderr: '' };
+      } });
+      await assert.rejects(cli.runStructuredCodex({ schema: { type: 'object' }, input: 'x' }),
+        error => ['ECODEXOUTPUT', 'ECODEXTURN'].includes(error.code));
+    }
+  });
+}
+
+test('truncated capture cannot discard a complete terminal failure', () => {
+  const stdout = [
+    { type: 'turn.failed', error: { message: 'failed' } },
+    { type: 'item.completed', item: { type: 'agent_message', text: '{"ok":true}' } },
+    { type: 'turn.completed' }
+  ].map(value => JSON.stringify(value)).join('\n');
+  assert.throws(() => parseCodexJsonl(stdout, { allowLeadingPartial: true }), error => error.code === 'ECODEXTURN');
+});
+
+test('real process stdout preserves split UTF-8 and requires a successful terminal event', async () => {
+  const { createProcessRunner } = require('../process-runner');
+  const runner = createProcessRunner();
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-cli-stream-'));
+  try {
+    const executable = path.join(root, 'fixture.js');
+    const expected = { message: '修复中文提交 🧪' };
+    const help = [...REQUIRED_CODEX_TOP_LEVEL_FLAGS, ...REQUIRED_CODEX_EXEC_FLAGS, '--model'].join(' ');
+    for (const terminal of ['completed', 'missing', 'failed']) {
+      const agent = { type: 'item.completed', item: { type: 'agent_message', text: JSON.stringify(expected) } };
+      const events = terminal === 'missing' ? [agent] : [agent, { type: `turn.${terminal}` }];
+      const payload = events.map(value => JSON.stringify(value)).join('\n') + '\n';
+      fs.writeFileSync(executable, `const args=process.argv.slice(2);if(args.includes('--version')){console.log('codex-cli 9.9.9');}else if(args.includes('--help')){console.log(${JSON.stringify(help)});}else{const payload=Buffer.from(${JSON.stringify(payload)});const cut=payload.indexOf(Buffer.from('修'))+1;process.stdout.write(payload.subarray(0,cut));setTimeout(()=>{process.stdout.write(payload.subarray(cut));process.stdin.resume();},30);}`);
+      let observedBuffers = 0;
+      const cli = createCodexCli({ runPreparedProcess: (_command, args, options, stdin, token) => {
+        const stream = options.onStdoutChunk;
+        return runner.runPreparedProcess(process.execPath, [executable, ...args], {
+          ...options,
+          onStdoutChunk: stream ? chunk => { assert.ok(Buffer.isBuffer(chunk)); observedBuffers++; stream(chunk); } : undefined
+        }, stdin, token);
+      } });
+      const execution = cli.runStructuredCodex({ codexPath: process.execPath, schema: { type: 'object' }, input: 'synthetic fixture', timeoutMs: 5000 });
+      if (terminal === 'completed') {
+        const result = await execution;
+        assert.deepEqual(result.parsed, expected);
+        assert.ok(result.processResult.stdout.includes(expected.message));
+      } else {
+        await assert.rejects(execution, error => error.code === (terminal === 'failed' ? 'ECODEXTURN' : 'ECODEXOUTPUT'));
+      }
+      assert.ok(observedBuffers > 0, 'exercise the real process streaming callback');
+    }
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });

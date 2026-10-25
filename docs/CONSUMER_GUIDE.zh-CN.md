@@ -39,10 +39,13 @@ Product Contract v2 绑定 `safeCoreCommit`、`safeCoreRuntimeDigest` 与 `safeC
 1. 合并并正式发布经过审核的 Core，验证精确 SHA 和 `CORE_DIGESTS.json`。
 2. 比较最新 `runtimeDigest` 与五个 Consumer 实际 pinned released Core。
 3. 只为 Runtime 改变的 Consumer 创建 Repin PR；Runtime-equivalent Consumer 记录为 skipped。
-4. 所有准备好的 PR 必须先完成完整产品 CI，任何一个未绿都不允许进入 Merge Phase。
-5. 冻结全部 PR Head SHA，再只合并这一组已验证 Head。
-6. 每个发生 Runtime Repin 的 Consumer 发布 exact immutable Product Release、当前阶段要求的 Distribution Evidence 与 `CONSUMER_CI_RECEIPT.json`。
-7. Family Freshness 校验 Runtime Compatibility、Release/Required Distribution、CI Receipt；Manifest 过期时再触发 Family Compatibility。
+4. 显式 `--exact-pin` 也会替换 Runtime-equivalent Core 身份，并默认将 Consumer 的 patch 版本加一。若候选分支已经准备好下一产品版本，只需把 pre-squash Core SHA 替换成 Runtime Digest 相同的正式发布 SHA，则使用 `node scripts/repin-consumer.js <consumer> <released-sha> --exact-pin --no-product-bump` 保留待发布版本。Consumer Release Guard 仍要求该版本相对 base branch 构成合法的下一次 SemVer 发布。
+5. 在等待 CI 前，冻结每个准备好的 PR 的仓库、目标分支、来源分支与 Head SHA。
+6. 整批冻结 PR 必须通过全部必需 CI 与独立审核要求，才进入 Merge Phase。每次合并前立即复查同一冻结 Head 及其授权，并以该精确 Head 作为合并约束。
+7. 每个实际发生 Core Repin 的 Consumer 发布 exact immutable Product Release、当前阶段要求的 Distribution Evidence 与 `CONSUMER_CI_RECEIPT.json`。
+8. Family Freshness 校验 Runtime Compatibility、Release/Required Distribution、CI Receipt；Manifest 过期时再触发 Family Compatibility。
+
+Release Changelog 必须以完整的 `## X.Y.Z` 版本标题开头，可追加 ` - YYYY-MM-DD`，也可在前面保留 `# Changelog` 标题和一个空行。版本前缀相同的较长版本不视为同一发布。若目标版本只出现在后续历史章节，Repin 会在写入 Consumer 文件前拒绝，需先解决历史顺序；此前的 Core Submodule Checkout 仍不是多文件事务。
 
 该两阶段事务避免“前几个已合并、后一个失败”被误认为完成。Consumer 的精确 gitlink 仍是审计锁；只是纯 Governance Core 更新在 Runtime Identity 不变时无需移动该锁。
 

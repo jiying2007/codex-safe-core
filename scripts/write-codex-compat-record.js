@@ -1,3 +1,25 @@
 'use strict';
-const fs=require('node:fs');const {execFileSync}=require('node:child_process');const {SAFE_CONTRACT_DIGEST}=require('../safe-contract');
-const raw=execFileSync(process.env.CODEX_PATH||'codex',['--version'],{encoding:'utf8'}).trim();const version=(raw.match(/\d+\.\d+\.\d+(?:[-+][^\s]+)?/)||[raw])[0];const record={schemaVersion:1,codexCliVersion:version,rawVersion:raw,safeContractDigest:SAFE_CONTRACT_DIGEST,coreSha:process.env.GITHUB_SHA||null,coreVersion:require('../core-contract.json').coreVersion,result:'pass',recordedAt:new Date().toISOString()};const safe=version.replace(/[^0-9A-Za-z._-]/g,'_');const out=process.argv[2]||`codex-cli-${safe}.json`;fs.writeFileSync(out,JSON.stringify(record,null,2)+'\n');console.log(out);
+const fs = require('node:fs');
+const { validateIdentity, collectStages, verifyStages } = require('./codex-canary-identity');
+const { SAFE_CONTRACT_DIGEST } = require('../safe-contract');
+
+const identity = validateIdentity(JSON.parse(process.env.CODEX_CANARY_IDENTITY || '{}'), process.env);
+if (identity.safeContractDigest !== SAFE_CONTRACT_DIGEST) throw new Error('Canary Safe Contract drift.');
+const stages = verifyStages(identity, collectStages(process.argv[3] || 'evidence'));
+const record = {
+  schemaVersion: 2,
+  codexCliVersion: identity.version,
+  packageIntegrity: identity.integrity,
+  safeContractDigest: SAFE_CONTRACT_DIGEST,
+  coreSha: identity.coreSha,
+  coreVersion: require('../core-contract.json').coreVersion,
+  qualificationRunId: identity.runId,
+  qualificationRunAttempt: identity.runAttempt,
+  qualificationIdentityDigest: identity.identityDigest,
+  stages,
+  result: 'pass',
+  recordedAt: new Date().toISOString()
+};
+const out = process.argv[2] || `codex-cli-${identity.version.replace(/[^0-9A-Za-z._-]/g, '_')}.json`;
+fs.writeFileSync(out, JSON.stringify(record, null, 2) + '\n');
+console.log(out);
