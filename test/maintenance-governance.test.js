@@ -179,12 +179,15 @@ test('a real local consumer repin preserves release semantics and every edited f
     const beforeFiles=['package.json','package-lock.json','product-contract.json','.codex-safe.example.json','scripts/verify-manifest.js','.github/workflows/guard.yml','README.zh-CN.md','CHANGELOG.md'];
     const beforeContents=beforeFiles.map(file=>fs.readFileSync(path.join(consumer,file),'utf8'));
     const localCallee=path.join(sub,'.github/workflows/family-release-guard.yml');
+    const checkedOutCallee=fs.readFileSync(localCallee,'utf8');
     const editedCallee=fs.readFileSync(path.join(upstream,'.github/workflows/family-release-guard.yml'),'utf8');
     write(localCallee,editedCallee);
     assert.throws(()=>repinConsumer(consumer,oldSha,{exactPin:true}),/worktree differs from the exact commit/);
     assert.equal(fs.readFileSync(localCallee,'utf8'),editedCallee,'a same-SHA checkout must not authorize or overwrite user edits');
     assert.deepEqual(beforeFiles.map(file=>fs.readFileSync(path.join(consumer,file),'utf8')),beforeContents);
-    write(localCallee,oldGuard);
+    git(sub,'restore','--worktree','--','.github/workflows/family-release-guard.yml');
+    assert.equal(fs.readFileSync(localCallee,'utf8'),checkedOutCallee,'restore this test-owned fixture to its original checkout bytes');
+    assert.equal(git(sub,'diff','--name-only'),'','fixture cleanup must precede the independent caller-preflight check');
     const badCaller=path.join(consumer,'.github/workflows/z-unsupported.yml');
     write(badCaller,`jobs:\n  guard:\n    uses: jiying2007/codex-safe-core/.github/workflows/family-release-guard.yml@${oldSha}\n    secrets: inherit\n`);
     assert.throws(()=>repinConsumer(consumer,newSha),/block-style secrets/);
