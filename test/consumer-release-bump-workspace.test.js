@@ -79,14 +79,22 @@ test('release bump inherits workflow credentials only through the scoped Git env
   assert.throws(()=>releaseBumpGitEnvironment({GITHUB_TOKEN:'bad\ncredential'}),/Invalid Family read credential/);
 });
 
-test('real Git interprets release-bump authorization only for HTTPS github.com',()=>{
-  const env=releaseBumpGitEnvironment({...process.env,CODEX_SAFE_FAMILY_READ_TOKEN:undefined,GITHUB_TOKEN:'synthetic-host-read',GH_TOKEN:undefined});
-  const lookup=url=>spawnSync('git',['config','--get-urlmatch','http.extraheader',url],{env,encoding:'utf8'});
-  const github=lookup('https://github.com/example/private.git');
-  assert.equal(github.status,0);assert.equal(github.stdout.trim(),'AUTHORIZATION: basic '+Buffer.from('x-access-token:synthetic-host-read').toString('base64'));
-  for(const url of ['http://github.com/example/private.git','https://github.com.evil.invalid/private.git','https://example.invalid/private.git']){
-    const other=lookup(url);assert.equal(other.status,1);assert.equal(other.stdout,'');
-  }
+test('real Git ignores inherited global config and scopes release-bump authorization to HTTPS github.com',()=>{
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'release-bump-config-'));
+  try{
+    const inherited=path.join(dir,'inherited.gitconfig');
+    fs.writeFileSync(inherited,'[http]\n\textraheader = unscoped-inherited-header\n');
+    const env=releaseBumpGitEnvironment({...process.env,GIT_CONFIG_GLOBAL:inherited,CODEX_SAFE_FAMILY_READ_TOKEN:undefined,GITHUB_TOKEN:'synthetic-host-read',GH_TOKEN:undefined});
+    const options={cwd:dir,env,encoding:'utf8'};
+    const global=spawnSync('git',['config','--global','--list'],options);
+    assert.equal(global.status,0,global.stderr);assert.equal(global.stdout,'');
+    const lookup=url=>spawnSync('git',['config','--get-urlmatch','http.extraheader',url],options);
+    const github=lookup('https://github.com/example/private.git');
+    assert.equal(github.status,0,github.stderr);assert.equal(github.stdout.trim(),'AUTHORIZATION: basic '+Buffer.from('x-access-token:synthetic-host-read').toString('base64'));
+    for(const url of ['http://github.com/example/private.git','https://github.com.evil.invalid/private.git','https://example.invalid/private.git']){
+      const other=lookup(url);assert.equal(other.status,1,other.stderr);assert.equal(other.stdout,'');
+    }
+  }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });
 
 test('release bump performs real HTTP Git fetches without persisting or forwarding workflow credentials',{timeout:20000},async()=>{

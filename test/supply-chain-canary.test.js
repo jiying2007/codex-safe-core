@@ -119,7 +119,18 @@ test('Family reads and both snapshot materializations consume the dedicated read
 test('security findings and private governance reads feed the existing CI Gate', () => {
   const security = fs.readFileSync(path.join(workflowDir, 'security.yml'), 'utf8');
   assert.match(security, /output: codeql-results/);
-  assert.match(security, /node scripts\/codeql-findings-gate\.js codeql-results/);
+  const steps = security.split(/\n      - /).slice(1);
+  const analyze = steps.find(step => /uses: github\/codeql-action\/analyze@/.test(step));
+  const findings = steps.find(step => /node scripts\/codeql-findings-gate\.js codeql-results/.test(step));
+  const artifact = steps.find(step => /uses: actions\/upload-artifact@/.test(step));
+  assert.ok(analyze);assert.ok(findings);assert.ok(artifact);
+  assert.doesNotMatch(analyze, /upload:\s*(?:false|never)/);
+  assert.match(findings, /if: \$\{\{ always\(\) \}\}/);
+  assert.match(artifact, /if: \$\{\{ always\(\) \}\}/);
+  assert.match(artifact, /path: codeql-results\/\*\.sarif/);
+  assert.match(artifact, /if-no-files-found: error/);
+  assert.ok(steps.indexOf(analyze) < steps.indexOf(findings));
+  assert.ok(steps.indexOf(findings) < steps.indexOf(artifact));
   assert.doesNotMatch(security, /continue-on-error:\s*true/);
   const guard = fs.readFileSync(path.join(workflowDir, 'family-release-guard.yml'), 'utf8');
   assert.match(guard, /secrets:\s+CODEX_SAFE_FAMILY_READ_TOKEN:/);

@@ -1,7 +1,5 @@
 'use strict';
 
-const os = require('node:os');
-
 function familyGitEnvironment(source = process.env) {
   const env = { ...source };
   const token = source.CODEX_SAFE_FAMILY_READ_TOKEN;
@@ -20,7 +18,9 @@ function familyGitEnvironment(source = process.env) {
   }
   env.GIT_TERMINAL_PROMPT = '0';
   env.GIT_CONFIG_NOSYSTEM = '1';
-  env.GIT_CONFIG_GLOBAL = os.devNull;
+  // Git recognizes /dev/null on every supported OS, including Git for Windows.
+  // Node's Windows os.devNull device path is not a valid Git config path.
+  env.GIT_CONFIG_GLOBAL = '/dev/null';
   env.GIT_CONFIG_COUNT = String(config.length);
   config.forEach(([key, value], index) => { env[`GIT_CONFIG_KEY_${index}`] = key; env[`GIT_CONFIG_VALUE_${index}`] = value; });
   return env;
