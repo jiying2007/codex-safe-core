@@ -4,8 +4,13 @@
 const fs=require('node:fs');
 const path=require('node:path');
 const {execFileSync}=require('node:child_process');
+const {familyGitEnvironment}=require('./family-read-auth');
 
-function git(args){return execFileSync('git',args,{encoding:'utf8'}).trim();}
+function releaseBumpGitEnvironment(source=process.env){
+  const token=[source.CODEX_SAFE_FAMILY_READ_TOKEN,source.GITHUB_TOKEN,source.GH_TOKEN].find(value=>value!==undefined&&value!=='');
+  return familyGitEnvironment({...source,CODEX_SAFE_FAMILY_READ_TOKEN:token});
+}
+function git(args){return execFileSync('git',args,{encoding:'utf8',env:releaseBumpGitEnvironment()}).trim();}
 function parse(version){const m=/^(\d+)\.(\d+)\.(\d+)$/.exec(String(version||''));if(!m)throw new Error(`Expected MAJOR.MINOR.PATCH version, got ${version||'<missing>'}`);return m.slice(1).map(Number);}
 function isNextPatch(before,after){const a=parse(before),b=parse(after);return a[0]===b[0]&&a[1]===b[1]&&b[2]===a[2]+1;}
 function isNextRelease(before,after){const a=parse(before),b=parse(after);return isNextPatch(before,after)||(b[0]===a[0]&&b[1]===a[1]+1&&b[2]===0)||(b[0]===a[0]+1&&b[1]===0&&b[2]===0);}
@@ -37,4 +42,4 @@ function verify({baseRef=process.env.GITHUB_BASE_REF,root=process.cwd()}={}){
   return {changed:true,before,after};
 }
 if(require.main===module){try{console.log(JSON.stringify(verify()));}catch(error){console.error(error.message);process.exitCode=1;}}
-module.exports={changelogBeginsWithRelease,isNextPatch,isNextRelease,parse,readJson,verify};
+module.exports={changelogBeginsWithRelease,isNextPatch,isNextRelease,parse,readJson,releaseBumpGitEnvironment,verify};

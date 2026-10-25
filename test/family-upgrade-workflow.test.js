@@ -25,6 +25,20 @@ test('Family Upgrade resumes an already-materialized open upgrade PR instead of 
   assert.match(workflow,/main runtime-equivalent; no product repin\/release required/);
 });
 
+test('Family Upgrade uses ephemeral bot authentication for Git and repin without changing its gates',()=>{
+  assert.match(workflow,/GH_TOKEN: \$\{\{ secrets\.FAMILY_BOT_TOKEN \}\}/);
+  assert.match(workflow,/git\(\) \{ node "\$FAMILY_GIT" git "\$@"; \}/);
+  assert.match(workflow,/git clone --quiet --recurse-submodules "https:\/\/github\.com\/\$\{GITHUB_REPOSITORY_OWNER\}\/\$\{repo\}\.git"/);
+  assert.equal((workflow.match(/node "\$FAMILY_GIT" repin "\$dir" "\$CORE_SHA"/g)||[]).length,2);
+  assert.doesNotMatch(workflow,/x-access-token:|git config --global|node "\$ORCH"/);
+  assert.match(workflow,/export GIT_AUTHOR_NAME='codex-safe-family-bot'/);
+  assert.match(workflow,/export GIT_COMMITTER_EMAIL="\$GIT_AUTHOR_EMAIL"/);
+  assert.match(workflow,/git -C "\$dir" push --force-with-lease origin "\$branch"/);
+  assert.match(workflow,/gh pr checks[^\n]+--watch --fail-fast/);
+  assert.match(workflow,/gh pr merge[^\n]+--match-head-commit "\$head_sha"/);
+  assert.match(workflow,/persist-credentials: false/);
+});
+
 test('Family Upgrade polls Family release state once per attempt and retries only transient query failures',()=>{
   const releaseStateCalls=workflow.match(/node scripts\/family-release-state\.js/g)||[];
   assert.equal(releaseStateCalls.length,1);

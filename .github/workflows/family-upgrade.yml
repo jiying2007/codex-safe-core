@@ -55,16 +55,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git config --global user.name 'codex-safe-family-bot'
-          git config --global user.email 'codex-safe-family-bot@users.noreply.github.com'
-          ORCH="$PWD/scripts/repin-consumer.js"
+          export GIT_AUTHOR_NAME='codex-safe-family-bot'
+          export GIT_AUTHOR_EMAIL='codex-safe-family-bot@users.noreply.github.com'
+          export GIT_COMMITTER_NAME="$GIT_AUTHOR_NAME"
+          export GIT_COMMITTER_EMAIL="$GIT_AUTHOR_EMAIL"
+          FAMILY_GIT="$PWD/scripts/family-upgrade-git.js"
+          git() { node "$FAMILY_GIT" git "$@"; }
           upgrade_id="v${CORE_VERSION}-${CORE_SHA:0:12}"
           state_tsv="$PWD/family-upgrade-state.tsv"
           : > "$state_tsv"
           mapfile -t repos < <(node -e "for(const r of require('./scripts/family-release-state').CONSUMERS) console.log(r)")
           for repo in "${repos[@]}"; do
             dir="$(mktemp -d)/$repo"
-            git clone --quiet --recurse-submodules "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY_OWNER}/${repo}.git" "$dir"
+            git clone --quiet --recurse-submodules "https://github.com/${GITHUB_REPOSITORY_OWNER}/${repo}.git" "$dir"
             branch="family-${upgrade_id}"
             pr="$(gh pr list --repo "${GITHUB_REPOSITORY_OWNER}/$repo" --head "$branch" --state open --json number --jq '.[0].number // empty')"
             remote_branch=false
@@ -74,7 +77,7 @@ jobs:
             else
               git -C "$dir" checkout -b "$branch"
             fi
-            node "$ORCH" "$dir" "$CORE_SHA"
+            node "$FAMILY_GIT" repin "$dir" "$CORE_SHA"
             git -C "$dir" add -A
             product_version="$(node -p "require('$dir/package.json').version")"
             if git -C "$dir" diff --cached --quiet; then
@@ -86,7 +89,7 @@ jobs:
               if [ "$remote_branch" = true ]; then
                 git -C "$dir" reset --hard
                 git -C "$dir" checkout main
-                node "$ORCH" "$dir" "$CORE_SHA"
+                node "$FAMILY_GIT" repin "$dir" "$CORE_SHA"
                 git -C "$dir" add -A
                 if git -C "$dir" diff --cached --quiet; then
                   echo "$repo main runtime-equivalent; no product repin/release required"
