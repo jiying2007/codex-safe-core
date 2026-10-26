@@ -4,7 +4,24 @@ const GENERATED_PATTERNS=[/package-lock\.json$/i,/pnpm-lock\.yaml$/i,/yarn\.lock
 const BINARY_EXTENSIONS=new Set(['.png','.jpg','.jpeg','.gif','.webp','.ico','.pdf','.zip','.gz','.xz','.7z','.bin','.so','.dll','.exe','.woff','.woff2']);
 function classifyPath(filePath){const lower=String(filePath||'').replace(/\\/g,'/').toLowerCase(),dot=lower.lastIndexOf('.'),ext=dot>=0?lower.slice(dot):'';if(BINARY_EXTENSIONS.has(ext))return'binary';if(GENERATED_PATTERNS.some(pattern=>pattern.test(lower)))return'generated';return'source';}
 function clampBudget(value,fallback=512*1024){const number=Number(value);return Number.isFinite(number)?Math.max(4096,Math.min(8*1024*1024,Math.floor(number))):fallback;}
-function splitUnifiedDiff(diff){const text=String(diff||'');if(!text.trim())return[];const starts=[],pattern=/^diff --git /gm;let match;while((match=pattern.exec(text)))starts.push(match.index);if(!starts.length)return[{path:'<diff>',text,kind:'source'}];const blocks=[];for(let i=0;i<starts.length;i+=1){const block=text.slice(starts[i],starts[i+1]??text.length),first=block.match(/^diff --git a\/(.+?) b\/(.+)$/m),plus=block.match(/^\+\+\+ (?:b\/)?(.+)$/m);let file=plus?.[1]||first?.[2]||first?.[1]||'<unknown>';if(file==='/dev/null')file=first?.[1]||'<deleted>';file=String(file).trim();blocks.push({path:file,text:block,kind:classifyPath(file)});}return blocks;}
+function decodeGitQuotedPath(value){
+ const text=String(value||'').trim();
+ if(text[0]!=='"'||!text.endsWith('"'))return text;
+ const bytes=[],body=text.slice(1,-1),esc={t:9,n:10,r:13,b:8,f:12,v:11};
+ for(let i=0;i<body.length;i++){
+   if(body.charCodeAt(i)===92){
+     const oct=body.slice(i+1,i+4);
+     if(oct.length===3&&/^[0-7]{3}$/.test(oct)){bytes.push(parseInt(oct,8));i+=3;continue;}
+     const next=body[i+1];
+     if(Object.hasOwn(esc,next)){bytes.push(esc[next]);i++;continue;}
+     if(next==='"'||next===String.fromCharCode(92)){bytes.push(next.charCodeAt(0));i++;continue;}
+   }
+   const symbol=String.fromCodePoint(body.codePointAt(i));
+   bytes.push(...Buffer.from(symbol));i+=symbol.length-1;
+ }
+ return Buffer.from(bytes).toString('utf8');
+}
+function splitUnifiedDiff(diff){const text=String(diff||'');if(!text.trim())return[];const starts=[],pattern=/^diff --git /gm;let match;while((match=pattern.exec(text)))starts.push(match.index);if(!starts.length)return[{path:'<diff>',text,kind:'source'}];const blocks=[];for(let i=0;i<starts.length;i+=1){const block=text.slice(starts[i],starts[i+1]??text.length),first=block.match(/^diff --git a\/(.+?) b\/(.+)$/m),plus=block.match(/^\+\+\+ (?:b\/)?(.+)$/m);let file=plus?.[1]||first?.[2]||first?.[1]||'<unknown>';if(file==='/dev/null')file=first?.[1]||'<deleted>';file=decodeGitQuotedPath(file).replace(/^b\//,'');blocks.push({path:file,text:block,kind:classifyPath(file)});}return blocks;}
 function byteLength(value){return Buffer.byteLength(String(value||''),'utf8');}
 function trimUtf8(value,maxBytes){const buffer=Buffer.from(String(value||''),'utf8');if(buffer.length<=maxBytes)return buffer.toString('utf8');let end=Math.max(0,maxBytes);while(end>0&&(buffer[end]&0xc0)===0x80)end-=1;return buffer.subarray(0,end).toString('utf8');}
 function boundSourceBlock(block,budget){const text=String(block||'');if(byteLength(text)<=budget)return{text,truncated:false};const marker='\n@@ ... semantic budget omitted middle of this file ... @@\n',markerBytes=byteLength(marker);if(budget<=markerBytes+256)return{text:trimUtf8(text,budget),truncated:true};const available=budget-markerBytes,headBudget=Math.ceil(available*0.6),tailBudget=Math.floor(available*0.4),buffer=Buffer.from(text,'utf8'),head=trimUtf8(text,headBudget);let start=Math.max(0,buffer.length-tailBudget);while(start<buffer.length&&(buffer[start]&0xc0)===0x80)start+=1;const tail=buffer.subarray(start).toString('utf8');return{text:`${head}${marker}${tail}`,truncated:true};}
