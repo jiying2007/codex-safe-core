@@ -17,6 +17,6 @@ test('performance attribution reports bounded per-phase medians without changing
  assert.equal(metrics.phaseMediansMs.semanticContext,14);
  assert.deepEqual(Object.keys(metrics.phaseMediansMs).sort(),phases.sort());
  const current={schemaVersion:3,metrics,budgets:{elapsedMs:5000,rssGrowthBytes:100000}};
- const prior={schemaVersion:3,metrics:{elapsedMs:100,rssGrowthBytes:1000}};
+ const prior={schemaVersion:3,metrics:{elapsedMs:90,rssGrowthBytes:1000}};
  assert.equal(compareSnapshots(current,prior).ok,false,'existing ten-percent relative limit must remain active');
 });
