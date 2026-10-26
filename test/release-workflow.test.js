@@ -157,7 +157,7 @@ test('trusted publication converges regardless of CI versus validation completio
 
 test('executable release admission waits for both exact-SHA successful workflows',{timeout:6000},async()=>{
  const vm=require('node:vm');
- const source=fs.readFileSync(path.join(root,'.github','workflows','_trusted-release.yml'),'utf8');
+ const source=fs.readFileSync(path.join(root,'.github','workflows','_trusted-release.yml'),'utf8').replace(/\r\n/g,'\n');
  const title='name: Require successful same-SHA CI and Release Validation';
  const section=source.slice(source.indexOf(title));
  assert.ok(section.startsWith(title));
