@@ -71,3 +71,49 @@ test('private Family credential is isolated from PR code and bound to immutable 
   assert.match(privateJob.slice(use),/secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \|\| github\.token/);
   assert.doesNotMatch(privateJob,/persist-credentials: true/);
 });
+
+test('private Core admission executes and rejects invalid immutable-release evidence before revealing secrets',{timeout:6000},async()=>{
+  const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+  const workflow=fs.readFileSync(path.join(__dirname,'..','.github','workflows','family-release-guard.yml'),'utf8');
+  const title='- name: Admit only an immutable released Core commit without private credentials';
+  const section=workflow.slice(workflow.indexOf(title));
+  assert.ok(section.startsWith(title));
+  const match=section.match(/          node - <<'NODE'\n([\s\S]*?)          NODE/);
+  assert.ok(match,'privileged admission must contain executable source owned by immutable workflow');
+  const script=match[1].split('\n').map(line=>line.startsWith('          ')?line.slice(10):line).join('\n');
+  const sha='a'.repeat(40),contract=Buffer.from(JSON.stringify({coreVersion:'4.18.2'}));
+  async function execute({immutable=true,tagSha=sha}={}){
+    const calls=[];
+    let finished;
+    const result=new Promise((resolve,reject)=>{
+      const timer=setTimeout(()=>reject(Error('Core admission did not settle')),2000);
+      const done=(ok,value)=>{clearTimeout(timer);resolve({ok,value,calls});};
+      const context={
+        Buffer,AbortSignal,
+        process:{env:{EXPECTED_CORE_SHA:sha,PUBLIC_GITHUB_TOKEN:'synthetic-public-token'},stdout:{write:value=>done(true,value)},exitCode:0},
+        console:{error:error=>done(false,String(error))},
+        fetch:async(url,options)=>{
+          calls.push({url:String(url),credential:options.headers.authorization||null});
+          let response;
+          if(String(url).includes('/contents/core-contract.json?ref='))response={type:'file',encoding:'base64',content:contract.toString('base64'),size:contract.length};
+          else if(String(url).includes('/releases/tags/v4.18.2'))response={tag_name:'v4.18.2',immutable,draft:false,prerelease:false};
+          else if(String(url).includes('/git/ref/tags/v4.18.2'))response={object:{type:'commit',sha:tagSha}};
+          else throw Error('Unexpected Core release evidence URL: '+url);
+          return{ok:true,status:200,json:async()=>response};
+        }
+      };
+      try{vm.runInNewContext(script,context,{timeout:1000});}catch(error){clearTimeout(timer);reject(error);}
+    });
+    return result;
+  }
+  const valid=await execute();
+  assert.equal(valid.ok,true,valid.value);
+  assert.equal(valid.calls.length,3);
+  assert.ok(valid.calls.every(call=>call.credential==='Bearer synthetic-public-token'));
+  const tampered=await execute({tagSha:'b'.repeat(40)});
+  assert.equal(tampered.ok,false);
+  assert.match(tampered.value,/does not point to the requested exact SHA/);
+  const mutable=await execute({immutable:false});
+  assert.equal(mutable.ok,false);
+  assert.match(mutable.value,/not an immutable final release/);
+});
