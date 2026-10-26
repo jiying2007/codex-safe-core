@@ -191,6 +191,14 @@ jobs:
           fi
           echo "publish=true" >> "$GITHUB_OUTPUT"
           echo "reason=new-release" >> "$GITHUB_OUTPUT"
+      - name: Require Family Upgrade dispatch credential before immutable publication
+        if: steps.decision.outputs.publish == 'true'
+        env:
+          FAMILY_BOT_TOKEN: ${{ secrets.FAMILY_BOT_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$FAMILY_BOT_TOKEN" || { echo 'Missing FAMILY_BOT_TOKEN; refusing to publish an uncoordinated Core release.' >&2; exit 2; }
       - name: Re-verify reproducible package and Core gates
         if: steps.decision.outputs.publish == 'true'
         run: |
