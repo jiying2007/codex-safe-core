@@ -32,11 +32,11 @@ test('trusted publication is workflow_run gated to successful main validation',(
 });
 
 test('trusted release no-ops only for an unchanged version with an existing immutable release on an older SHA',()=>{
-  assert.match(trusted,/fetch-depth: 2/);
+  assert.match(trusted,/fetch-depth: 0/);
   assert.match(trusted,/parent_version=''/);
   assert.match(trusted,/git show HEAD\^:core-contract\.json/);
   assert.match(trusted,/parent_version.*==.*version/);
-  assert.match(trusted,/Core version \$\{version\} is unchanged from parent/);
+  assert.match(trusted,/Core \$\{version\} has runtime-identical governance-only main changes/);
   assert.match(trusted,/reason=no-version-change/);
   assert.match(trusted,/Existing formal release \$\{tag\} is not immutable/);
   assert.match(trusted,/Existing formal release \$\{tag\} points to \$\{tag_sha\}, expected \$\{VALIDATED_SHA\}; version changed or parent version could not prove a no-op/);
