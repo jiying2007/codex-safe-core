@@ -2,7 +2,7 @@ name: Trusted Release
 
 on:
   workflow_run:
-    workflows: ["Release Validation"]
+    workflows: ["CI", "Release Validation"]
     types: [completed]
 
 permissions:
@@ -16,8 +16,62 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  publish:
+  admission:
     if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - id: check
+        name: Require successful same-SHA CI and Release Validation
+        env:
+          API_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const sha=String(process.env.EXPECTED_SHA||''),repo=String(process.env.GITHUB_REPOSITORY||'');
+          if(!/^[0-9a-f]{40}$/.test(sha)||repo!=='jiying2007/codex-safe-core')throw Error('Noncanonical release admission identity.');
+          async function get(workflow,page){
+            const url='https://api.github.com/repos/'+repo+'/actions/workflows/'+workflow+'/runs?branch=main&per_page=100&page='+page;
+            const response=await fetch(url,{
+              headers:{accept:'application/vnd.github+json','user-agent':'codex-safe-release-admission',authorization:'Bearer '+process.env.API_TOKEN},
+              redirect:'error',signal:AbortSignal.timeout(15000)
+            });
+            if(!response.ok)throw Error('Trusted workflow state API failed: HTTP '+response.status);
+            const body=await response.json();
+            if(!Array.isArray(body.workflow_runs))throw Error('Trusted workflow run listing is malformed.');
+            return body.workflow_runs;
+          }
+          async function latest(workflow){
+            for(let page=1;page<=3;page++){
+              const list=await get(workflow,page);
+              const found=list.find(item=>item.head_sha===sha&&item.head_branch==='main'&&
+                (workflow==='ci.yml'?item.event==='push':['push','workflow_dispatch'].includes(item.event)));
+              if(found)return found;
+              if(list.length<100)break;
+            }
+            return null;
+          }
+          (async()=>{
+            const [ci,validation]=await Promise.all([latest('ci.yml'),latest('release.yml')]);
+            const ok=run=>run?.status==='completed'&&run.conclusion==='success';
+            const ready=ok(ci)&&ok(validation);
+            fs.appendFileSync(process.env.GITHUB_OUTPUT,'ready='+(ready?'true':'false')+'\n');
+            console.log(JSON.stringify({schemaVersion:1,sha,ci:{id:ci?.id||null,status:ci?.status||'missing',conclusion:ci?.conclusion||null},
+              validation:{id:validation?.id||null,status:validation?.status||'missing',conclusion:validation?.conclusion||null},ready}));
+          })().catch(error=>{console.error(error.message);process.exitCode=1;});
+          NODE
+
+  publish:
+    needs: admission
+    if: ${{ needs.admission.outputs.ready == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
