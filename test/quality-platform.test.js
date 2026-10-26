@@ -23,3 +23,17 @@ test('patch authorization distinguishes literal a/ and b/ repository directories
     assert.throws(() => validatePatchProposal({ patch }, { allowedPaths: [allowed] }), /outside reviewed evidence/);
   }
 });
+
+test('impact extraction reuses regexes without carrying state between changed lines',()=>{
+ const diff=['diff --git a/src/main.js b/src/main.js','--- a/src/main.js','+++ b/src/main.js','@@ -1 +1,5 @@',
+   '-old','+import "lib/first"','+import "lib/second"','+function alpha() {}','+function beta() {}','+function gamma() {}'].join('\n');
+ const signals=extractImpactSignals(diff);
+ assert.ok(signals.modules.includes('lib/first'));
+ assert.ok(signals.modules.includes('lib/second'));
+ for(const symbol of ['alpha','beta','gamma'])assert.ok(signals.symbols.includes(symbol),symbol);
+ const candidates=Array.from({length:30},(_,i)=>({path:'src/member'+i+'.js',content:'alpha(); beta(); gamma();'}));
+ const graph=buildImpactEvidenceGraph({diff,candidates,maxNodes:16,maxEdges:3,maxBytes:65536});
+ assert.equal(graph.edges.length,3);
+ assert.ok(graph.nodes.length>0);
+ assert.ok(graph.edges.every(edge=>edge.from==='src/main.js'));
+});
