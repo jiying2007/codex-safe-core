@@ -50,7 +50,7 @@ jobs:
         run: |
           set -euo pipefail
           # The validation workflow alone does not run the real CodeQL CI gate.
-          ci_run="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?branch=main&event=push&per_page=100" --jq '.workflow_runs[] | select(.head_sha == env.VALIDATED_SHA and .head_branch == "main" and .event == "push" and .status == "completed" and .conclusion == "success") | .id' | head -n 1 || true)"
+          ci_run="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?branch=main&event=push&per_page=100" | node -e 'let s="";process.stdin.on("data",c=>s+=c).on("end",()=>{const runs=JSON.parse(s).workflow_runs||[];const run=runs.find(r=>r.head_sha===process.env.VALIDATED_SHA&&r.head_branch==="main"&&r.event==="push"&&r.status==="completed"&&r.conclusion==="success");if(run)process.stdout.write(String(run.id));})')"
           [[ "$ci_run" =~ ^[0-9]+$ ]] || { echo "Missing successful exact-SHA main CI for ${VALIDATED_SHA}" >&2; exit 1; }
           GH_CI_RUN="$ci_run" gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/runs/${ci_run}/jobs?per_page=100" --jq '.jobs[] | [.name, .status, .conclusion] | @tsv' > /tmp/core-ci-jobs.tsv
           node - <<'NODE'
