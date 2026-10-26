@@ -41,3 +41,17 @@ test('Git C-quoted Chinese paths decode without losing real b/ directories',()=>
  const plain=['diff --git a/b/main.c b/b/main.c','--- a/b/main.c','+++ b/b/main.c','@@ -1 +1 @@','-old','+new'].join('\n');
  assert.deepEqual(core.splitUnifiedDiff(plain).map(block=>block.path),['b/main.c']);
 });
+
+test('C-quoted deleted and binary-only Git diff paths remain identifiable',()=>{
+  const encoded=Array.from(Buffer.from('驱动.c'),x=>'\\'+x.toString(8).padStart(3,'0')).join('');
+  const binary=['diff --git "a/'+encoded+'" "b/'+encoded+'"',
+    'Binary files "a/'+encoded+'" and "b/'+encoded+'" differ'].join('\n');
+  const removed=['diff --git "a/'+encoded+'" "b/'+encoded+'"',
+    'deleted file mode 100644',
+    '--- "a/'+encoded+'"',
+    '+++ /dev/null',
+    '@@ -1 +0,0 @@',
+    '-old'].join('\n');
+  assert.deepEqual(core.splitUnifiedDiff(binary).map(v=>v.path),['驱动.c']);
+  assert.deepEqual(core.splitUnifiedDiff(removed).map(v=>v.path),['驱动.c']);
+});
