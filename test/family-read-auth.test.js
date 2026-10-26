@@ -74,7 +74,7 @@ test('private Family credential is isolated from PR code and bound to immutable 
 
 test('private Core admission executes and rejects invalid immutable-release evidence before revealing secrets',{timeout:6000},async()=>{
   const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
-  const workflow=fs.readFileSync(path.join(__dirname,'..','.github','workflows','family-release-guard.yml'),'utf8');
+  const workflow=fs.readFileSync(path.join(__dirname,'..','.github','workflows','family-release-guard.yml'),'utf8').replace(/\r\n/g,'\n');
   const title='- name: Admit only an immutable released Core commit without private credentials';
   const section=workflow.slice(workflow.indexOf(title));
   assert.ok(section.startsWith(title));
