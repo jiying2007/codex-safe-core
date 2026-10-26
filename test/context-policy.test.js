@@ -31,3 +31,13 @@ test('review chunk accounting includes separators between individual hunks',()=>
  const chunks=core.buildReviewEvidenceChunks({diff:a+b,maxBytes:4096,maxChunks:8});
  for(const chunk of chunks)assert.equal(Buffer.byteLength(chunk.text,'utf8'),chunk.bytes);
 });
+
+test('Git C-quoted Chinese paths decode without losing real b/ directories',()=>{
+ const escaped=Array.from(Buffer.from('测试.c','utf8'),byte=>'\\'+byte.toString(8).padStart(3,'0')).join('');
+ const quoted=['diff --git "a/'+escaped+'" "b/'+escaped+'"',
+               '--- "a/'+escaped+'"','+++ "b/'+escaped+'"','@@ -1 +1 @@','-old','+new'].join('\n');
+ const decoded=core.splitUnifiedDiff(quoted);
+ assert.deepEqual(decoded.map(block=>block.path),['测试.c']);
+ const plain=['diff --git a/b/main.c b/b/main.c','--- a/b/main.c','+++ b/b/main.c','@@ -1 +1 @@','-old','+new'].join('\n');
+ assert.deepEqual(core.splitUnifiedDiff(plain).map(block=>block.path),['b/main.c']);
+});
