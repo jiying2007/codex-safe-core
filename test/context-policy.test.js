@@ -23,7 +23,9 @@ test('many files cannot exceed the declared exact UTF-8 semantic context budget'
  assert.ok(Buffer.byteLength(result.text,'utf8')<=result.budgetBytes);
  assert.equal(result.truncated,true);
  assert.ok(result.truncatedSourceFiles.length>0);
- assert.equal(result.includedSourceFiles.length,0);
+ assert.ok(result.includedSourceFiles.length>0,'retain representable source files rather than globally truncating the diff');
+ assert.ok(result.includedSourceFiles.length<files.length,'any source that cannot be represented must be reported as omitted');
+ for(const path of files.filter(file=>!result.includedSourceFiles.includes(file)))assert.ok(result.truncatedSourceFiles.includes(path));
 });
 test('review chunk accounting includes separators between individual hunks',()=>{
  const a='diff --git a/a.c b/a.c\n--- a/a.c\n+++ b/a.c\n@@ -1 +1 @@\n-a\n+A\n';
@@ -54,4 +56,15 @@ test('C-quoted deleted and binary-only Git diff paths remain identifiable',()=>{
     '-old'].join('\n');
   assert.deepEqual(core.splitUnifiedDiff(binary).map(v=>v.path),['驱动.c']);
   assert.deepEqual(core.splitUnifiedDiff(removed).map(v=>v.path),['驱动.c']);
+});
+
+test('byte allocations never exceed limits even with thousands of tiny source chunks',()=>{
+ const blocks=Array.from({length:800},(_,index)=>({path:'src/f'+index+'.c',text:'diff --git a/src/f'+index+'.c b/src/f'+index+'.c\n-old\n+new'}));
+ for(const maxBytes of [1,2,16,63,64,65,128,4096,65536]){
+  const value=core.allocateSourceBlocks(blocks,maxBytes);
+  assert.ok(Buffer.byteLength(value.text,'utf8')<=maxBytes,'maxBytes='+maxBytes);
+  assert.equal(value.truncated,true);
+  assert.ok(value.truncatedFiles.length);
+  for(const file of blocks.slice(value.included.length))assert.ok(value.truncatedFiles.includes(file.path));
+ }
 });
