@@ -8,3 +8,15 @@ test('performance snapshots use a stable odd-sample median',()=>{assert.equal(me
 test('performance samples fail closed on structural drift',()=>{const samples=Array.from({length:7},()=>({...base}));samples[3]={...samples[3],plannedBytes:123};assert.throws(()=>summarizeSamples(samples),/structural drift/);});
 test('schema v3 migration does not compare median against legacy single sample',()=>{const current={schemaVersion:3,metrics:{elapsedMs:180,rssGrowthBytes:1000},budgets:{elapsedMs:5000,rssGrowthBytes:100000}},legacy={schemaVersion:2,metrics:{elapsedMs:140,rssGrowthBytes:1000}};assert.deepEqual(compareSnapshots(current,legacy),{ok:true,migration:true,reason:'legacy_single_sample_baseline',result:null});});
 test('schema v3 keeps median-to-median relative regression gate',()=>{const current={schemaVersion:3,metrics:{elapsedMs:112,rssGrowthBytes:1000},budgets:{elapsedMs:5000,rssGrowthBytes:100000}},baseline={schemaVersion:3,metrics:{elapsedMs:100,rssGrowthBytes:1000}};assert.equal(compareSnapshots(current,baseline).ok,false);});
+
+test('performance attribution reports bounded per-phase medians without changing the latency gate',()=>{
+ const phases=['reviewChunks','semanticContext','estimateTokens','scoreRisk','selectBudget','candidatePreparation','impactGraph'];
+ const samples=Array.from({length:7},(_,index)=>({...base,elapsedMs:100+index,rssGrowthBytes:1000+index,phaseTimingsMs:Object.fromEntries(phases.map((phase,i)=>[phase,10+i+index]))}));
+ const metrics=summarizeSamples(samples);
+ assert.equal(metrics.elapsedMs,103);
+ assert.equal(metrics.phaseMediansMs.semanticContext,14);
+ assert.deepEqual(Object.keys(metrics.phaseMediansMs).sort(),phases.sort());
+ const current={schemaVersion:3,metrics,budgets:{elapsedMs:5000,rssGrowthBytes:100000}};
+ const prior={schemaVersion:3,metrics:{elapsedMs:100,rssGrowthBytes:1000}};
+ assert.equal(compareSnapshots(current,prior).ok,false,'existing ten-percent relative limit must remain active');
+});
