@@ -132,3 +132,13 @@ test('Performance immutable release reruns verify the existing canonical asset i
   assert.match(performanceTrend,/gh release verify-asset "\$PERFORMANCE_TAG" "\$PERFORMANCE_ASSET"/);
   assert.doesNotMatch(performanceTrend,/--clobber/);
 });
+
+test('trusted release requires full main CI security proof and version race protection',()=>{
+ const workflow=fs.readFileSync(path.join(root,'.github','workflows','_trusted-release.yml'),'utf8');
+ assert.match(workflow,/group: trusted-release-main/);
+ assert.match(workflow,/Require exact main push CI Gate and real security job/);
+ assert.match(workflow,/security \/ codeql/);
+ assert.match(workflow,/Missing successful exact-SHA main CI/);
+ assert.match(workflow,/main moved during trusted release/);
+ assert.match(workflow,/runtimeDigest!==current\.runtimeDigest/);
+});
