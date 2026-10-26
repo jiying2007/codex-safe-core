@@ -54,6 +54,8 @@ jobs:
         with:
           node-version: '22.22.2'
       - run: npm run check:reproducible
+      - name: Attribute 4 MiB Core pipeline latency in seven isolated samples
+        run: node scripts/write-performance-snapshot.js PR_PERFORMANCE_DIAGNOSTIC.json
 
   security:
     permissions:
