@@ -21,7 +21,33 @@ function decodeGitQuotedPath(value){
  }
  return Buffer.from(bytes).toString('utf8');
 }
-function splitUnifiedDiff(diff){const text=String(diff||'');if(!text.trim())return[];const starts=[],pattern=/^diff --git /gm;let match;while((match=pattern.exec(text)))starts.push(match.index);if(!starts.length)return[{path:'<diff>',text,kind:'source'}];const blocks=[];for(let i=0;i<starts.length;i+=1){const block=text.slice(starts[i],starts[i+1]??text.length),first=block.match(/^diff --git a\/(.+?) b\/(.+)$/m),plus=block.match(/^\+\+\+ (?:b\/)?(.+)$/m);let file=plus?.[1]||first?.[2]||first?.[1]||'<unknown>';if(file==='/dev/null')file=first?.[1]||'<deleted>';const wasQuoted=String(file).trim().startsWith('"');file=decodeGitQuotedPath(file);if(wasQuoted&&file.startsWith('b/'))file=file.slice(2);blocks.push({path:file,text:block,kind:classifyPath(file)});}return blocks;}
+function parseGitDiffHeaderPaths(header){
+ const prefix='diff --git ';
+ if(!String(header).startsWith(prefix))return null;
+ const raw=header.slice(prefix.length);
+ if(raw[0]==='"'){
+  const paths=[];let cursor=0;
+  for(let item=0;item<2;item++){
+   if(raw[cursor]!=='"')return null;
+   const from=cursor++;
+   let closed=false;
+   while(cursor<raw.length){
+    if(raw.charCodeAt(cursor)===92){cursor+=2;continue;}
+    if(raw[cursor]==='"'){cursor++;closed=true;break;}
+    cursor++;
+   }
+   if(!closed)return null;
+   paths.push(decodeGitQuotedPath(raw.slice(from,cursor)));
+   if(item===0){if(raw[cursor]!==' ')return null;cursor++;}
+  }
+  if(raw.slice(cursor).trim())return null;
+  return {old:paths[0].startsWith('a/')?paths[0].slice(2):paths[0],new:paths[1].startsWith('b/')?paths[1].slice(2):paths[1]};
+ }
+ const marker=' b/',i=raw.lastIndexOf(marker);
+ if(!raw.startsWith('a/')||i<2)return null;
+ return {old:raw.slice(2,i),new:raw.slice(i+marker.length)};
+}
+function splitUnifiedDiff(diff){const text=String(diff||'');if(!text.trim())return[];const starts=[],pattern=/^diff --git /gm;let match;while((match=pattern.exec(text)))starts.push(match.index);if(!starts.length)return[{path:'<diff>',text,kind:'source'}];const blocks=[];for(let i=0;i<starts.length;i+=1){const block=text.slice(starts[i],starts[i+1]??text.length),first=block.match(/^diff --git a\/(.+?) b\/(.+)$/m),plus=block.match(/^\+\+\+ (?:b\/)?(.+)$/m);let file=plus?.[1]||first?.[2]||first?.[1]||'<unknown>';if(file==='/dev/null')file=first?.[1]||'<deleted>';const pathsFromHeader=parseGitDiffHeaderPaths(block.split('\n',1)[0]);const wasQuoted=String(file).trim().startsWith('"');file=decodeGitQuotedPath(file);if(wasQuoted&&file.startsWith('b/'))file=file.slice(2);if((file==='<unknown>'||file==='<deleted>')&&pathsFromHeader)file=file==='<deleted>'?pathsFromHeader.old:pathsFromHeader.new;blocks.push({path:file,text:block,kind:classifyPath(file)});}return blocks;}
 function byteLength(value){return Buffer.byteLength(String(value||''),'utf8');}
 function trimUtf8(value,maxBytes){const buffer=Buffer.from(String(value||''),'utf8');if(buffer.length<=maxBytes)return buffer.toString('utf8');let end=Math.max(0,maxBytes);while(end>0&&(buffer[end]&0xc0)===0x80)end-=1;return buffer.subarray(0,end).toString('utf8');}
 function boundSourceBlock(block,budget){const text=String(block||'');if(byteLength(text)<=budget)return{text,truncated:false};const marker='\n@@ ... semantic budget omitted middle of this file ... @@\n',markerBytes=byteLength(marker);if(budget<=markerBytes+256)return{text:trimUtf8(text,budget),truncated:true};const available=budget-markerBytes,headBudget=Math.ceil(available*0.6),tailBudget=Math.floor(available*0.4),buffer=Buffer.from(text,'utf8'),head=trimUtf8(text,headBudget);let start=Math.max(0,buffer.length-tailBudget);while(start<buffer.length&&(buffer[start]&0xc0)===0x80)start+=1;const tail=buffer.subarray(start).toString('utf8');return{text:`${head}${marker}${tail}`,truncated:true};}
