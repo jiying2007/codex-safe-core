@@ -53,7 +53,7 @@ test('private release assets use their API URL and drop authentication at CDN re
 
 test('private Family credential is isolated from PR code and bound to immutable Core admission',()=>{
   const fs=require('node:fs'),path=require('node:path');
-  const yaml=fs.readFileSync(path.join(__dirname,'..','.github','workflows','family-release-guard.yml'),'utf8');
+  const yaml=fs.readFileSync(path.join(__dirname,'..','.github','workflows','family-release-guard.yml'),'utf8').replace(/\r\n/g,'\n');
   const parts=yaml.split('\n  private-governance:\n');
   assert.equal(parts.length,2,'trusted remote audit must run in a separate reusable workflow job');
   const [candidateJob,privateJob]=parts;
