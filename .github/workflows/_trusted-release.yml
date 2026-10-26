@@ -6,12 +6,13 @@ on:
     types: [completed]
 
 permissions:
+  actions: read
   contents: write
   id-token: write
   attestations: write
 
 concurrency:
-  group: trusted-release-${{ github.event.workflow_run.head_sha }}
+  group: trusted-release-main
   cancel-in-progress: false
 
 jobs:
@@ -41,6 +42,23 @@ jobs:
             echo "Validated SHA ${validated_sha} is no longer current main (${remote_main}); refusing stale release." >&2
             exit 1
           }
+      - name: Require exact main push CI Gate and real security job before any release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VALIDATED_SHA: ${{ github.event.workflow_run.head_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The validation workflow alone does not run the real CodeQL CI gate.
+          ci_run="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?branch=main&event=push&per_page=100" --jq '.workflow_runs[] | select(.head_sha == env.VALIDATED_SHA and .head_branch == "main" and .event == "push" and .status == "completed" and .conclusion == "success") | .id' | head -n 1 || true)"
+          [[ "$ci_run" =~ ^[0-9]+$ ]] || { echo "Missing successful exact-SHA main CI for ${VALIDATED_SHA}" >&2; exit 1; }
+          GH_CI_RUN="$ci_run" gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/runs/${ci_run}/jobs?per_page=100" --jq '.jobs[] | [.name, .status, .conclusion] | @tsv' > /tmp/core-ci-jobs.tsv
+          node - <<'NODE'
+          const fs=require('fs');
+          const jobs=fs.readFileSync('/tmp/core-ci-jobs.tsv','utf8').trim().split('\n').map(line=>line.split('\t'));
+          const success=name=>jobs.some(row=>row[0]===name && row[1]==='completed' && row[2]==='success');
+          if(!success('CI Gate') || !success('security / codeql')) throw new Error('Exact main CI must include successful CI Gate and real CodeQL security job.');
+          NODE
       - name: Resolve immutable release decision
         id: decision
         env:
@@ -67,7 +85,24 @@ jobs:
             }
             if [[ "$tag_sha" != "$VALIDATED_SHA" ]]; then
               if [[ -n "$parent_version" && "$parent_version" == "$version" ]]; then
-                echo "Core version ${version} is unchanged from parent; existing immutable ${tag} remains canonical at ${tag_sha}. No new publication is required for main ${VALIDATED_SHA}."
+                # A governance-only main change may reuse the release only when
+                # exact released runtime and surface identity are proven equal.
+                git fetch --quiet origin "refs/tags/${tag}:refs/tags/${tag}"
+                canonical_sha="$(git rev-list -n 1 "$tag")"
+                test "$canonical_sha" = "$tag_sha" || { echo 'Unexpected tag object identity' >&2; exit 1; }
+                git merge-base --is-ancestor "$canonical_sha" HEAD || { echo 'Existing release is not an ancestor of main' >&2; exit 1; }
+                tmp="$(mktemp -d)"
+                gh release verify "$tag"
+                gh release download "$tag" --pattern CORE_DIGESTS.json --dir "$tmp"
+                gh release verify-asset "$tag" "$tmp/CORE_DIGESTS.json"
+                node scripts/core-digests.js . --output "$tmp/current.json"
+                node - "$tmp/CORE_DIGESTS.json" "$tmp/current.json" <<'NODE'
+          const fs=require('fs');const [releasedPath,currentPath]=process.argv.slice(2);
+          const released=JSON.parse(fs.readFileSync(releasedPath,'utf8')),current=JSON.parse(fs.readFileSync(currentPath,'utf8'));
+          if(released.runtimeDigest!==current.runtimeDigest || released.surfaceManifestDigest!==current.surfaceManifestDigest) throw Error('Existing tag does not match exact current runtime and surface digest. Bump the Core version.');
+          NODE
+                rm -rf "$tmp"
+                echo "Core ${version} has runtime-identical governance-only main changes; retaining exact verified release ${tag_sha}."
                 echo "publish=false" >> "$GITHUB_OUTPUT"
                 echo "reason=no-version-change" >> "$GITHUB_OUTPUT"
                 exit 0
@@ -138,6 +173,14 @@ jobs:
             CORE_OWNERSHIP_MANIFEST.json
             CORE_DIGESTS.json
             SHA256SUMS
+      - name: Reconfirm main SHA at publication boundary
+        if: steps.decision.outputs.publish == 'true'
+        env:
+          VALIDATED_SHA: ${{ github.event.workflow_run.head_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git ls-remote origin refs/heads/main | awk '{print $1}')" = "$VALIDATED_SHA" || { echo 'main moved during trusted release; refusing stale tag.' >&2; exit 1; }
       - name: Ensure release tag
         if: steps.decision.outputs.publish == 'true'
         env:
