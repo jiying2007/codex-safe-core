@@ -29,7 +29,7 @@ test('review chunk accounting includes separators between individual hunks',()=>
  const a='diff --git a/a.c b/a.c\n--- a/a.c\n+++ b/a.c\n@@ -1 +1 @@\n-a\n+A\n';
  const b='diff --git a/b.c b/b.c\n--- a/b.c\n+++ b/b.c\n@@ -1 +1 @@\n-b\n+B\n';
  const chunks=core.buildReviewEvidenceChunks({diff:a+b,maxBytes:4096,maxChunks:8});
- for(const chunk of chunks)assert.equal(Buffer.byteLength(chunk.text,'utf8'),chunk.bytes);
+ for(const chunk of chunks.chunks)assert.equal(Buffer.byteLength(chunk.text,'utf8'),chunk.bytes);
 });
 
 test('Git C-quoted Chinese paths decode without losing real b/ directories',()=>{
