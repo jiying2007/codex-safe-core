@@ -36,12 +36,15 @@ function extractImpactSignals(diff=''){
   // Compile global expressions once per impact graph, not once per changed line.
   const modulesPatterns=[/\b(?:import|export)\s+(?:[^'"]+?\s+from\s+)?['"]([^'"]+)['"]/g,/\brequire\s*\(\s*['"]([^'"]+)['"]\s*\)/g,/^\s*from\s+([A-Za-z0-9_.]+)\s+import\b/g,/^\s*import\s+([A-Za-z0-9_.]+)/g,/\badd_subdirectory\s*\(\s*([^) \t]+)/gi,/\binclude\s*\(\s*([^) \t]+)/gi,/^\s*source\s+["']([^"']+)["']/gi];
   const symbolPatterns=[/\b(?:static\s+|inline\s+|constexpr\s+|async\s+)?(?:[A-Za-z_][\w:<>,*&\s]+\s+)?([A-Za-z_]\w*)\s*\([^;{}]*\)\s*(?:const\s*)?\{/g,/\bfunction\s+([A-Za-z_]\w*)\s*\(/g,/^\s*(?:async\s+)?def\s+([A-Za-z_]\w*)\s*\(/g,/\bclass\s+([A-Za-z_]\w*)\b/g];
+  const moduleTrigger=/(?:import|export|require|from|add_subdirectory|include|source)/i;
+  const classTrigger=/\bclass\s+[A-Za-z_]/;
   for(const line of changed){
-    let m;if((m=line.match(/^\s*#\s*include\s*[<"]([^>"]+)[>"]/)))add(includes,m[1]);
-    for(const re of modulesPatterns){re.lastIndex=0;while((m=re.exec(line)))add(modules,m[1]);}
-    for(const re of symbolPatterns){re.lastIndex=0;while((m=re.exec(line)))add(symbols,m[1]);}
-    for(const m2 of line.matchAll(/\bCONFIG_[A-Z0-9_]+\b/g))add(configs,m2[0]);
-    for(const m2 of line.matchAll(/&([A-Za-z_][\w-]*)/g))add(labels,m2[1]);
+    let m;
+    if(line.includes('include')&&(m=line.match(/^\s*#\s*include\s*[<"]([^>"]+)[>"]/)))add(includes,m[1]);
+    if(moduleTrigger.test(line))for(const re of modulesPatterns){re.lastIndex=0;while((m=re.exec(line)))add(modules,m[1]);}
+    if(line.includes('(')||classTrigger.test(line))for(const re of symbolPatterns){re.lastIndex=0;while((m=re.exec(line)))add(symbols,m[1]);}
+    if(line.includes('CONFIG_'))for(const m2 of line.matchAll(/\bCONFIG_[A-Z0-9_]+\b/g))add(configs,m2[0]);
+    if(line.includes('&'))for(const m2 of line.matchAll(/&([A-Za-z_][\w-]*)/g))add(labels,m2[1]);
   }
   return freeze({paths:[...new Set(paths)],includes:[...includes],modules:[...modules],symbols:[...symbols],configs:[...configs],labels:[...labels],changedStems:[...new Set(paths.map(stem).filter(Boolean))]});
 }
