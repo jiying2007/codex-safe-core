@@ -196,3 +196,15 @@ test('executable release admission waits for both exact-SHA successful workflows
  const failed=await run({ci:[{...pass('ci.yml',12),conclusion:'failure'},pass('ci.yml',10)]});
  assert.equal(failed.value.ready,false,'latest failing CI cannot be replaced with an older green run');
 });
+
+test('Family bot credential must be preflighted before any immutable Core tag can be created',()=>{
+ const workflow=fs.readFileSync(path.join(root,'.github','workflows','_trusted-release.yml'),'utf8');
+ const preflight=workflow.indexOf('Require Family Upgrade dispatch credential before immutable publication');
+ const tag=workflow.indexOf('      - name: Ensure release tag');
+ assert.ok(preflight>=0&&tag>preflight,'preflight must precede tag writes');
+ const fragment=workflow.slice(preflight,tag);
+ assert.match(fragment,/steps\.decision\.outputs\.publish == 'true'/);
+ assert.match(fragment,/secrets\.FAMILY_BOT_TOKEN/);
+ assert.match(fragment,/test -n "\$FAMILY_BOT_TOKEN"/);
+ assert.doesNotMatch(fragment,/echo\s+["']?\$FAMILY_BOT_TOKEN/);
+});
