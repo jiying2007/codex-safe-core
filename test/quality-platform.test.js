@@ -37,3 +37,14 @@ test('impact extraction reuses regexes without carrying state between changed li
  assert.ok(graph.nodes.length>0);
  assert.ok(graph.edges.every(edge=>edge.from==='src/main.js'));
 });
+
+test('impact prefilters retain class, mixed-case module, config and symbol references',()=>{
+  const diff=['diff --git a/src/driver.cpp b/src/driver.cpp','--- a/src/driver.cpp','+++ b/src/driver.cpp',
+    '@@ -1 +1,6 @@','-old','+class MotorDriver {','+void enable() {}','+INCLUDE(vendor/motor)','+#if CONFIG_DRIVE_POWER','+&motor_node','+'+'y'.repeat(8192)].join('\n');
+  const signals=extractImpactSignals(diff);
+  assert.ok(signals.symbols.includes('MotorDriver'));
+  assert.ok(signals.symbols.includes('enable'));
+  assert.ok(signals.modules.some(s=>s.toLowerCase()==='vendor/motor'));
+  assert.ok(signals.configs.includes('CONFIG_DRIVE_POWER'));
+  assert.ok(signals.labels.includes('motor_node'));
+});
