@@ -22,7 +22,7 @@ test('validation workflow is read-only and covers both LTS runtimes plus reprodu
 });
 
 test('trusted publication is workflow_run gated to successful main validation',()=>{
-  assert.match(trusted,/workflow_run:[\s\S]*workflows: \["Release Validation"\][\s\S]*types: \[completed\]/);
+  assert.match(trusted,/workflow_run:[\s\S]*workflows: \["CI", "Release Validation"\][\s\S]*types: \[completed\]/);
   assert.match(trusted,/workflow_run\.conclusion == 'success'/);
   assert.match(trusted,/workflow_run\.head_branch == 'main'/);
   assert.match(trusted,/workflow_run\.event == 'push'/);
@@ -141,4 +141,16 @@ test('trusted release requires full main CI security proof and version race prot
  assert.match(workflow,/Missing successful exact-SHA main CI/);
  assert.match(workflow,/main moved during trusted release/);
  assert.match(workflow,/runtimeDigest!==current\.runtimeDigest/);
+});
+
+test('trusted publication converges regardless of CI versus validation completion order',()=>{
+ const workflow=fs.readFileSync(path.join(root,'.github','workflows','_trusted-release.yml'),'utf8');
+ assert.match(workflow,/workflows: \["CI", "Release Validation"\]/);
+ assert.match(workflow,/name: Require successful same-SHA CI and Release Validation/);
+ assert.match(workflow,/latest\('ci\.yml'\)/);
+ assert.match(workflow,/latest\('release\.yml'\)/);
+ assert.match(workflow,/ready=\(ready\?'true':'false'\)/);
+ assert.match(workflow,/needs: admission/);
+ assert.match(workflow,/needs\.admission\.outputs\.ready == 'true'/);
+ assert.match(workflow,/latest exact-SHA main CI|Missing successful exact-SHA main CI/);
 });
