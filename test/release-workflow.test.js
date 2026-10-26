@@ -149,7 +149,7 @@ test('trusted publication converges regardless of CI versus validation completio
  assert.match(workflow,/name: Require successful same-SHA CI and Release Validation/);
  assert.match(workflow,/latest\('ci\.yml'\)/);
  assert.match(workflow,/latest\('release\.yml'\)/);
- assert.match(workflow,/ready=\(ready\?'true':'false'\)/);
+ assert.ok(workflow.includes("ready='+(ready?'true':'false')"),'admission must expose true only when both workflows succeeded');
  assert.match(workflow,/needs: admission/);
  assert.match(workflow,/needs\.admission\.outputs\.ready == 'true'/);
  assert.match(workflow,/latest exact-SHA main CI|Missing successful exact-SHA main CI/);
