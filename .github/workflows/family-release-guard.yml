@@ -48,7 +48,7 @@ jobs:
           node src/codex-safe-core/scripts/family-diagnostics.js > FAMILY_DIAGNOSTICS.json
           node -e "const d=require('./FAMILY_DIAGNOSTICS.json'); if(d.coreSha!==process.env.EXPECTED_CORE_SHA) throw new Error('diagnostics/core pin drift');"
 
-private-governance:
+  private-governance:
     needs: guard
     runs-on: ubuntu-24.04
     permissions:
@@ -60,36 +60,48 @@ private-governance:
       - name: Admit only an immutable released Core commit without private credentials
         env:
           EXPECTED_CORE_SHA: ${{ inputs.expected_core_sha }}
+          PUBLIC_GITHUB_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
           node - <<'NODE'
           const expected=String(process.env.EXPECTED_CORE_SHA||'');
           if(!/^[0-9a-f]{40}$/.test(expected))throw Error('Expected Core commit must be an exact SHA.');
-          const repo='jiying2007/codex-safe-core';
+          const repo='jiying2007/codex-safe-core',publicToken=String(process.env.PUBLIC_GITHUB_TOKEN||'');
           async function json(endpoint){
-            const response=await fetch(`https://api.github.com/repos/${repo}/${endpoint}`,{
-              headers:{accept:'application/vnd.github+json','user-agent':'codex-safe-immutable-core-admission'},
-              redirect:'error',signal:AbortSignal.timeout(15000)
-            });
-            if(!response.ok)throw Error(`Public immutable Core evidence unavailable (HTTP ${response.status}).`);
+            const url='https://api.github.com/repos/'+repo+'/'+endpoint;
+            const headers={accept:'application/vnd.github+json','user-agent':'codex-safe-immutable-core-admission'};
+            if(publicToken)headers.authorization='Bearer '+publicToken;
+            const options={headers,redirect:'error',signal:AbortSignal.timeout(15000)};
+            let response=await fetch(url,options);
+            // The calling repository token may be scoped away from a public sibling.
+            if(publicToken&&(response.status===403||response.status===404)){
+              delete headers.authorization;
+              response=await fetch(url,{...options,headers});
+            }
+            if(!response.ok)throw Error('Public immutable Core evidence unavailable (HTTP '+response.status+').');
             return response.json();
           }
-          (async()=>{
-            const releases=await json('releases?per_page=100');
-            if(!Array.isArray(releases))throw Error('Immutable Core release listing is invalid.');
-            for(const release of releases){
-              if(release.immutable!==true||release.draft||release.prerelease||!/^v[0-9]+\.[0-9]+\.[0-9]+$/.test(release.tag_name||''))continue;
-              const ref=await json(`git/ref/tags/${encodeURIComponent(release.tag_name)}`);
-              let object=ref.object;
-              if(object?.type==='tag')object=(await json(`git/tags/${object.sha}`)).object;
-              if(object?.type==='commit'&&object.sha===expected){
-                process.stdout.write(`Trusted immutable Core release ${release.tag_name} resolves to exact ${expected}\n`);
-                return;
-              }
-            }
-            throw Error('Target Core SHA is not admitted by any immutable final release; private read token will not be exposed.');
-          })().catch(error=>{console.error(error.message);process.exitCode=1;});
+          async function admit(){
+            const entry=await json('contents/core-contract.json?ref='+expected);
+            if(entry?.type!=='file'||entry.encoding!=='base64'||!Number.isSafeInteger(entry.size)||entry.size<1||entry.size>131072)
+              throw Error('Core contract is not a bounded GitHub blob at the requested commit.');
+            const encoded=String(entry.content||'').replace(/\s+/g,'');
+            if(!/^[A-Za-z0-9+/]+={0,2}$/.test(encoded))throw Error('Invalid Core contract encoding.');
+            const contents=Buffer.from(encoded,'base64');
+            if(contents.length!==entry.size||contents.toString('base64')!==encoded)throw Error('Core contract data was truncated or substituted.');
+            const version=JSON.parse(contents.toString('utf8')).coreVersion;
+            if(!/^[0-9]+\.[0-9]+\.[0-9]+$/.test(String(version||'')))throw Error('Core release version is invalid.');
+            const tag='v'+version,release=await json('releases/tags/'+encodeURIComponent(tag));
+            if(release.tag_name!==tag||release.immutable!==true||release.draft||release.prerelease)
+              throw Error('Target Core release is not an immutable final release.');
+            let object=(await json('git/ref/tags/'+encodeURIComponent(tag))).object;
+            for(let i=0;i<4&&object?.type==='tag';i++)object=(await json('git/tags/'+object.sha)).object;
+            if(object?.type!=='commit'||object.sha!==expected)
+              throw Error('Immutable Core release does not point to the requested exact SHA.');
+            process.stdout.write('Admitted immutable Core '+tag+' SHA '+expected+' for private governance.\n');
+          }
+          admit().catch(error=>{console.error(error.message);process.exitCode=1;});
           NODE
       - name: Checkout only immutable trusted Core source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
