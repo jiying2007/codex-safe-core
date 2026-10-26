@@ -59,7 +59,7 @@ test('C-quoted deleted and binary-only Git diff paths remain identifiable',()=>{
 });
 
 test('byte allocations never exceed limits even with thousands of tiny source chunks',()=>{
- const blocks=Array.from({length:800},(_,index)=>({path:'src/f'+index+'.c',text:'diff --git a/src/f'+index+'.c b/src/f'+index+'.c\n-old\n+new'}));
+ const blocks=Array.from({length:800},(_,index)=>({path:'src/f'+index+'.c',text:'diff --git a/src/f'+index+'.c b/src/f'+index+'.c\n-old\n+new'+('x'.repeat(200))}));
  for(const maxBytes of [1,2,16,63,64,65,128,4096,65536]){
   const value=core.allocateSourceBlocks(blocks,maxBytes);
   assert.ok(Buffer.byteLength(value.text,'utf8')<=maxBytes,'maxBytes='+maxBytes);
