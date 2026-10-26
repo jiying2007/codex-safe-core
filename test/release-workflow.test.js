@@ -154,3 +154,45 @@ test('trusted publication converges regardless of CI versus validation completio
  assert.match(workflow,/needs\.admission\.outputs\.ready == 'true'/);
  assert.match(workflow,/latest exact-SHA main CI|Missing successful exact-SHA main CI/);
 });
+
+test('executable release admission waits for both exact-SHA successful workflows',{timeout:6000},async()=>{
+ const vm=require('node:vm');
+ const source=fs.readFileSync(path.join(root,'.github','workflows','_trusted-release.yml'),'utf8');
+ const title='name: Require successful same-SHA CI and Release Validation';
+ const section=source.slice(source.indexOf(title));
+ assert.ok(section.startsWith(title));
+ const match=section.match(/          node - <<'NODE'\n([\s\S]*?)          NODE/);
+ assert.ok(match,'release admission must use a testable, bounded script');
+ const script=match[1].split('\n').map(line=>line.startsWith('          ')?line.slice(10):line).join('\n');
+ const sha='a'.repeat(40);
+ const pass=(workflow,id)=>({id,head_sha:sha,head_branch:'main',event:workflow==='ci.yml'?'push':'workflow_dispatch',status:'completed',conclusion:'success'});
+ async function run({ci=[pass('ci.yml',10)],validation=[pass('release.yml',11)]}={}){
+  const lines=[];
+  return new Promise((resolve,reject)=>{
+   const timeout=setTimeout(()=>reject(Error('Release admission timed out in fixture')),2000);
+   const finish=(ok,value)=>{clearTimeout(timeout);resolve({ok,value,lines});};
+   const context={
+    require:name=>{assert.equal(name,'node:fs');return{appendFileSync:(file,value)=>{assert.equal(file,'fixture-output');lines.push(value);}};},
+    process:{env:{EXPECTED_SHA:sha,GITHUB_REPOSITORY:'jiying2007/codex-safe-core',API_TOKEN:'synthetic-public',GITHUB_OUTPUT:'fixture-output'},exitCode:0},
+    AbortSignal,
+    console:{log:value=>finish(true,JSON.parse(value)),error:error=>finish(false,String(error))},
+    fetch:async(url,options)=>{
+     assert.equal(options.headers.authorization,'Bearer synthetic-public');
+     const value=String(url).includes('/ci.yml/')?ci:validation;
+     return{ok:true,status:200,json:async()=>({workflow_runs:value})};
+    }
+   };
+   try{vm.runInNewContext(script,context,{timeout:1000});}catch(error){clearTimeout(timeout);reject(error);}
+  });
+ }
+ const both=await run();
+ assert.equal(both.ok,true);
+ assert.equal(both.value.ready,true);
+ assert.deepEqual(both.lines,['ready=true\n']);
+ const pending=await run({validation:[{...pass('release.yml',11),status:'in_progress',conclusion:null}]});
+ assert.equal(pending.ok,true);
+ assert.equal(pending.value.ready,false);
+ assert.deepEqual(pending.lines,['ready=false\n']);
+ const failed=await run({ci:[{...pass('ci.yml',12),conclusion:'failure'},pass('ci.yml',10)]});
+ assert.equal(failed.value.ready,false,'latest failing CI cannot be replaced with an older green run');
+});
