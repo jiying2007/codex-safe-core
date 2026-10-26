@@ -50,3 +50,24 @@ test('private release assets use their API URL and drop authentication at CDN re
   try{assert.deepEqual(await downloadJson(asset.apiUrl,'synthetic-read-token'),{ok:true});assert.equal(seen[0].headers.authorization,'Bearer synthetic-read-token');assert.equal(seen[1].headers.authorization,undefined);assert.equal(seen[2].headers.authorization,undefined);}
   finally{global.fetch=original;}
 });
+
+test('private Family credential is isolated from PR code and bound to immutable Core admission',()=>{
+  const fs=require('node:fs'),path=require('node:path');
+  const yaml=fs.readFileSync(path.join(__dirname,'..','.github','workflows','family-release-guard.yml'),'utf8');
+  const parts=yaml.split('\n  private-governance:\n');
+  assert.equal(parts.length,2,'trusted remote audit must run in a separate reusable workflow job');
+  const [candidateJob,privateJob]=parts;
+  assert.match(candidateJob,/^jobs:\n  guard:/m);
+  assert.doesNotMatch(candidateJob,/secrets\.CODEX_SAFE_FAMILY_READ_TOKEN/,'candidate-controlled PR code must not receive the private token');
+  assert.match(privateJob,/needs: guard/);
+  assert.match(privateJob,/contents\/core-contract\.json\?ref/);
+  assert.match(privateJob,/releases\/tags\//);
+  assert.match(privateJob,/immutable!==true/);
+  assert.match(privateJob,/object\.sha!==expected/);
+  assert.match(privateJob,/repository: jiying2007\/codex-safe-core/);
+  const use=privateJob.indexOf('Verify actual family Rulesets with scoped private read identity');
+  assert.ok(use>0);
+  assert.doesNotMatch(privateJob.slice(0,use),/secrets\.CODEX_SAFE_FAMILY_READ_TOKEN/,'Core identity must be verified before the private token is exposed');
+  assert.match(privateJob.slice(use),/secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \|\| github\.token/);
+  assert.doesNotMatch(privateJob,/persist-credentials: true/);
+});
