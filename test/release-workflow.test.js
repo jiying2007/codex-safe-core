@@ -25,9 +25,9 @@ test('release validation requires a private Family read identity before server g
   const preflight=release.indexOf('Require scoped private Family read credential');
   const ruleset=release.indexOf('Verify server-side Family Rulesets');
   assert.ok(preflight>0&&ruleset>preflight);
-  assert.match(release,/FAMILY_READ_TOKEN: \\$\\{\\{ secrets\\.CODEX_SAFE_FAMILY_READ_TOKEN \\}\\}/);
+  assert.ok(release.includes('FAMILY_READ_TOKEN: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN }}'));
   assert.match(release,/Missing CODEX_SAFE_FAMILY_READ_TOKEN for private Family governance/);
-  assert.doesNotMatch(release,/secrets\\.CODEX_SAFE_FAMILY_READ_TOKEN \\|\\| github\\.token/);
+  assert.ok(!release.includes('secrets.CODEX_SAFE_FAMILY_READ_TOKEN || github.token'));
 });
 
 test('trusted publication is workflow_run gated to successful main validation',()=>{
