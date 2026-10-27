@@ -23,12 +23,23 @@ test('validation workflow is read-only and covers both LTS runtimes plus reprodu
 
 test('trusted publication is workflow_run gated to successful main validation',()=>{
   assert.match(trusted,/workflow_run:[\s\S]*workflows: \["CI", "Release Validation"\][\s\S]*types: \[completed\]/);
-  assert.match(trusted,/workflow_run\.conclusion == 'success'/);
+  assert.doesNotMatch(trusted,/workflow_run\.conclusion == 'success'/);
+  assert.match(trusted,/admission:\s*\n\s*if: .*workflow_run\.head_branch == 'main'/);
   assert.match(trusted,/workflow_run\.head_branch == 'main'/);
   assert.match(trusted,/workflow_run\.event == 'push'/);
   assert.match(trusted,/workflow_run\.head_sha/);
   assert.match(trusted,/remote_main=.*git ls-remote origin refs\/heads\/main/);
   assert.match(trusted,/test "\$remote_main" = "\$validated_sha"/);
+});
+
+test('failed main workflow completion reaches admission rather than bypassing the failure verdict',()=>{
+ const flow=trusted.match(/  admission:\\n    if: ([^\\n]+)/);
+ assert.ok(flow);
+ assert.doesNotMatch(flow[1],/conclusion/);
+ assert.match(flow[1],/head_branch == 'main'/);
+ assert.match(flow[1],/workflow_run\.event == 'push'/);
+ assert.match(trusted,/if\(denied\.length\)throw Error\('Trusted Release blocked:/);
+ assert.match(trusted,/publish:\\n    needs: admission\\n    if: .*ready == 'true'/);
 });
 
 test('trusted release no-ops only for an unchanged version with an existing immutable release on an older SHA',()=>{
