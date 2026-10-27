@@ -179,13 +179,13 @@ test('executable release admission waits for both exact-SHA successful workflows
  const sha='a'.repeat(40);
  const pass=(workflow,id)=>({id,head_sha:sha,head_branch:'main',event:workflow==='ci.yml'?'push':'workflow_dispatch',status:'completed',conclusion:'success'});
  async function run({ci=[pass('ci.yml',10)],validation=[pass('release.yml',11)]}={}){
-  const lines=[];
+  const lines=[],summaries=[];
   return new Promise((resolve,reject)=>{
    const timeout=setTimeout(()=>reject(Error('Release admission timed out in fixture')),2000);
-   const finish=(ok,value)=>{clearTimeout(timeout);resolve({ok,value,lines});};
+   const finish=(ok,value)=>{clearTimeout(timeout);resolve({ok,value,lines,summaries});};
    const context={
-    require:name=>{assert.equal(name,'node:fs');return{appendFileSync:(file,value)=>{assert.equal(file,'fixture-output');lines.push(value);}};},
-    process:{env:{EXPECTED_SHA:sha,GITHUB_REPOSITORY:'jiying2007/codex-safe-core',API_TOKEN:'synthetic-public',GITHUB_OUTPUT:'fixture-output'},exitCode:0},
+    require:name=>{assert.equal(name,'node:fs');return{appendFileSync:(file,value)=>{if(file==='fixture-output')lines.push(value);else if(file==='fixture-summary')summaries.push(value);else assert.fail('Unknown admission output');}};},
+    process:{env:{EXPECTED_SHA:sha,GITHUB_REPOSITORY:'jiying2007/codex-safe-core',API_TOKEN:'synthetic-public',GITHUB_OUTPUT:'fixture-output',GITHUB_STEP_SUMMARY:'fixture-summary'},exitCode:0},
     AbortSignal,
     console:{log:value=>finish(true,JSON.parse(value)),error:error=>finish(false,String(error))},
     fetch:async(url,options)=>{
@@ -201,13 +201,16 @@ test('executable release admission waits for both exact-SHA successful workflows
  assert.equal(both.ok,true);
  assert.equal(both.value.ready,true);
  assert.deepEqual(both.lines,['ready=true\n']);
+ assert.match(both.summaries.join(''),/Trusted Release admission: ADMITTED/);
  const pending=await run({validation:[{...pass('release.yml',11),status:'in_progress',conclusion:null}]});
  assert.equal(pending.ok,true);
  assert.equal(pending.value.ready,false);
  assert.deepEqual(pending.lines,['ready=false\n']);
+ assert.match(pending.summaries.join(''),/Trusted Release admission: DEFERRED/);
  const failed=await run({ci:[{...pass('ci.yml',12),conclusion:'failure'},pass('ci.yml',10)]});
  assert.equal(failed.ok,false);
  assert.match(failed.value,/Trusted Release blocked: CI=failure/);
+ assert.match(failed.summaries.join(''),/Trusted Release admission: BLOCKED/);
  const badValidation=await run({validation:[{...pass('release.yml',11),conclusion:'failure'}]});
  assert.equal(badValidation.ok,false);
  assert.match(badValidation.value,/Release Validation=failure/);
