@@ -229,9 +229,11 @@ function createCodexCli({ runPreparedProcess, tempPrefix = 'codex-safe-', capabi
     const credential = resolveProviderCredential(runtime, { env: baseEnvironment });
     const normalizedRuntime = credential.runtime;
     const environment = credential.environment;
-    const effectiveTimeoutMs = timeoutMs === undefined
-      ? normalizedRuntime.timeouts.requestMs
-      : Math.min(Math.max(0, Math.floor(timeoutMs)), normalizedRuntime.timeouts.requestMs);
+    const requestedTimeoutMs = timeoutMs === undefined ? normalizedRuntime.timeouts.requestMs : Number(timeoutMs);
+    if (!Number.isFinite(requestedTimeoutMs) || requestedTimeoutMs < 1) {
+      throw createError('ECODEXTIMEOUT', 'Codex structured requests require a positive bounded timeout.');
+    }
+    const effectiveTimeoutMs = Math.min(Math.floor(requestedTimeoutMs), normalizedRuntime.timeouts.requestMs);
     const requestEstimate = Number(maxEstimatedTokens) > 0
       ? assertWithinTokenBudget(input, {
         maxTokens: Number(maxEstimatedTokens),

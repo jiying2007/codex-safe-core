@@ -15,3 +15,56 @@ test('review evidence chunker preserves every included hunk or fails closed',()=
 test('policy v4 is canonical, closed and deeply immutable',()=>{assert.equal(core.POLICY_FILE,'.codex-safe.json');assert.equal(core.POLICY_SCHEMA_VERSION,4);const document=core.validatePolicyDocument({schemaVersion:4,commit:{language:'en',scopes:['core'],scopeHints:{core:['runtime']},extraInstructions:'concise'},review:{confidenceThreshold:0.8,severityThreshold:'medium',rules:{requireTestsForCodeChanges:true,codePathPrefixes:['src/'],testPathPrefixes:['test/'],forbiddenPathPrefixes:['secrets/']}},change:{requiredChecks:['build'],requiredApprovals:2,provenancePolicy:'require-all',blockOnReviewFindings:true,requireCleanWorktree:true,requirePushedHead:true,requireFreshTarget:true,reviewers:['alice'],labels:['safe'],titlePolicy:'create-only',managedSections:true},reviewService:{maxContextBytes:65536,maxContextFiles:8,contextLines:20,skipGeneratedFiles:true,blockUnreviewableFiles:false}});assert.equal(document.schemaVersion,4);assert.ok(Object.isFrozen(document));assert.ok(Object.isFrozen(document.change));assert.deepEqual(document.change.requiredChecks,['build']);assert.throws(()=>{document.change.requiredChecks.push('other');},TypeError);assert.throws(()=>core.validatePolicyDocument({schemaVersion:3}),/schemaVersion/);assert.throws(()=>core.validatePolicyDocument({schemaVersion:4,legacy:{}}),/unsupported top-level/);assert.throws(()=>core.validatePolicyDocument({schemaVersion:4,pr:{}}),/unsupported top-level/);assert.throws(()=>core.validatePolicySection('pr',{}),/Unknown policy section/);assert.throws(()=>core.validatePolicySection('commit',{unknown:true}),/unsupported fields/);assert.throws(()=>core.validatePolicySection('review',{confidenceThreshold:1.1}),/between 0 and 1/);assert.throws(()=>core.validatePolicySection('change',{unknown:true}),/unsupported fields/);assert.throws(()=>core.validatePolicySection('change',{requiredApprovals:21}),/between 0 and 20/);assert.throws(()=>core.validatePolicySection('change',{requirePushedHead:'false'}),/boolean/);assert.throws(()=>core.validatePolicySection('change',{requiredChecks:['build','build']}),/duplicate/);assert.throws(()=>core.validatePolicySection('change',{provenancePolicy:'legacy'}),/invalid/);assert.throws(()=>core.validatePolicySection('reviewService',{contextLines:201}),/between 0 and 200/);});
 test('JSON Schema keys and critical limits stay aligned with runtime policy',()=>{const schema=JSON.parse(fs.readFileSync(path.join(__dirname,'..','codex-safe.schema.json'),'utf8'));assert.equal(schema.properties.schemaVersion.const,4);for(const section of core.POLICY_SECTIONS){assert.deepEqual(Object.keys(schema.properties[section].properties).sort(),[...core.POLICY_SECTION_KEYS[section]].sort(),`${section} schema keys drifted from runtime`);assert.equal(schema.properties[section].additionalProperties,false);}assert.deepEqual(Object.keys(schema.properties.review.properties.rules.properties).sort(),[...core.REVIEW_RULE_KEYS].sort());assert.equal(schema.properties.change.properties.requiredApprovals.maximum,20);assert.equal(schema.properties.change.properties.provenancePolicy.enum.includes('require-all'),true);assert.equal(schema.properties.pr,undefined);});
 test('HEAD policy reader ignores working tree by consuming Git objects only',async()=>{const text=JSON.stringify({schemaVersion:4,change:{requiredChecks:['build']},review:{confidenceThreshold:0.8}}),oid='a'.repeat(40),calls=[];const git=async args=>{calls.push(args);if(args[0]==='ls-tree')return{stdout:`100644 blob ${'b'.repeat(40)}\t.codex-safe.json\0`,stderr:''};if(args[0]==='show')return{stdout:text,stderr:''};throw new Error(`unexpected git call: ${args.join(' ')}`);};const result=await core.readPolicySectionAtHead({git,repoRoot:'/repo',headOid:oid,section:'change'});assert.deepEqual(result.rules,{requiredChecks:['build']});assert.ok(Object.isFrozen(result));assert.ok(Object.isFrozen(result.rules));assert.equal(result.fingerprint,crypto.createHash('sha256').update(text,'utf8').digest('hex'));assert.equal(result.schemaVersion,4);assert.deepEqual(calls[0],['ls-tree','-z',oid,'--','.codex-safe.json']);assert.deepEqual(calls[1],['show',`${oid}:.codex-safe.json`]);});
+
+test('many files cannot exceed the declared exact UTF-8 semantic context budget',()=>{
+ const files=Array.from({length:100},(_,i)=>`src/文件${i}.c`);
+ const diff=files.map(file=>`diff --git a/${file} b/${file}\n--- a/${file}\n+++ b/${file}\n@@ -1 +1 @@\n-old\n+new\n`).join('');
+ const result=core.buildSemanticContext({files,diff,maxBytes:4096});
+ assert.ok(Buffer.byteLength(result.text,'utf8')<=result.budgetBytes);
+ assert.equal(result.truncated,true);
+ assert.ok(result.truncatedSourceFiles.length>0);
+ assert.ok(result.includedSourceFiles.length>0,'retain representable source files rather than globally truncating the diff');
+ assert.ok(result.includedSourceFiles.length<files.length,'any source that cannot be represented must be reported as omitted');
+ for(const path of files.filter(file=>!result.includedSourceFiles.includes(file)))assert.ok(result.truncatedSourceFiles.includes(path));
+});
+test('review chunk accounting includes separators between individual hunks',()=>{
+ const a='diff --git a/a.c b/a.c\n--- a/a.c\n+++ b/a.c\n@@ -1 +1 @@\n-a\n+A\n';
+ const b='diff --git a/b.c b/b.c\n--- a/b.c\n+++ b/b.c\n@@ -1 +1 @@\n-b\n+B\n';
+ const chunks=core.buildReviewEvidenceChunks({diff:a+b,maxBytes:4096,maxChunks:8});
+ for(const chunk of chunks.chunks)assert.equal(Buffer.byteLength(chunk.text,'utf8'),chunk.bytes);
+});
+
+test('Git C-quoted Chinese paths decode without losing real b/ directories',()=>{
+ const escaped=Array.from(Buffer.from('测试.c','utf8'),byte=>'\\'+byte.toString(8).padStart(3,'0')).join('');
+ const quoted=['diff --git "a/'+escaped+'" "b/'+escaped+'"',
+               '--- "a/'+escaped+'"','+++ "b/'+escaped+'"','@@ -1 +1 @@','-old','+new'].join('\n');
+ const decoded=core.splitUnifiedDiff(quoted);
+ assert.deepEqual(decoded.map(block=>block.path),['测试.c']);
+ const plain=['diff --git a/b/main.c b/b/main.c','--- a/b/main.c','+++ b/b/main.c','@@ -1 +1 @@','-old','+new'].join('\n');
+ assert.deepEqual(core.splitUnifiedDiff(plain).map(block=>block.path),['b/main.c']);
+});
+
+test('C-quoted deleted and binary-only Git diff paths remain identifiable',()=>{
+  const encoded=Array.from(Buffer.from('驱动.c'),x=>'\\'+x.toString(8).padStart(3,'0')).join('');
+  const binary=['diff --git "a/'+encoded+'" "b/'+encoded+'"',
+    'Binary files "a/'+encoded+'" and "b/'+encoded+'" differ'].join('\n');
+  const removed=['diff --git "a/'+encoded+'" "b/'+encoded+'"',
+    'deleted file mode 100644',
+    '--- "a/'+encoded+'"',
+    '+++ /dev/null',
+    '@@ -1 +0,0 @@',
+    '-old'].join('\n');
+  assert.deepEqual(core.splitUnifiedDiff(binary).map(v=>v.path),['驱动.c']);
+  assert.deepEqual(core.splitUnifiedDiff(removed).map(v=>v.path),['驱动.c']);
+});
+
+test('byte allocations never exceed limits even with thousands of tiny source chunks',()=>{
+ const blocks=Array.from({length:800},(_,index)=>({path:'src/f'+index+'.c',text:'diff --git a/src/f'+index+'.c b/src/f'+index+'.c\n-old\n+new'+('x'.repeat(200))}));
+ for(const maxBytes of [1,2,16,63,64,65,128,4096,65536]){
+  const value=core.allocateSourceBlocks(blocks,maxBytes);
+  assert.ok(Buffer.byteLength(value.text,'utf8')<=maxBytes,'maxBytes='+maxBytes);
+  assert.equal(value.truncated,true);
+  assert.ok(value.truncatedFiles.length);
+  for(const file of blocks.slice(value.included.length))assert.ok(value.truncatedFiles.includes(file.path));
+ }
+});

@@ -330,3 +330,9 @@ test('real process stdout preserves split UTF-8 and requires a successful termin
     }
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
+
+test('rejects nonpositive Codex execution timeouts before spawning',async()=>{
+ const fake=createRunner();const cli=createCodexCli({runPreparedProcess:fake.runPreparedProcess});
+ await assert.rejects(()=>cli.runStructuredCodex({schema:{type:'object'},input:'test',timeoutMs:0}),error=>error?.code==='ECODEXTIMEOUT');
+ assert.equal(fake.calls.length,0);
+});

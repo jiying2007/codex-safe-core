@@ -1,5 +1,15 @@
 # Changelog
 
+## 4.18.2
+
+- Bind runtime, configuration and authentication reads to a bounded single descriptor; enforce complete streaming UTF-8 and terminal JSONL evidence, and clean up the child process group after direct-child exit.
+- Authenticate private Family repository and release-asset reads, verify exact Git blobs, and remove credentials at cross-origin artifact redirects.
+- Enforce complete CodeQL SARIF findings at the canonical CI Gate while preserving reports after a failed analysis or upload.
+- Bind Family merge decisions to independent current-head approvals, server-side Rulesets, frozen PR identities and per-merge head checks; preserve confirmed transaction progress after failure.
+- Align exact Core repins with consumer release versions, complete Changelog headings and explicit Family read-secret mappings.
+- Keep Family Freshness remote evidence in its JSON stdout report and write only the local dispatch boolean to Actions outputs; use the bounded authenticated manifest asset reader.
+- Refresh the consumer guides and release-verification instructions without changing protocol schema versions.
+
 ## 4.18.1
 
 - Synchronize reusable Family guard inputs with exact Core pins during repin.

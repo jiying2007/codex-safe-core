@@ -25,6 +25,12 @@ If any active Family repository lacks a contract-compliant Ruleset, the release/
 
 The check covers all six active repositories as one Family control. A release from one product is therefore not allowed to proceed while another active Family repository has lost its server-side Ruleset baseline.
 
+### Family Freshness output boundary
+
+`node scripts/family-freshness.js` reports the full Family state and its reason as JSON on stdout. The internal `--github-output <path>` option additionally appends only the literal `dispatch=true` or `dispatch=false` line to the runner's output file; when the path is omitted, it uses `GITHUB_OUTPUT`. Remote evidence and explanatory text stay in the JSON report. The workflow reads only `dispatch` and shows the report in the evaluation step's log; `reason` and `decision` are not Actions outputs.
+
+Manifest assets use the same bounded GitHub asset reader as other release evidence, including authenticated API asset URLs, a 2 MiB size limit, a 30-second request budget, and removal of credentials at cross-origin redirects. An unreadable manifest fails the evaluation before it emits any scheduling output.
+
 ### Least-privilege observability boundary
 
 GitHub's repository REST API exposes merge-related settings such as `delete_branch_on_merge` only when the caller has both Contents read and write permission. Release Validation deliberately keeps `GITHUB_TOKEN` read-only, so that field can be absent even when the server setting is enabled.

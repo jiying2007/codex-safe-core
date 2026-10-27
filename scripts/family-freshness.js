@@ -4,7 +4,7 @@
 const fs=require('node:fs');
 const contract=require('../core-contract.json');
 const registry=require('../family-registry.json');
-const {CONSUMERS,CORE_REPO,OWNER,collectFamilyState,exactImmutableRelease,githubJson}=require('./family-release-state');
+const {CONSUMERS,CORE_REPO,OWNER,collectFamilyState,downloadJson,exactImmutableRelease,githubJson}=require('./family-release-state');
 
 function isSha(value){return /^[0-9a-f]{40}$/.test(String(value||''));}
 function isDigest(value){return /^[0-9a-f]{64}$/.test(String(value||''));}
@@ -48,10 +48,9 @@ async function latestFamilyManifest(core,{token=process.env.GITHUB_TOKEN}={}){
     .sort((a,b)=>Date.parse(b.published_at||b.updated_at||0)-Date.parse(a.published_at||a.updated_at||0));
   for(const release of candidates){
     const asset=(release.assets||[]).find(item=>item.name==='FAMILY_MANIFEST.json');
-    if(!asset?.browser_download_url)continue;
-    const response=await fetch(asset.browser_download_url,{headers:{'accept':'application/vnd.github+json','user-agent':'codex-safe-family-freshness',...(token?{'authorization':`Bearer ${token}`}:{})},redirect:'follow'});
-    if(!response.ok)continue;
-    const manifest=await response.json();
+    const assetUrl=asset?.url||asset?.browser_download_url;
+    if(!assetUrl)continue;
+    const manifest=await downloadJson(assetUrl,token);
     if(manifest.core?.sha===core.sha&&manifest.core?.runtimeDigest===core.digests?.runtimeDigest&&manifest.core?.governanceDigest===core.digests?.governanceDigest)return manifest;
   }
   return null;
@@ -69,8 +68,15 @@ async function collectState({token=process.env.GITHUB_TOKEN}={}){
   return {schemaVersion:Number(contract.familyStatusVersion),registryVersion:Number(registry.schemaVersion),core,consumers,manifestDigest:manifest?.manifestDigest||null,...decision};
 }
 async function main(){
-  const state=await collectState(),json=JSON.stringify(state),args=process.argv.slice(2),index=args.indexOf('--github-output');
-  if(index>=0){const target=args[index+1]||process.env.GITHUB_OUTPUT;if(!target)throw new Error('--github-output requires a path or GITHUB_OUTPUT.');fs.appendFileSync(target,`dispatch=${state.dispatch?'true':'false'}\nreason=${state.reason}\ndecision=${json}\n`);}else process.stdout.write(`${JSON.stringify(state,null,2)}\n`);
+  const state=await collectState(),json=JSON.stringify(state,null,2),args=process.argv.slice(2),index=args.indexOf('--github-output');
+  if(index>=0){
+    const target=args[index+1]||process.env.GITHUB_OUTPUT;
+    if(!target)throw new Error('--github-output requires a path or GITHUB_OUTPUT.');
+    // The runner only needs the local scheduling decision. Remote evidence and
+    // explanatory text belong in the JSON report, never its command file.
+    fs.appendFileSync(target,state.dispatch===true?'dispatch=true\n':'dispatch=false\n');
+  }
+  process.stdout.write(`${json}\n`);
 }
 if(require.main===module)main().catch(error=>{console.error(error.stack||error.message||String(error));process.exitCode=1;});
 module.exports={collectState,consumerHeadIsAligned,evaluateFreshness,familyValidationActive,latestFamilyManifest,manifestMatches,releaseIsExact};

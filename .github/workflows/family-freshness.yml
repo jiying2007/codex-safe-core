@@ -38,8 +38,3 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: gh workflow run family-ci.yml --repo "${GITHUB_REPOSITORY}" --ref main -f full_matrix=false
-      - name: Report current Family state
-        env:
-          DECISION: ${{ steps.evaluate.outputs.decision }}
-        shell: bash
-        run: printf '%s\n' "$DECISION"

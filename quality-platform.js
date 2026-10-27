@@ -33,12 +33,18 @@ function extractImpactSignals(diff=''){
   const changed=text.split(/\r?\n/).filter(line=>/^[+-](?![+-])/.test(line)).map(line=>line.slice(1));
   const includes=new Set(),modules=new Set(),symbols=new Set(),configs=new Set(),labels=new Set();
   const add=(set,value,max=128)=>{const v=String(value||'').trim().replace(/^["'<]+|[">';,)]+$/g,'');if(v&&set.size<max)set.add(v);};
+  // Compile global expressions once per impact graph, not once per changed line.
+  const modulesPatterns=[/\b(?:import|export)\s+(?:[^'"]+?\s+from\s+)?['"]([^'"]+)['"]/g,/\brequire\s*\(\s*['"]([^'"]+)['"]\s*\)/g,/^\s*from\s+([A-Za-z0-9_.]+)\s+import\b/g,/^\s*import\s+([A-Za-z0-9_.]+)/g,/\badd_subdirectory\s*\(\s*([^) \t]+)/gi,/\binclude\s*\(\s*([^) \t]+)/gi,/^\s*source\s+["']([^"']+)["']/gi];
+  const symbolPatterns=[/\b(?:static\s+|inline\s+|constexpr\s+|async\s+)?(?:[A-Za-z_][\w:<>,*&\s]+\s+)?([A-Za-z_]\w*)\s*\([^;{}]*\)\s*(?:const\s*)?\{/g,/\bfunction\s+([A-Za-z_]\w*)\s*\(/g,/^\s*(?:async\s+)?def\s+([A-Za-z_]\w*)\s*\(/g,/\bclass\s+([A-Za-z_]\w*)\b/g];
+  const moduleTrigger=/(?:import|export|require|from|add_subdirectory|include|source)/i;
+  const classTrigger=/\bclass\s+[A-Za-z_]/;
   for(const line of changed){
-    let m;if((m=line.match(/^\s*#\s*include\s*[<"]([^>"]+)[>"]/)))add(includes,m[1]);
-    for(const re of [/\b(?:import|export)\s+(?:[^'"]+?\s+from\s+)?['"]([^'"]+)['"]/g,/\brequire\s*\(\s*['"]([^'"]+)['"]\s*\)/g,/^\s*from\s+([A-Za-z0-9_.]+)\s+import\b/g,/^\s*import\s+([A-Za-z0-9_.]+)/g,/\badd_subdirectory\s*\(\s*([^) \t]+)/gi,/\binclude\s*\(\s*([^) \t]+)/gi,/^\s*source\s+["']([^"']+)["']/gi])while((m=re.exec(line)))add(modules,m[1]);
-    for(const re of [/\b(?:static\s+|inline\s+|constexpr\s+|async\s+)?(?:[A-Za-z_][\w:<>,*&\s]+\s+)?([A-Za-z_]\w*)\s*\([^;{}]*\)\s*(?:const\s*)?\{/g,/\bfunction\s+([A-Za-z_]\w*)\s*\(/g,/^\s*(?:async\s+)?def\s+([A-Za-z_]\w*)\s*\(/g,/\bclass\s+([A-Za-z_]\w*)\b/g])while((m=re.exec(line)))add(symbols,m[1]);
-    for(const m2 of line.matchAll(/\bCONFIG_[A-Z0-9_]+\b/g))add(configs,m2[0]);
-    for(const m2 of line.matchAll(/&([A-Za-z_][\w-]*)/g))add(labels,m2[1]);
+    let m;
+    if(line.includes('include')&&(m=line.match(/^\s*#\s*include\s*[<"]([^>"]+)[>"]/)))add(includes,m[1]);
+    if(moduleTrigger.test(line))for(const re of modulesPatterns){re.lastIndex=0;while((m=re.exec(line)))add(modules,m[1]);}
+    if(line.includes('(')||classTrigger.test(line))for(const re of symbolPatterns){re.lastIndex=0;while((m=re.exec(line)))add(symbols,m[1]);}
+    if(line.includes('CONFIG_'))for(const m2 of line.matchAll(/\bCONFIG_[A-Z0-9_]+\b/g))add(configs,m2[0]);
+    if(line.includes('&'))for(const m2 of line.matchAll(/&([A-Za-z_][\w-]*)/g))add(labels,m2[1]);
   }
   return freeze({paths:[...new Set(paths)],includes:[...includes],modules:[...modules],symbols:[...symbols],configs:[...configs],labels:[...labels],changedStems:[...new Set(paths.map(stem).filter(Boolean))]});
 }
@@ -59,7 +65,7 @@ function buildImpactEvidenceGraph({diff='',candidates=[],maxNodes=32,maxEdges=96
   const signals=extractImpactSignals(diff),limit=Math.max(0,Math.min(128,Math.floor(Number(maxNodes)||32))),edgeLimit=Math.max(0,Math.min(512,Math.floor(Number(maxEdges)||96))),byteBudget=Math.max(0,Math.floor(Number(maxBytes)||0));
   const ranked=(Array.isArray(candidates)?candidates:[]).map(candidate=>({...scoreImpactCandidate(candidate,signals),content:String(candidate?.content||'')})).filter(item=>item.path&&item.score>0).sort((a,b)=>b.score-a.score||a.path.localeCompare(b.path));
   const nodes=[],edges=[];let bytes=0,truncated=false;
-  for(const item of ranked){if(nodes.length>=limit){truncated=true;break;}const size=byteLength(item.content),remaining=Math.max(0,byteBudget-bytes);if(byteBudget&&remaining<=0){truncated=true;break;}let content=item.content;if(byteBudget&&size>remaining){const buffer=Buffer.from(item.content,'utf8');let end=remaining;while(end>0&&(buffer[end]&0xc0)===0x80)end--;content=buffer.subarray(0,end).toString('utf8');truncated=true;}nodes.push(freeze({path:item.path,score:item.score,reasons:item.reasons,content,bytes:byteLength(content)}));bytes+=byteLength(content);if(edges.length<edgeLimit){for(const changedPath of signals.paths){if(changedPath===item.path)continue;for(const reason of item.reasons){if(edges.length>=edgeLimit)break;edges.push(freeze({from:changedPath,to:item.path,type:reason}));}}}}
+  for(const item of ranked){if(nodes.length>=limit){truncated=true;break;}const size=byteLength(item.content),remaining=Math.max(0,byteBudget-bytes);if(byteBudget&&remaining<=0){truncated=true;break;}let content=item.content;if(byteBudget&&size>remaining){const buffer=Buffer.from(item.content,'utf8');let end=remaining;while(end>0&&(buffer[end]&0xc0)===0x80)end--;content=buffer.subarray(0,end).toString('utf8');truncated=true;}nodes.push(freeze({path:item.path,score:item.score,reasons:item.reasons,content,bytes:byteLength(content)}));bytes+=byteLength(content);if(edges.length<edgeLimit){for(const changedPath of signals.paths){if(edges.length>=edgeLimit)break;if(changedPath===item.path)continue;for(const reason of item.reasons){if(edges.length>=edgeLimit)break;edges.push(freeze({from:changedPath,to:item.path,type:reason}));}}}}
   const text=nodes.length?['--- IMPACT EVIDENCE GRAPH ---',`Signals: includes=${signals.includes.length}, modules=${signals.modules.length}, symbols=${signals.symbols.length}, configs=${signals.configs.length}, labels=${signals.labels.length}`,...nodes.map(node=>`### ${node.path} [score=${node.score}; ${node.reasons.join(', ')}]\n${node.content}`),'--- END IMPACT EVIDENCE GRAPH ---'].join('\n'):'';
   return freeze({signals,nodes,edges,bytes,text,truncated,complete:!truncated});
 }
