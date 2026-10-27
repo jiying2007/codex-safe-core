@@ -21,6 +21,15 @@ test('validation workflow is read-only and covers both LTS runtimes plus reprodu
   assert.doesNotMatch(release,/outputs:|needs:|contents: write|id-token: write|attestations: write|gh release create/);
 });
 
+test('release validation requires a private Family read identity before server governance',()=>{
+  const preflight=release.indexOf('Require scoped private Family read credential');
+  const ruleset=release.indexOf('Verify server-side Family Rulesets');
+  assert.ok(preflight>0&&ruleset>preflight);
+  assert.match(release,/FAMILY_READ_TOKEN: \\$\\{\\{ secrets\\.CODEX_SAFE_FAMILY_READ_TOKEN \\}\\}/);
+  assert.match(release,/Missing CODEX_SAFE_FAMILY_READ_TOKEN for private Family governance/);
+  assert.doesNotMatch(release,/secrets\\.CODEX_SAFE_FAMILY_READ_TOKEN \\|\\| github\\.token/);
+});
+
 test('trusted publication is workflow_run gated to successful main validation',()=>{
   assert.match(trusted,/workflow_run:[\s\S]*workflows: \["CI", "Release Validation"\][\s\S]*types: \[completed\]/);
   assert.doesNotMatch(trusted,/workflow_run\.conclusion == 'success'/);
