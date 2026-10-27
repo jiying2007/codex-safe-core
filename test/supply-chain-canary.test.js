@@ -135,7 +135,12 @@ test('security findings and private governance reads feed the existing CI Gate',
   const guard = fs.readFileSync(path.join(workflowDir, 'family-release-guard.yml'), 'utf8');
   assert.match(guard, /secrets:\s+CODEX_SAFE_FAMILY_READ_TOKEN:/);
   assert.doesNotMatch(guard, /GITHUB_TOKEN= GH_TOKEN=/);
-  for (const name of ['repository-governance.yml', 'release.yml', 'family-release-guard.yml']) {
+  for (const name of ['repository-governance.yml', 'family-release-guard.yml']) {
     assert.match(fs.readFileSync(path.join(workflowDir, name), 'utf8'), /secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \|\| github\.token/);
   }
+  const release=fs.readFileSync(path.join(workflowDir, 'release.yml'), 'utf8');
+  assert.ok(release.includes('GITHUB_TOKEN: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN }}'));
+  assert.ok(release.includes('Require scoped private Family read credential'));
+  assert.ok(!release.includes('secrets.CODEX_SAFE_FAMILY_READ_TOKEN || github.token'));
+
 });

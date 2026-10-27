@@ -52,7 +52,16 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: '22.22.2'
+      - name: Require scoped private Family read credential
+        env:
+          FAMILY_READ_TOKEN: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN }}
+        shell: bash
+        run: |
+          if [ -z "$FAMILY_READ_TOKEN" ]; then
+            echo 'Missing CODEX_SAFE_FAMILY_READ_TOKEN for private Family governance (see Core issue #85).' >&2
+            exit 2
+          fi
       - name: Verify server-side Family Rulesets
         env:
-          GITHUB_TOKEN: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN || github.token }}
+          GITHUB_TOKEN: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN }}
         run: npm run check:repository-governance
