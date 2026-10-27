@@ -33,13 +33,13 @@ test('trusted publication is workflow_run gated to successful main validation',(
 });
 
 test('failed main workflow completion reaches admission rather than bypassing the failure verdict',()=>{
- const flow=trusted.match(/  admission:\\n    if: ([^\\n]+)/);
+ const flow=trusted.match(/  admission:\n    if: ([^\n]+)/);
  assert.ok(flow);
  assert.doesNotMatch(flow[1],/conclusion/);
  assert.match(flow[1],/head_branch == 'main'/);
  assert.match(flow[1],/workflow_run\.event == 'push'/);
  assert.match(trusted,/if\(denied\.length\)throw Error\('Trusted Release blocked:/);
- assert.match(trusted,/publish:\\n    needs: admission\\n    if: .*ready == 'true'/);
+ assert.match(trusted,/publish:\n    needs: admission\n    if: .*ready == 'true'/);
 });
 
 test('trusted release no-ops only for an unchanged version with an existing immutable release on an older SHA',()=>{
