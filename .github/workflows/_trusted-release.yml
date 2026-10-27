@@ -65,6 +65,9 @@ jobs:
             const ready=ok(ci)&&ok(validation);
             fs.appendFileSync(process.env.GITHUB_OUTPUT,'ready='+(ready?'true':'false')+'\n');
             const denied=[['CI',ci],['Release Validation',validation]].filter(([,run])=>run?.status==='completed'&&run.conclusion!=='success');
+            const state=ready?'ADMITTED':denied.length?'BLOCKED':'DEFERRED';
+            const view=run=>run?.status==='completed'?String(run.conclusion||'unknown'):String(run?.status||'missing');
+            if(process.env.GITHUB_STEP_SUMMARY)fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,'Trusted Release admission: '+state+'; core='+sha+'; CI='+view(ci)+'; Release Validation='+view(validation)+'\n');
             if(denied.length)throw Error('Trusted Release blocked: '+denied.map(([name,run])=>name+'='+run.conclusion).join(', '));
             console.log(JSON.stringify({schemaVersion:1,sha,ci:{id:ci?.id||null,status:ci?.status||'missing',conclusion:ci?.conclusion||null},
               validation:{id:validation?.id||null,status:validation?.status||'missing',conclusion:validation?.conclusion||null},ready}));
