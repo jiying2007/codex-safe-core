@@ -194,7 +194,11 @@ test('executable release admission waits for both exact-SHA successful workflows
  assert.equal(pending.value.ready,false);
  assert.deepEqual(pending.lines,['ready=false\n']);
  const failed=await run({ci:[{...pass('ci.yml',12),conclusion:'failure'},pass('ci.yml',10)]});
- assert.equal(failed.value.ready,false,'latest failing CI cannot be replaced with an older green run');
+ assert.equal(failed.ok,false);
+ assert.match(failed.value,/Trusted Release blocked: CI=failure/);
+ const badValidation=await run({validation:[{...pass('release.yml',11),conclusion:'failure'}]});
+ assert.equal(badValidation.ok,false);
+ assert.match(badValidation.value,/Release Validation=failure/);
 });
 
 test('Family bot credential must be preflighted before any immutable Core tag can be created',()=>{
