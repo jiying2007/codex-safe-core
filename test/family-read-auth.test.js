@@ -121,7 +121,7 @@ test('private Core admission executes and rejects invalid immutable-release evid
 
 test('scheduled private Family readers fail before checkout when the scoped credential is absent',()=>{
   const fs=require('node:fs'),path=require('node:path');
-  const workflows=['family-freshness.yml','family-status.yml','repository-governance.yml'];
+  const workflows=['family-freshness.yml','family-status.yml','repository-governance.yml','family-ci.yml'];
   for(const name of workflows){
     const text=fs.readFileSync(path.join(__dirname,'..','.github','workflows',name),'utf8').replace(/\r\n/g,'\n');
     const prefix=text.split('      - uses: actions/checkout@')[0];
