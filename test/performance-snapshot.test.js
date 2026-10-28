@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const{median,percentile95,summarizeSamples,buildSnapshot}=require('../scripts/write-performance-snapshot');
+const{median,percentile95,summarizeSamples,withinBroadBudget,buildSnapshot}=require('../scripts/write-performance-snapshot');
 const{compareSnapshots,describeComparability}=require('../scripts/compare-performance-snapshot');
 const base={elapsedMs:100,rssGrowthBytes:1000,evidenceChunks:8,evidenceInputBytes:4194330,contextInputBytes:4194330,impactNodes:32,impactBytes:39340,estimatedTokens:497856,risk:2,plannedBytes:1046730};
 test('performance snapshots use a stable odd-sample median',()=>{assert.equal(median([180,120,150,140,160,130,170]),150);const samples=[90,100,110,95,105,120,80].map((elapsedMs,index)=>({...base,elapsedMs,rssGrowthBytes:1000+index*10}));const out=summarizeSamples(samples);assert.equal(out.elapsedMs,100);assert.equal(out.rssGrowthBytes,1030);assert.equal(out.elapsedP95Ms,120);assert.equal(out.rssP95Bytes,1060);});
@@ -84,4 +84,32 @@ test('corrupt or missing baseline metrics cannot silently pass the 10-percent ga
   assert.equal(compareSnapshots(current,{schemaVersion:0,metrics:good.metrics}).reason,'unsupported_schema');
   assert.equal(compareSnapshots(current,{schemaVersion:2,metrics:good.metrics}).reason,'legacy_single_sample_baseline');
   assert.equal(compareSnapshots({...current,schemaVersion:2},good).reason,'incompatible_schema');
+});
+
+test('failed performance budgets retain raw evidence while marking the snapshot unqualified',()=>{
+ const slow=Array.from({length:7},(_,i)=>({...base,elapsedMs:6000+i,rssGrowthBytes:1000+i,phaseTimingsMs:{impactGraph:2000+i}}));
+ const snapshot=buildSnapshot(slow);
+ assert.equal(snapshot.broadBudgetPassed,false);
+ assert.equal(withinBroadBudget(snapshot),false);
+ assert.equal(snapshot.sampling.samples.length,7);
+ assert.equal(snapshot.metrics.elapsedP95Ms,6006);
+ const normal=buildSnapshot(slow.map(sample=>({...sample,elapsedMs:120})));
+ assert.equal(normal.broadBudgetPassed,true);
+ assert.equal(withinBroadBudget(normal),true);
+});
+test('Performance Trend always stores raw snapshots before strict comparison and never publishes failed checks',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const source=fs.readFileSync(path.resolve(__dirname,'../.github/workflows/performance-trend.yml'),'utf8');
+ const generator=source.indexOf('name: Generate isolated snapshot even after broad-test failure');
+ const artifact=source.indexOf('name: Preserve exact-run raw samples before strict comparison');
+ const comparison=source.indexOf('name: Compare with previous immutable snapshot');
+ const publication=source.indexOf('name: Persist and verify immutable performance snapshot release');
+ assert.ok(generator>0&&artifact>generator&&comparison>artifact&&publication>comparison);
+ assert.match(source.slice(generator,artifact),/if: \$\{\{ always\(\) \}\}/);
+ assert.match(source.slice(artifact,comparison),/if: \$\{\{ always\(\) \}\}/);
+ assert.match(source.slice(artifact,comparison),/if-no-files-found: error/);
+ assert.doesNotMatch(source.slice(comparison,publication),/continue-on-error|if: \$\{\{ always\(\) \}\}/);
+ const snapshotScript=fs.readFileSync(path.resolve(__dirname,'../scripts/write-performance-snapshot.js'),'utf8');
+ assert.ok(snapshotScript.indexOf("fs.writeFileSync(file,JSON.stringify(out,null,2)")<
+   snapshotScript.indexOf("if(!out.broadBudgetPassed)throw"),'raw file must be saved before the budget fails');
 });
