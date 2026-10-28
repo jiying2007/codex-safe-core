@@ -20,10 +20,21 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: '22.22.2'
-      - name: Run broad performance budget and snapshot
-        run: |
-          node --test test/performance-budget.test.js
-          node scripts/write-performance-snapshot.js PERFORMANCE_SNAPSHOT.json
+      - name: Run broad performance budget
+        run: node --test test/performance-budget.test.js
+      - name: Generate isolated snapshot even after broad-test failure
+        if: ${{ always() }}
+        run: node scripts/write-performance-snapshot.js PERFORMANCE_SNAPSHOT.json
+      # Save bounded raw data before the strict comparison can fail. This is not
+      # an immutable release or an admission receipt; it is failure diagnosis.
+      - name: Preserve exact-run raw samples before strict comparison
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: performance-raw-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: PERFORMANCE_SNAPSHOT.json
+          if-no-files-found: error
+          retention-days: 30
       - name: Compare with previous immutable snapshot
         env:
           GH_TOKEN: ${{ github.token }}
