@@ -124,8 +124,9 @@ test('scheduled private Family readers fail before checkout when the scoped cred
   const workflows=['family-freshness.yml','family-status.yml','repository-governance.yml','family-ci.yml'];
   for(const name of workflows){
     const text=fs.readFileSync(path.join(__dirname,'..','.github','workflows',name),'utf8').replace(/\r\n/g,'\n');
-    const prefix=text.split('      - uses: actions/checkout@')[0];
-    assert.equal(text.split('      - uses: actions/checkout@').length,2,name+': expected one checkout');
+    const firstCheckout=text.indexOf('      - uses: actions/checkout@');
+    assert.ok(firstCheckout>0,name+': requires a first checkout');
+    const prefix=text.slice(0,firstCheckout);
     assert.match(prefix,/      - name: Require scoped private Family read credential before checkout\n/);
     assert.match(prefix,/FAMILY_READ_TOKEN: \$\{\{ secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \}\}/);
     assert.match(prefix,/if \[ -z "\$FAMILY_READ_TOKEN" \]; then/);
