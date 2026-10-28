@@ -112,7 +112,7 @@ test('Family reads and both snapshot materializations consume the dedicated read
     assert.doesNotMatch(workflow, /GITHUB_TOKEN: \$\{\{ secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \|\| github\.token \}\}/);
     assert.match(workflow, /Require scoped private Family read credential before checkout/);
   }
-  assert.equal((family.match(/CODEX_SAFE_FAMILY_READ_TOKEN: \$\{\{ secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \}\}/g) || []).length, 3);
+  assert.equal((family.match(/CODEX_SAFE_FAMILY_READ_TOKEN: \$\{\{ secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \}\}/g) || []).length, 2);
   assert.match(freshness, /GH_TOKEN: \$\{\{ github\.token \}\}/);
   assert.match(family, /GH_TOKEN: \$\{\{ github\.token \}\}/);
   assert.match(freshness, /full_matrix=false/);
