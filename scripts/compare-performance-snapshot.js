@@ -2,7 +2,28 @@
 'use strict';
 const fs=require('node:fs');
 const {comparePerformanceSnapshot}=require('../quality-platform');
-function compareSnapshots(current,baseline){const currentSchema=Number(current.schemaVersion||0),baselineSchema=Number(baseline.schemaVersion||0);const currentMetrics=current.metrics||{},baselineMetrics=baseline.metrics||{};const elapsed=Number(currentMetrics.elapsedMs),rss=Number(currentMetrics.rssGrowthBytes),elapsedLimit=Number(current.budgets?.elapsedMs??5000),rssLimit=Number(current.budgets?.rssGrowthBytes??256*1024*1024);const broadOk=currentMetrics.elapsedMs!=null&&currentMetrics.rssGrowthBytes!=null&&Number.isFinite(elapsed)&&elapsed>0&&Number.isFinite(rss)&&rss>=0&&Number.isFinite(elapsedLimit)&&Number.isFinite(rssLimit)&&elapsed<elapsedLimit&&rss<rssLimit;if(!broadOk)return{ok:false,migration:false,reason:'broad_budget'};if(currentSchema>=3&&baselineSchema<3)return{ok:true,migration:true,reason:'legacy_single_sample_baseline',result:null};const result=comparePerformanceSnapshot({latencyMs:Number(currentMetrics.elapsedMs||0),rssBytes:Number(currentMetrics.rssGrowthBytes||0)},{latencyMs:Number(baselineMetrics.elapsedMs||0),rssBytes:Number(baselineMetrics.rssGrowthBytes||0)},{latencyRegressionPct:10,rssRegressionPct:10,artifactRegressionPct:5});return{ok:result.ok,migration:false,reason:result.ok?'within_regression_budget':'regression',result};}
+function validMetrics(metrics){
+  return Boolean(metrics&&typeof metrics==='object'&&
+    Number.isFinite(metrics.elapsedMs)&&metrics.elapsedMs>0&&
+    Number.isFinite(metrics.rssGrowthBytes)&&metrics.rssGrowthBytes>=0);
+}
+function compareSnapshots(current,baseline){
+  const currentSchema=Number(current?.schemaVersion),baselineSchema=Number(baseline?.schemaVersion);
+  if(![2,3].includes(currentSchema)||![2,3].includes(baselineSchema))return{ok:false,migration:false,reason:'unsupported_schema'};
+  const currentMetrics=current.metrics||{},baselineMetrics=baseline.metrics||{};
+  const elapsedLimit=Number(current.budgets?.elapsedMs??5000),rssLimit=Number(current.budgets?.rssGrowthBytes??256*1024*1024);
+  if(!validMetrics(currentMetrics)||!Number.isFinite(elapsedLimit)||elapsedLimit<=0||
+     !Number.isFinite(rssLimit)||rssLimit<=0||currentMetrics.elapsedMs>=elapsedLimit||
+     currentMetrics.rssGrowthBytes>=rssLimit)return{ok:false,migration:false,reason:'broad_budget'};
+  if(!validMetrics(baselineMetrics))return{ok:false,migration:false,reason:'invalid_baseline_metrics'};
+  if(currentSchema>=3&&baselineSchema===2)return{ok:true,migration:true,reason:'legacy_single_sample_baseline',result:null};
+  if(currentSchema!==baselineSchema)return{ok:false,migration:false,reason:'incompatible_schema'};
+  const result=comparePerformanceSnapshot(
+    {latencyMs:currentMetrics.elapsedMs,rssBytes:currentMetrics.rssGrowthBytes},
+    {latencyMs:baselineMetrics.elapsedMs,rssBytes:baselineMetrics.rssGrowthBytes},
+    {latencyRegressionPct:10,rssRegressionPct:10,artifactRegressionPct:5});
+  return{ok:result.ok,migration:false,reason:result.ok?'within_regression_budget':'regression',result};
+}
 // A cross-runner comparison is still subject to the strict performance gate.
 // Surface missing or different execution conditions instead of claiming code causality.
 function describeComparability(current,baseline){
