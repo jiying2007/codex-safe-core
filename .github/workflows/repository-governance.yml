@@ -17,6 +17,15 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
+      - name: Require scoped private Family read credential before checkout
+        env:
+          FAMILY_READ_TOKEN: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN }}
+        shell: bash
+        run: |
+          if [ -z "$FAMILY_READ_TOKEN" ]; then
+            echo 'Missing CODEX_SAFE_FAMILY_READ_TOKEN for private Family checks (Core #85).' >&2
+            exit 2
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -25,5 +34,5 @@ jobs:
           node-version: '22.22.2'
       - name: Verify server-side Family Rulesets
         env:
-          GITHUB_TOKEN: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN || github.token }}
+          GITHUB_TOKEN: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN }}
         run: node scripts/verify-repository-ruleset.js

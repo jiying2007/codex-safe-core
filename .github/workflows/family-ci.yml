@@ -25,6 +25,15 @@ jobs:
     outputs:
       snapshot: ${{ steps.resolve.outputs.snapshot }}
     steps:
+      - name: Require scoped private Family read credential before checkout
+        env:
+          FAMILY_READ_TOKEN: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN }}
+        shell: bash
+        run: |
+          if [ -z "$FAMILY_READ_TOKEN" ]; then
+            echo 'Missing CODEX_SAFE_FAMILY_READ_TOKEN for private Family checks (Core #85).' >&2
+            exit 2
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -34,7 +43,7 @@ jobs:
       - id: resolve
         name: Freeze exact released, CI-attested, governed and distributed consumer snapshot
         env:
-          GITHUB_TOKEN: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN || github.token }}
+          GITHUB_TOKEN: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN }}
         shell: bash
         run: node scripts/resolve-family-snapshot.js --github-output "$GITHUB_OUTPUT"
 
@@ -70,7 +79,7 @@ jobs:
         run: npm run ci
       - name: Checkout exact released consumer snapshot
         env:
-          CODEX_SAFE_FAMILY_READ_TOKEN: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN || github.token }}
+          CODEX_SAFE_FAMILY_READ_TOKEN: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN }}
         run: node scripts/checkout-family-snapshot.js FAMILY_SNAPSHOT.json family
       - name: Verify released consumers retain governance and runtime-equivalent Core
         shell: bash
@@ -136,7 +145,7 @@ jobs:
         run: node -e "require('fs').writeFileSync('FAMILY_SNAPSHOT.json',process.env.FAMILY_SNAPSHOT_JSON+'\n')"
       - name: Checkout exact released consumer snapshot
         env:
-          CODEX_SAFE_FAMILY_READ_TOKEN: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN || github.token }}
+          CODEX_SAFE_FAMILY_READ_TOKEN: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN }}
         run: node scripts/checkout-family-snapshot.js FAMILY_SNAPSHOT.json family
       - name: Generate canonical runtime-aware Family Manifest v5
         run: node scripts/generate-family-manifest.js family FAMILY_MANIFEST.json FAMILY_SNAPSHOT.json
