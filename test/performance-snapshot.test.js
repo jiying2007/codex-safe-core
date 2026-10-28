@@ -2,7 +2,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const{median,percentile95,summarizeSamples,withinBroadBudget,buildSnapshot}=require('../scripts/write-performance-snapshot');
-const{compareSnapshots,describeComparability}=require('../scripts/compare-performance-snapshot');
+const{compareSnapshots,describeComparability,workloadComparable}=require('../scripts/compare-performance-snapshot');
 const base={elapsedMs:100,rssGrowthBytes:1000,evidenceChunks:8,evidenceInputBytes:4194330,contextInputBytes:4194330,impactNodes:32,impactBytes:39340,estimatedTokens:497856,risk:2,plannedBytes:1046730};
 test('performance snapshots use a stable odd-sample median',()=>{assert.equal(median([180,120,150,140,160,130,170]),150);const samples=[90,100,110,95,105,120,80].map((elapsedMs,index)=>({...base,elapsedMs,rssGrowthBytes:1000+index*10}));const out=summarizeSamples(samples);assert.equal(out.elapsedMs,100);assert.equal(out.rssGrowthBytes,1030);assert.equal(out.elapsedP95Ms,120);assert.equal(out.rssP95Bytes,1060);});
 test('performance samples fail closed on structural drift',()=>{const samples=Array.from({length:7},()=>({...base}));samples[3]={...samples[3],plannedBytes:123};assert.throws(()=>summarizeSamples(samples),/structural drift/);});
@@ -112,4 +112,41 @@ test('Performance Trend always stores raw snapshots before strict comparison and
  const snapshotScript=fs.readFileSync(path.resolve(__dirname,'../scripts/write-performance-snapshot.js'),'utf8');
  assert.ok(snapshotScript.indexOf("fs.writeFileSync(file,JSON.stringify(out,null,2)")<
    snapshotScript.indexOf("if(!out.broadBudgetPassed)throw"),'raw file must be saved before the budget fails');
+});
+
+
+test('zero-RSS reference cannot silently pass a new nonzero memory regression',()=>{
+  const metrics={elapsedMs:100,rssGrowthBytes:0};
+  const current={schemaVersion:3,metrics:{...metrics,rssGrowthBytes:64*1024*1024},budgets:{elapsedMs:5000,rssGrowthBytes:256*1024*1024}};
+  const baseline={schemaVersion:3,metrics};
+  assert.deepEqual(compareSnapshots(current,baseline),{ok:false,migration:false,reason:'zero_baseline_rss_growth'});
+  assert.equal(compareSnapshots({...current,metrics},baseline).ok,true,'equal zero growth remains valid');
+  assert.equal(compareSnapshots({...current,metrics:{elapsedMs:100,rssGrowthBytes:105}},{
+    ...baseline,metrics:{elapsedMs:100,rssGrowthBytes:100}}).ok,true,'five-percent growth remains allowed');
+  assert.equal(compareSnapshots({...current,metrics:{elapsedMs:100,rssGrowthBytes:111}},{
+    ...baseline,metrics:{elapsedMs:100,rssGrowthBytes:100}}).ok,false,'original ten-percent gate must remain active');
+  assert.equal(compareSnapshots(current,{schemaVersion:2,metrics}).reason,'legacy_single_sample_baseline','do not change documented one-time v2 migration');
+});
+test('comparing different 4 MiB workloads cannot produce a passing performance receipt',()=>{
+  const workload={inputDiffBytes:4194330,maxEvidenceBytes:512*1024,maxChunks:8,maxImpactBytes:128*1024,inputSha256:'a'.repeat(64)};
+  const make=(value)=>({schemaVersion:3,metrics:{elapsedMs:100,rssGrowthBytes:1024},budgets:{elapsedMs:5000,rssGrowthBytes:256*1024*1024},workload:value});
+  const baseline=make(workload),candidate=make({...workload});
+  assert.equal(workloadComparable(candidate,baseline),true);
+  assert.equal(compareSnapshots(candidate,baseline).ok,true);
+  for(const changed of [
+    {...workload,inputDiffBytes:4194329},
+    {...workload,maxEvidenceBytes:256*1024},
+    {...workload,maxChunks:7},
+    {...workload,maxImpactBytes:64*1024},
+    {...workload,inputSha256:'b'.repeat(64)},
+    {...workload,inputSha256:'malformed'},
+    {...workload,maxChunks:undefined},
+    {...workload,maxChunks:NaN}
+  ]){
+    const result=compareSnapshots(make(changed),baseline);
+    assert.deepEqual(result,{ok:false,migration:false,reason:'workload_drift'},JSON.stringify(changed));
+  }
+  const noSha=Object.fromEntries(Object.entries(workload).filter(([key])=>key!=='inputSha256'));
+  assert.equal(compareSnapshots(candidate,make(noSha)).ok,true,'older v3 baselines preserve fixed-shape comparison');
+  assert.equal(compareSnapshots(candidate,{schemaVersion:3,metrics:baseline.metrics}).reason,'workload_drift');
 });
