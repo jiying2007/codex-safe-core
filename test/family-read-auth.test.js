@@ -117,3 +117,22 @@ test('private Core admission executes and rejects invalid immutable-release evid
   assert.equal(mutable.ok,false);
   assert.match(mutable.value,/not an immutable final release/);
 });
+
+
+test('scheduled private Family readers fail before checkout when the scoped credential is absent',()=>{
+  const fs=require('node:fs'),path=require('node:path');
+  const workflows=['family-freshness.yml','family-status.yml','repository-governance.yml'];
+  for(const name of workflows){
+    const text=fs.readFileSync(path.join(__dirname,'..','.github','workflows',name),'utf8').replace(/\r\n/g,'\n');
+    const prefix=text.split('      - uses: actions/checkout@')[0];
+    assert.equal(text.split('      - uses: actions/checkout@').length,2,name+': expected one checkout');
+    assert.match(prefix,/      - name: Require scoped private Family read credential before checkout\n/);
+    assert.match(prefix,/FAMILY_READ_TOKEN: \$\{\{ secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \}\}/);
+    assert.match(prefix,/if \[ -z "\$FAMILY_READ_TOKEN" \]; then/);
+    assert.match(prefix,/Missing CODEX_SAFE_FAMILY_READ_TOKEN/);
+    assert.match(prefix,/^\s+exit 2\s*$/m);
+    assert.doesNotMatch(prefix,/set -x|printenv|echo "\$FAMILY_READ_TOKEN"/,'preflight must never log the credential');
+    assert.match(text,/GITHUB_TOKEN: \$\{\{ secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \}\}/);
+    assert.doesNotMatch(text,/GITHUB_TOKEN: \$\{\{ secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \|\| github\.token \}\}/,'private checks must not silently use a repository-scoped token');
+  }
+});
