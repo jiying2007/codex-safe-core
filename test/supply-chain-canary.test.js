@@ -104,13 +104,15 @@ test('Family reads and both snapshot materializations consume the dedicated read
   const family = fs.readFileSync(path.join(workflowDir, 'family-ci.yml'), 'utf8');
   const freshness = fs.readFileSync(path.join(workflowDir, 'family-freshness.yml'), 'utf8');
   const status = fs.readFileSync(path.join(workflowDir, 'family-status.yml'), 'utf8');
-  assert.match(family, /GITHUB_TOKEN: \$\{\{ secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \|\| github\.token \}\}/);
+  assert.match(family, /GITHUB_TOKEN: \$\{\{ secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \}\}/);
+  assert.match(family, /Require scoped private Family read credential before checkout/);
+  assert.doesNotMatch(family, /secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \|\| github\.token/);
   for (const workflow of [freshness, status]) {
     assert.match(workflow, /GITHUB_TOKEN: \$\{\{ secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \}\}/);
     assert.doesNotMatch(workflow, /GITHUB_TOKEN: \$\{\{ secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \|\| github\.token \}\}/);
     assert.match(workflow, /Require scoped private Family read credential before checkout/);
   }
-  assert.equal((family.match(/CODEX_SAFE_FAMILY_READ_TOKEN: \$\{\{ secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \|\| github\.token \}\}/g) || []).length, 2);
+  assert.equal((family.match(/CODEX_SAFE_FAMILY_READ_TOKEN: \$\{\{ secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \}\}/g) || []).length, 3);
   assert.match(freshness, /GH_TOKEN: \$\{\{ github\.token \}\}/);
   assert.match(family, /GH_TOKEN: \$\{\{ github\.token \}\}/);
   assert.match(freshness, /full_matrix=false/);
