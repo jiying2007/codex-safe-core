@@ -30,6 +30,14 @@
 
 若独立受控的发行端提供实际强制控制，可以保护**该发行通道**，但与 GitHub 原生 Ruleset 的安全效果并不等价。失去 GitHub 保护意味着 main 仍可被有权限主体直接修改，因此**只有已安装的独立发布端、独立签发角色及额外源锁定**可信时，才可以考虑接受。未经安全审核不得让该通道替换现有六仓 RuleSet 核验。
 
+## 2026-10-30 补充：闭源私仓的 CodeQL 授权与零费用 OSS SAST
+
+GitHub [CodeQL CLI 官方文档](https://docs.github.com/en/code-security/concepts/code-scanning/codeql/codeql-cli) 与 [CLI 单独许可证](https://github.com/github/codeql-cli-binaries/blob/main/LICENSE.md) 对私有闭源代码的自动化扫描有授权限制，不能认为从 GitHub Actions 改成 Linux/GitLab 自托管 Runner 就自动取得 CodeQL 商业使用资格。未经具体许可核实，**不得对 Service 私有代码启动 CodeQL CLI/Action 扫描**；现行 Core/Service Release 要求仍记录为阻断，而不是伪造 `codeql` 证据。
+
+免费开发替代路线：受保护 GitLab Free 控制项目可用 **Semgrep Community Edition (LGPL-2.1)**、GitLab Free Self-Managed SAST、OSV Scanner（依赖漏洞），将工具镜像与可信规则源固定版本后在隔离 Runner 上只读扫描 Service exact SHA。禁止让未审 PR 自带规则修改、上传私有源码或调用付费 Pro 规则。此阶段只能产出**OSS SAST 开发证据**，不能直接替代现有受保护 CodeQL Required Check。
+
+如果选择“完全不购买 CodeQL/Ruleset 许可而完成私库生产闭环”，必须先在 [#91](https://github.com/jiying2007/codex-safe-core/issues/91) 独立批准 Governance v2 的私仓 OSS 安全准入方案，证明规则覆盖、依赖/Secret/容器扫描、真实对抗样本、误报治理、不同签审者与发布控制均达到生产风险要求。再通过独立受保护的发行适配器落地，明确它仍无法代替 GitHub 私有 main 的服务端合并保护。当前文件**不启用、不减门禁**。
+
 ## 选项与待批准决策
 
 **方案 A（当前可直接执行，免费）**：仅启用受信任、隔离的外部 CI 作为开发证据来源；原 Core `repository-governance-contract.json` 六仓与 Trusted Release 不变。CI 不能启动时开发任务可继续，发行继续保持阻断。优先推荐。
