@@ -27,6 +27,8 @@ The publisher exception is intentionally narrow. It does not waive exact source 
 
 Never place the token in source, PR text, issues or chat.
 
+`FAMILY_BOT_TOKEN` is similarly a **coordination credential**, not a Core release credential. A fully qualified immutable Core release may publish without it. When the bot token is configured, Trusted Release dispatches the coordinated Family Upgrade automatically; when it is absent, the Core release remains valid and consumers stay pinned until an authorized maintainer performs the upgrade. Consumer releases remain independently fail-closed on their exact Core pin and release qualification.
+
 ## Required native Ruleset
 
 For every repository whose protection mode is `native`, the default branch must have one active `Codex Safe main protection` Ruleset with:
