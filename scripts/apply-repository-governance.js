@@ -161,6 +161,13 @@ async function main() {
   // before any optional historical branch deletion is attempted.
   for (const repoName of contract.repositories) {
     const full = `${owner}/${repoName}`;
+    const policy = contract.repositoryPolicies?.[repoName] || contract.defaultRepositoryPolicy || { protection: 'native' };
+    if (policy.protection === 'publisher') {
+      process.stdout.write(`SKIP ${full}: release protection is enforced by the product publisher; native Ruleset is not contract-required.\n`);
+      results.push({ repository: full, protection: 'publisher', rulesetId: null,
+        cleanup: { requested: false, deleted: [], skipped: [] } });
+      continue;
+    }
     const repo = await api('GET', `/repos/${full}`, undefined, { anonymousRetry: true });
     const summaries = await api('GET', `/repos/${full}/rulesets`, undefined, { anonymousRetry: true });
     const summary = summaries.find(item => item?.name === contract.rulesetName);
@@ -192,7 +199,7 @@ async function main() {
   }
 
   process.stdout.write(`${JSON.stringify({ schemaVersion: 1, mode: apply ? 'apply' : 'dry-run', zeroBypass, cleanBranches, results }, null, 2)}\n`);
-  if (!apply) process.stdout.write('Dry-run only. Re-run with --apply after CI Gate exists on main in all six repositories. Add --clean-branches only when the token also has Contents: write.\n');
+  if (!apply) process.stdout.write('Dry-run only. Re-run with --apply after CI Gate exists on every native-protected repository. Publisher-protected private repositories are intentionally skipped. Add --clean-branches only when the token also has Contents: write.\n');
   else if (!cleanBranches) process.stdout.write('Governance applied. Historical branch cleanup was not requested; use --apply --clean-branches with Contents: write if desired.\n');
 }
 

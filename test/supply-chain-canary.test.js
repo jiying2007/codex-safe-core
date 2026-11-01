@@ -100,7 +100,7 @@ test('non-product evidence never becomes the default latest product release', ()
   }
 });
 
-test('Family reads and both snapshot materializations consume the dedicated read credential', () => {
+test('coordinated Family validation keeps the dedicated credential while status/freshness degrade safely', () => {
   const family = fs.readFileSync(path.join(workflowDir, 'family-ci.yml'), 'utf8');
   const freshness = fs.readFileSync(path.join(workflowDir, 'family-freshness.yml'), 'utf8');
   const status = fs.readFileSync(path.join(workflowDir, 'family-status.yml'), 'utf8');
@@ -108,10 +108,12 @@ test('Family reads and both snapshot materializations consume the dedicated read
   assert.match(family, /Require scoped private Family read credential before checkout/);
   assert.doesNotMatch(family, /secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \|\| github\.token/);
   for (const workflow of [freshness, status]) {
-    assert.match(workflow, /GITHUB_TOKEN: \$\{\{ secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \}\}/);
-    assert.doesNotMatch(workflow, /GITHUB_TOKEN: \$\{\{ secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \|\| github\.token \}\}/);
-    assert.match(workflow, /Require scoped private Family read credential before checkout/);
+    assert.match(workflow, /Detect optional private Family visibility/);
+    assert.match(workflow, /FAMILY_READ_TOKEN: \$\{\{ secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \}\}/);
+    assert.doesNotMatch(workflow, /Require scoped private Family read credential before checkout/);
   }
+  assert.match(freshness, /dispatch=false/);
+  assert.match(status, /private-family-visibility-unavailable/);
   assert.equal((family.match(/CODEX_SAFE_FAMILY_READ_TOKEN: \$\{\{ secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \}\}/g) || []).length, 2);
   assert.match(freshness, /GH_TOKEN: \$\{\{ github\.token \}\}/);
   assert.match(family, /GH_TOKEN: \$\{\{ github\.token \}\}/);
@@ -142,12 +144,11 @@ test('security findings and private governance reads feed the existing CI Gate',
   assert.doesNotMatch(guard, /GITHUB_TOKEN= GH_TOKEN=/);
   assert.match(guard, /secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \|\| github\.token/);
   const scheduledGovernance=fs.readFileSync(path.join(workflowDir, 'repository-governance.yml'), 'utf8');
-  assert.match(scheduledGovernance, /GITHUB_TOKEN: \$\{\{ secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \}\}/);
-  assert.match(scheduledGovernance, /Require scoped private Family read credential before checkout/);
-  assert.doesNotMatch(scheduledGovernance, /secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \|\| github\.token/);
+  assert.match(scheduledGovernance, /GITHUB_TOKEN: \$\{\{ github\.token \}\}/);
+  assert.doesNotMatch(scheduledGovernance, /CODEX_SAFE_FAMILY_READ_TOKEN|Require scoped private Family read credential/);
   const release=fs.readFileSync(path.join(workflowDir, 'release.yml'), 'utf8');
-  assert.ok(release.includes('GITHUB_TOKEN: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN }}'));
-  assert.ok(release.includes('Require scoped private Family read credential'));
-  assert.ok(!release.includes('secrets.CODEX_SAFE_FAMILY_READ_TOKEN || github.token'));
+  assert.ok(release.includes('GITHUB_TOKEN: ${{ github.token }}'));
+  assert.ok(release.includes('Verify native Rulesets and publisher protection assignments'));
+  assert.ok(!release.includes('Require scoped private Family read credential'));
 
 });

@@ -1,5 +1,6 @@
 {
   "schemaVersion": 1,
+  "maintenanceModel": "solo-maintainer",
   "repositories": [
     "codex-safe-core",
     "codex-review",
@@ -8,6 +9,18 @@
     "codex-review-service",
     "codex-diagnose"
   ],
+  "repositoryPolicies": {
+    "codex-review-service": {
+      "protection": "publisher",
+      "privateRepository": true,
+      "nativeRulesetRequired": false,
+      "releaseAuthority": "product-release-workflow"
+    }
+  },
+  "defaultRepositoryPolicy": {
+    "protection": "native",
+    "nativeRulesetRequired": true
+  },
   "defaultBranch": "main",
   "rulesetName": "Codex Safe main protection",
   "enforcement": "active",
@@ -18,10 +31,10 @@
     "non_fast_forward"
   ],
   "pullRequest": {
-    "minimumApprovals": 1,
-    "dismissStaleReviewsOnPush": true,
+    "minimumApprovals": 0,
+    "dismissStaleReviewsOnPush": false,
     "requireCodeOwnerReview": false,
-    "requireLastPushApproval": true
+    "requireLastPushApproval": false
   },
   "requiredStatusChecks": {
     "requireNonEmpty": true,

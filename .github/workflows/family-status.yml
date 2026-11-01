@@ -17,32 +17,56 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - name: Require scoped private Family read credential before checkout
-        env:
-          FAMILY_READ_TOKEN: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN }}
-        shell: bash
-        run: |
-          if [ -z "$FAMILY_READ_TOKEN" ]; then
-            echo 'Missing CODEX_SAFE_FAMILY_READ_TOKEN for private Family checks (Core #85).' >&2
-            exit 2
-          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: '22.22.2'
-      - name: Generate Family Status v1
+      - id: visibility
+        name: Detect optional private Family visibility
+        env:
+          FAMILY_READ_TOKEN: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN }}
+        shell: bash
+        run: |
+          if [ -n "$FAMILY_READ_TOKEN" ]; then echo 'available=true' >> "$GITHUB_OUTPUT"; else echo 'available=false' >> "$GITHUB_OUTPUT"; fi
+      - name: Generate complete Family Status v1
+        if: steps.visibility.outputs.available == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN }}
         run: node scripts/generate-family-status.js FAMILY_STATUS.json
+      - name: Generate partial observability status without private credential
+        if: steps.visibility.outputs.available != 'true'
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('node:fs'),contract=require('./core-contract.json');
+          fs.writeFileSync('FAMILY_STATUS.json',JSON.stringify({
+            schemaVersion:Number(contract.familyStatusVersion),
+            generatedAt:new Date().toISOString(),
+            healthy:false,
+            partial:true,
+            core:{version:contract.coreVersion,sha:process.env.GITHUB_SHA,releaseReady:null,releaseTag:null},
+            consumers:{},
+            family:{ready:false,dispatch:false,reason:'private-family-visibility-unavailable',manifestDigest:null}
+          },null,2)+'\n');
+          NODE
+          echo 'Private Family credential is not configured; publishing partial status without failing development governance.' >> "$GITHUB_STEP_SUMMARY"
       - name: Publish status summary
         shell: bash
         run: |
           node - <<'NODE' >> "$GITHUB_STEP_SUMMARY"
           const s=require('./FAMILY_STATUS.json');
-          console.log(`# Codex Safe Family Status\n\n- healthy: ${s.healthy}\n- Core: ${s.core.version} ${s.core.releaseReady?'released':'not ready'}\n- Family: ${s.family.reason}\n`);
-          for(const [name,v] of Object.entries(s.consumers)) console.log(`- ${name} ${v.version}: core=${v.coreAligned} release=${v.releaseReady} distribution=${v.distributionReady} (${v.reason})`);
+          console.log('# Codex Safe Family Status\n');
+          if(s.partial){
+            console.log('- partial: true');
+            console.log('- reason: '+s.family.reason);
+          }else{
+            console.log('- healthy: '+s.healthy);
+            console.log('- Core: '+s.core.version+' '+(s.core.releaseReady?'released':'not ready'));
+            console.log('- Family: '+s.family.reason);
+            for(const [name,v] of Object.entries(s.consumers)) console.log('- '+name+' '+v.version+': core='+v.coreAligned+' release='+v.releaseReady+' distribution='+v.distributionReady+' ('+v.reason+')');
+          }
           NODE
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

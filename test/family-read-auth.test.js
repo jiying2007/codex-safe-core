@@ -119,21 +119,20 @@ test('private Core admission executes and rejects invalid immutable-release evid
 });
 
 
-test('scheduled private Family readers fail before checkout when the scoped credential is absent',()=>{
+test('only coordinated private Family validation requires the scoped credential',()=>{
   const fs=require('node:fs'),path=require('node:path');
-  const workflows=['family-freshness.yml','family-status.yml','repository-governance.yml','family-ci.yml'];
-  for(const name of workflows){
+  const family=fs.readFileSync(path.join(__dirname,'..','.github','workflows','family-ci.yml'),'utf8').replace(/\r\n/g,'\n');
+  assert.match(family,/Require scoped private Family read credential before checkout/);
+  assert.match(family,/FAMILY_READ_TOKEN: \$\{\{ secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \}\}/);
+  assert.match(family,/Missing CODEX_SAFE_FAMILY_READ_TOKEN/);
+  assert.match(family,/^\s+exit 2\s*$/m);
+  for(const name of ['family-freshness.yml','family-status.yml']){
     const text=fs.readFileSync(path.join(__dirname,'..','.github','workflows',name),'utf8').replace(/\r\n/g,'\n');
-    const firstCheckout=text.indexOf('      - uses: actions/checkout@');
-    assert.ok(firstCheckout>0,name+': requires a first checkout');
-    const prefix=text.slice(0,firstCheckout);
-    assert.match(prefix,/      - name: Require scoped private Family read credential before checkout\n/);
-    assert.match(prefix,/FAMILY_READ_TOKEN: \$\{\{ secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \}\}/);
-    assert.match(prefix,/if \[ -z "\$FAMILY_READ_TOKEN" \]; then/);
-    assert.match(prefix,/Missing CODEX_SAFE_FAMILY_READ_TOKEN/);
-    assert.match(prefix,/^\s+exit 2\s*$/m);
-    assert.doesNotMatch(prefix,/set -x|printenv|echo "\$FAMILY_READ_TOKEN"/,'preflight must never log the credential');
-    assert.match(text,/GITHUB_TOKEN: \$\{\{ secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \}\}/);
-    assert.doesNotMatch(text,/GITHUB_TOKEN: \$\{\{ secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \|\| github\.token \}\}/,'private checks must not silently use a repository-scoped token');
+    assert.match(text,/Detect optional private Family visibility/);
+    assert.match(text,/FAMILY_READ_TOKEN: \$\{\{ secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \}\}/);
+    assert.doesNotMatch(text,/Missing CODEX_SAFE_FAMILY_READ_TOKEN|^\s+exit 2\s*$/m);
   }
+  const governance=fs.readFileSync(path.join(__dirname,'..','.github','workflows','repository-governance.yml'),'utf8');
+  assert.match(governance,/GITHUB_TOKEN: \$\{\{ github\.token \}\}/);
+  assert.doesNotMatch(governance,/CODEX_SAFE_FAMILY_READ_TOKEN|Missing CODEX_SAFE_FAMILY_READ_TOKEN/);
 });

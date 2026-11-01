@@ -158,15 +158,23 @@ test('checked head A cannot authorize head B after a checks wait',()=>{
 });
 
 for(const [label,mutate]of [
-  ['no independent approval',value=>{value.pr.reviewDecision='REVIEW_REQUIRED';}],
+  ['server review requirement',value=>{value.pr.reviewDecision='REVIEW_REQUIRED';}],
   ['blocked merge state',value=>{value.pr.mergeStateStatus='BLOCKED';}],
-  ['unknown merge state',value=>{value.pr.mergeStateStatus='UNKNOWN';}],
-  ['approval for an older head',value=>{value.reviews[0].commit_id='e'.repeat(40);}],
-  ['dismissed approval',value=>{value.reviews[0].state='DISMISSED';}],
-  ['author self-approval',value=>{value.reviews[0].user.login=value.pr.author.login;}]
+  ['unknown merge state',value=>{value.pr.mergeStateStatus='UNKNOWN';}]
 ])test(`Family validation rejects ${label} even with a successful CI Gate`,()=>{
   const f=upgradeFixture();mutate([...f.data.values()][1]);
   assert.throws(f.validate,/approval|merge state/);assert.equal(f.calls.some(call=>call.method==='merge'),false);
+});
+
+for(const [label,mutate]of [
+  ['approval for an older head',value=>{value.reviews[0].commit_id='e'.repeat(40);}],
+  ['dismissed approval',value=>{value.reviews[0].state='DISMISSED';}],
+  ['author self-approval',value=>{value.reviews[0].user.login=value.pr.author.login;}]
+])test(`solo-maintainer validation ignores ${label} when approval count is zero`,()=>{
+  const f=upgradeFixture();mutate([...f.data.values()][1]);
+  const validated=f.validate();
+  assert.equal(validated.phase,'validated');
+  assert.equal(f.calls.some(call=>call.method==='merge'),false);
 });
 
 for(const [label,mutate]of [
