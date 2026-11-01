@@ -223,14 +223,16 @@ test('executable release admission waits for both exact-SHA successful workflows
  assert.match(badValidation.value,/Release Validation=failure/);
 });
 
-test('Family bot credential must be preflighted before any immutable Core tag can be created',()=>{
+test('Core publication does not depend on the optional Family upgrade credential',()=>{
  const workflow=fs.readFileSync(path.join(root,'.github','workflows','_trusted-release.yml'),'utf8');
- const preflight=workflow.indexOf('Require Family Upgrade dispatch credential before immutable publication');
  const tag=workflow.indexOf('      - name: Ensure release tag');
- assert.ok(preflight>=0&&tag>preflight,'preflight must precede tag writes');
- const fragment=workflow.slice(preflight,tag);
- assert.match(fragment,/steps\.decision\.outputs\.publish == 'true'/);
+ const dispatch=workflow.indexOf('Dispatch coordinated active-consumer upgrade when authorized');
+ assert.ok(tag>=0&&dispatch>tag,'Family dispatch must occur only after immutable Core publication');
+ const beforeTag=workflow.slice(0,tag);
+ assert.doesNotMatch(beforeTag,/Require Family Upgrade dispatch credential|Missing FAMILY_BOT_TOKEN|test -n "\$FAMILY_BOT_TOKEN"/);
+ const fragment=workflow.slice(dispatch);
  assert.match(fragment,/secrets\.FAMILY_BOT_TOKEN/);
- assert.match(fragment,/test -n "\$FAMILY_BOT_TOKEN"/);
- assert.doesNotMatch(fragment,/echo\s+["']?\$FAMILY_BOT_TOKEN/);
+ assert.match(fragment,/if \[ -z "\$GH_TOKEN" \]; then/);
+ assert.match(fragment,/coordinated Family Upgrade is deferred/);
+ assert.doesNotMatch(fragment,/FAMILY_BOT_TOKEN is required after an immutable Core release/);
 });
