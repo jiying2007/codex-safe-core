@@ -121,7 +121,7 @@ test('two-phase coordinated upgrade validates all runtime-changing PRs before me
   assert.doesNotMatch(workflow,/gh workflow run "Family Compatibility"/);
 });
 
-test('trusted immutable Core release dispatches the coordinated Family Upgrade',()=>{const trusted=fs.readFileSync(path.join(root,'.github','workflows','_trusted-release.yml'),'utf8');assert.match(trusted,/Dispatch coordinated active-consumer upgrade/);assert.match(trusted,/gh workflow run "Family Upgrade"/);assert.match(trusted,/FAMILY_BOT_TOKEN/);});
+test('trusted immutable Core release optionally dispatches coordinated Family Upgrade',()=>{const trusted=fs.readFileSync(path.join(root,'.github','workflows','_trusted-release.yml'),'utf8');assert.match(trusted,/Dispatch coordinated active-consumer upgrade when authorized/);assert.match(trusted,/gh workflow run "Family Upgrade"/);assert.match(trusted,/FAMILY_BOT_TOKEN/);assert.match(trusted,/coordinated Family Upgrade is deferred/);assert.doesNotMatch(trusted,/refusing to publish an uncoordinated Core release/);});
 
 test('repin synchronizes current Change verifier constants across Core patches',()=>{const oldSha='a'.repeat(40),sha='b'.repeat(40),text=`const core='${oldSha}';if(contract.safeCoreVersion!=='4.12.3'||contract.safeCoreCommit!==core)fail('family Core pin must remain exact');`,out=syncVerifierText(text,{sha,version:'4.12.4'});assert.match(out,new RegExp(`const core='${sha}'`));assert.match(out,/contract\.safeCoreVersion!=='4\.12\.4'/);assert.doesNotMatch(out,/4\.12\.3/);});
 test('repin synchronizes derived Core assertions, runtime digest and reusable workflow pins',t=>{
