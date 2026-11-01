@@ -76,8 +76,31 @@ function assess(detail, repository = {}) {
   if (contract.deleteBranchOnMerge && deleteBranchOnMerge === false) reasons.push('delete-branch-on-merge-disabled');
   return { ok: reasons.length === 0, reasons, administrativeMetadata: { deleteBranchOnMerge } };
 }
+function policyFor(repo) {
+  const explicit = contract.repositoryPolicies?.[repo];
+  const fallback = contract.defaultRepositoryPolicy || { protection: 'native', nativeRulesetRequired: true };
+  const value = explicit || fallback;
+  if (!['native','publisher'].includes(String(value.protection || '')))
+    throw new Error(`Unsupported repository protection mode for ${repo}.`);
+  return value;
+}
 async function auditRepository(repo, token) {
   const owner = registry.owner;
+  const policy = policyFor(repo);
+  if (policy.protection === 'publisher') {
+    if (policy.nativeRulesetRequired !== false || policy.releaseAuthority !== 'product-release-workflow')
+      throw new Error(`Publisher policy for ${repo} is incomplete.`);
+    return {
+      repository: `${owner}/${repo}`,
+      ok: true,
+      protection: 'publisher',
+      nativeRulesetRequired: false,
+      releaseAuthority: policy.releaseAuthority,
+      matchingRulesets: [],
+      rejectedRulesets: [],
+      administrativeMetadata: { deleteBranchOnMerge: null, observable: false }
+    };
+  }
   const repository = await json(`/repos/${owner}/${repo}`, token);
   const summaries = await json(`/repos/${owner}/${repo}/rulesets`, token);
   const active = [];
@@ -93,6 +116,8 @@ async function auditRepository(repo, token) {
   return {
     repository: `${owner}/${repo}`,
     ok: active.length > 0,
+    protection: 'native',
+    nativeRulesetRequired: true,
     matchingRulesets: active,
     rejectedRulesets: rejected,
     administrativeMetadata: {
@@ -118,4 +143,4 @@ async function main() {
   }
 }
 if (require.main === module) main().catch(error => { console.error(error.message || String(error)); process.exitCode = 2; });
-module.exports = { assess, auditRepository, branchCovered, normalizedContexts, deleteBranchOnMergeState, json };
+module.exports = { assess, auditRepository, branchCovered, normalizedContexts, deleteBranchOnMergeState, json, policyFor };
