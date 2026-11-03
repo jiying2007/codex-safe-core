@@ -51,10 +51,27 @@ function assess(detail, repository = {}) {
   const byType = new Map(rules.map(rule => [rule.type, rule]));
   for (const type of contract.requiredRuleTypes) if (!byType.has(type)) reasons.push(`missing-rule:${type}`);
   const pr = byType.get('pull_request')?.parameters || {};
-  if (Number(pr.required_approving_review_count || 0) < Number(contract.pullRequest.minimumApprovals)) reasons.push('insufficient-approvals');
-  if (contract.pullRequest.dismissStaleReviewsOnPush && pr.dismiss_stale_reviews_on_push !== true) reasons.push('stale-review-dismissal-disabled');
-  if (contract.pullRequest.requireLastPushApproval && pr.require_last_push_approval !== true) reasons.push('last-push-approval-disabled');
-  if (contract.pullRequest.requireCodeOwnerReview && pr.require_code_owner_review !== true) reasons.push('code-owner-review-disabled');
+  const approvals = pr.required_approving_review_count;
+  const expectedApprovals = Number(contract.pullRequest.minimumApprovals);
+  if (!Number.isSafeInteger(approvals) || approvals < 0) reasons.push('approvals-missing-or-invalid');
+  else if (approvals < expectedApprovals) reasons.push('insufficient-approvals');
+  // A zero-approval solo contract is a precise policy: extra required human
+  // approval or last-pusher approval silently blocks a sole maintainer even
+  // when the required CI Gate succeeds. Do not merely check a minimum.
+  if (contract.maintenanceModel === 'solo-maintainer') {
+    if (Number.isSafeInteger(approvals) && approvals > expectedApprovals) reasons.push('unexpected-solo-approval-requirement');
+    for (const [field, desired, reason] of [
+      ['dismiss_stale_reviews_on_push', contract.pullRequest.dismissStaleReviewsOnPush, 'stale-review-dismissal-drift'],
+      ['require_last_push_approval', contract.pullRequest.requireLastPushApproval, 'last-push-approval-drift'],
+      ['require_code_owner_review', contract.pullRequest.requireCodeOwnerReview, 'code-owner-review-drift']
+    ]) {
+      if (typeof pr[field] !== 'boolean' || pr[field] !== desired) reasons.push(reason);
+    }
+  } else {
+    if (contract.pullRequest.dismissStaleReviewsOnPush && pr.dismiss_stale_reviews_on_push !== true) reasons.push('stale-review-dismissal-disabled');
+    if (contract.pullRequest.requireLastPushApproval && pr.require_last_push_approval !== true) reasons.push('last-push-approval-disabled');
+    if (contract.pullRequest.requireCodeOwnerReview && pr.require_code_owner_review !== true) reasons.push('code-owner-review-disabled');
+  }
   const checks = byType.get('required_status_checks')?.parameters || {};
   const actualContexts = normalizedContexts(checks);
   if (contract.requiredStatusChecks.requireNonEmpty && actualContexts.length === 0) reasons.push('required-checks-empty');
