@@ -1,0 +1,77 @@
+name: Trusted CI Corroboration
+
+# Triggered only when CI completes; no schedules, agent loops or model calls.
+# workflow_run has privileged context, so never checkout or execute PR code.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+
+concurrency:
+  group: trusted-ci-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}
+  cancel-in-progress: false
+
+jobs:
+  corroborate:
+    name: Corroborate CI evidence (read-only)
+    if: github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22.22.2'
+      - name: Fetch exact run / job / PR association from GitHub
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CI_RUN_ID: ${{ github.event.workflow_run.id }}
+          CI_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$CI_RUN_ID" =~ ^[0-9]+$ ]] || exit 2
+          [[ "$CI_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]] || exit 2
+          jq '.workflow_run' "$GITHUB_EVENT_PATH" > "$RUNNER_TEMP/ci-event.json"
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${CI_RUN_ID}" > "$RUNNER_TEMP/ci-before.json"
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/runs/${CI_RUN_ID}/jobs?per_page=100" \
+            --jq '.jobs[] | {id, name, run_id, head_sha, status, conclusion}' \
+            | jq -s '.' > "$RUNNER_TEMP/ci-jobs.json"
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/commits/${CI_HEAD_SHA}/pulls?per_page=100" \
+            --jq '.[] | {number, head: {sha: .head.sha}, base: {sha: .base.sha, ref: .base.ref, repo: {full_name: .base.repo.full_name}}}' \
+            | jq -s '.' > "$RUNNER_TEMP/ci-prs.json"
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${CI_RUN_ID}" > "$RUNNER_TEMP/ci-after.json"
+      - name: Verify provenance and create CI corroboration observation
+        env:
+          CI_RUN_ID: ${{ github.event.workflow_run.id }}
+          CI_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          CI_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/trusted-ci-corroboration.js \
+            --event "$RUNNER_TEMP/ci-event.json" \
+            --before "$RUNNER_TEMP/ci-before.json" \
+            --after "$RUNNER_TEMP/ci-after.json" \
+            --jobs "$RUNNER_TEMP/ci-jobs.json" \
+            --prs "$RUNNER_TEMP/ci-prs.json" \
+            --out "$RUNNER_TEMP/TRUSTED_CI_OBSERVATION.json" \
+            --head "$CI_HEAD_SHA" \
+            --repo "$GITHUB_REPOSITORY" \
+            --run "$CI_RUN_ID" \
+            --attempt "$CI_ATTEMPT" \
+            --trusted-sha "$(git rev-parse HEAD)"
+      - name: Upload exact-run observation without publishing a merge check
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: trusted-ci-observation-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}
+          path: ${{ runner.temp }}/TRUSTED_CI_OBSERVATION.json
+          if-no-files-found: error
