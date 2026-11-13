@@ -32,7 +32,7 @@ test('exact CI and job census associates to PR without relying on workflow_run.p
   assert.equal(report.identity.headSha, HEAD);
   assert.equal(report.identity.workflowId, 339782167);
   assert.equal(report.verification.ci, 'observed-success');
-  assert.deepEqual(report.verification.skippedJobs.sort(), ['codex-canary-behavioral','codex-canary-capability']);
+  assert.deepEqual([...report.verification.skippedJobs].sort(), ['codex-canary-behavioral','codex-canary-capability']);
   assert.equal(report.autonomy.autoMerge, false);
   assert.equal(report.autonomy.mergeAuthorized, false);
   assert.equal(report.verification.postMergeQuality, 'not-evaluated');
