@@ -43,6 +43,25 @@ They are **observations**, not a new CI Receipt contract. They are not yet autom
 
 Assess *no-regret merge rate*, revert/hotfix attribution, escaped defects, manual intervention, CI p95, and tokens per verified completed task. Prefer comparing human and agent changes on equivalent risk cohorts. A green CI or low aggregate revert rate is not sufficient. Any missing evidence, drift, unexpected skip or unknown source must defer to manual action. Do not use periodic polling loops to simulate throughput.
 
+## Read-only live qualification checklist
+
+For a PR that changes only a bounded documentation path, use the two **independent, event-driven** observations, then read the existing protected CI result. These commands are intentionally read-only and make no merge decision:
+
+```sh
+repo=jiying2007/codex-safe-core
+pr=100  # replace with the actual PR under examination
+gh pr view "$pr" -R "$repo" --json number,headRefOid,baseRefName
+gh api "repos/$repo/pulls/$pr" --jq '{number,state,head_sha:.head.sha,base_sha:.base.sha}'
+gh api "repos/$repo/rulesets/22321766" \
+  --jq '.rules[] | select(.type=="required_status_checks") | .parameters.required_status_checks'
+# Only after the CI/observer workflow runs appear in the Actions UI:
+gh run list -R "$repo" --limit 20
+```
+
+Acceptance is evidence, not a claim: the PR head matches the CI workflow run's `head_sha`, the CI observation lists the same head and exactly thirteen canonical jobs, `CI Gate` succeeds, and the separate PR-event observation reports a bounded low-risk classification with `mergeAuthorized=false`. The second observer's artifact is named `trusted-ci-observation-<CI run ID>-<attempt>`; it is not the same thing as a required status check. If Github does not associate the commit with **exactly one** PR, if the metadata changes mid-fetch, or if any Job is missing, report the gap and keep the workflow non-authoritative.
+
+A protected PR is not proven safe because those two artifacts exist. The canonical `CI Gate` workflow can still be edited by a PR, and its status may not yet have an explicit expected-source binding. Verify this GitHub server-side independently. Do not modify the Ruleset or enable auto-merge on the strength of a read-only workflow's success. There is no fixed sample count that alone demonstrates low defect rates: promotion depends on independently attributed regressions, comparable baseline cohorts, and a formally approved error budget.
+
 ## Running locally (no model calls)
 
 ```sh
