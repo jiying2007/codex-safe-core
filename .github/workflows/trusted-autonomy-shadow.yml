@@ -1,0 +1,94 @@
+name: Trusted Autonomy Shadow
+
+# Runs from the protected base branch. Never checkout PR head or execute PR code.
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, edited]
+
+permissions:
+  contents: read
+  pull-requests: read
+  statuses: write
+
+concurrency:
+  group: trusted-autonomy-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  observation:
+    name: Trusted observation
+    if: github.event.pull_request.base.ref == 'main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22.22.2'
+      - id: snapshot
+        name: Read PR metadata twice around full file inventory
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$PR_NUMBER" =~ ^[0-9]+$ ]] || exit 2
+          gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" > "$RUNNER_TEMP/autonomy-pr-before.json"
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/files?per_page=100" \
+            --jq '.[] | {filename, previous_filename, status, additions, deletions}' \
+            | jq -s '.' > "$RUNNER_TEMP/autonomy-pr-files.json"
+          gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" > "$RUNNER_TEMP/autonomy-pr-after.json"
+      - id: assess
+        name: Produce non-authoritative shadow evidence from trusted code
+        env:
+          EVENT_HEAD: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/trusted-autonomy-shadow.js \
+            --pr "$RUNNER_TEMP/autonomy-pr-after.json" \
+            --before "$RUNNER_TEMP/autonomy-pr-before.json" \
+            --files "$RUNNER_TEMP/autonomy-pr-files.json" \
+            --out "$RUNNER_TEMP/TRUSTED_AUTONOMY_SHADOW.json" \
+            --head "$EVENT_HEAD" \
+            --base "$(git rev-parse HEAD)" \
+            --repo "$GITHUB_REPOSITORY" \
+            --number "$PR_NUMBER" \
+            --run "$GITHUB_RUN_ID" \
+            --attempt "$RUN_ATTEMPT"
+      - id: artifact
+        if: steps.assess.outcome == 'success'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: trusted-autonomy-shadow-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+          path: ${{ runner.temp }}/TRUSTED_AUTONOMY_SHADOW.json
+          if-no-files-found: error
+      - name: Publish head-bound observation status (never approval)
+        if: ${{ always() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_HEAD: ${{ github.event.pull_request.head.sha }}
+          ASSESS_OUTCOME: ${{ steps.assess.outcome }}
+          ARTIFACT_OUTCOME: ${{ steps.artifact.outcome }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$EVENT_HEAD" =~ ^[0-9a-f]{40}$ ]] || exit 2
+          state=failure
+          description='Trusted evidence missing or invalid; merge authorization unavailable'
+          if [ "$ASSESS_OUTCOME" = success ] && [ "$ARTIFACT_OUTCOME" = success ]; then
+            risk="$(node -e 'process.stdout.write(require(process.argv[1]).risk.level)' "$RUNNER_TEMP/TRUSTED_AUTONOMY_SHADOW.json")"
+            state=success
+            description="Shadow risk=${risk}; NO automatic merge authorization"
+          fi
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/statuses/${EVENT_HEAD}" \
+            -f state="$state" \
+            -f context="Codex Safe / Trusted Observation" \
+            -f description="$description" \
+            -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" >/dev/null
