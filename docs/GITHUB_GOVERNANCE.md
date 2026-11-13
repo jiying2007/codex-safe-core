@@ -41,7 +41,28 @@ For every repository whose protection mode is `native`, the default branch must 
 - bypass limited to `pull_request` mode;
 - repository-side `delete_branch_on_merge` enabled when administratively observable.
 
-The contract minimum approval count is zero for the solo-maintainer profile. A repository may keep one or more approvals as an extra local policy; the verifier accepts stricter review requirements.
+The solo-maintainer contract specifies exactly zero required approvals, with no last-push or code-owner approval. The verifier rejects drift in either direction; independent reviewer advice remains welcome but must not be represented as a machine-required step.
+
+## Explicit GitHub Actions status source (separate admission)
+
+The five public repositories currently report `CI Gate` from the GitHub Actions App (`integration_id=15368`) on `main`, but the existing live Rulesets list only `{"context":"CI Gate"}`. A passing name-only Ruleset audit is **not** proof that its check origin is constrained. GitHub can require an exact app source; a different writer's same-named status should not satisfy the gate.
+
+`repository-governance-contract.json` declares this observed expected source. The read-only Ruleset audit now includes `sourceBinding.state` (`bound`, `unbound`, `unexpected` or `ambiguous`) for each matching native Ruleset. It remains advisory while the live configuration is being upgraded; base compatibility still reports separately, and no automatic merge authority is granted.
+
+`scripts/apply-repository-governance.js` **preserves** an already configured `integration_id` during ordinary `--apply`, and refuses to replace an unexpected source or unknown extra Ruleset rule. To explicitly bind the source, its separate `--bind-ci-source` option verifies the current `main` SHA and a successful exact-HEAD `CI Gate` check-run from the expected GitHub Actions App before it prepares the intended rule. The dry-run is read-only:
+
+```sh
+node scripts/apply-repository-governance.js --bind-ci-source
+```
+
+After independent authorization, the same script may be run **on an existing administrator-controlled remote execution environment**, with a narrowly scoped GitHub Administration-write credential supplied through its secure environment (never pasted into PRs or logs):
+
+```sh
+node scripts/apply-repository-governance.js --apply --bind-ci-source
+node scripts/verify-repository-ruleset.js
+```
+
+This changes existing public native Rulesets only; the private Service remains publisher-protected. The GitHub connector's public-repository read/write API does not currently provide the required Ruleset administration mutation, so **no server-side source binding is claimed until the real Ruleset shows `integration_id=15368` for `CI Gate` and the server audit reports `bound`**. Never replace `CI Gate` with the optional `Codex Safe / Trusted Observation` shadow status; that status is evidence only and deliberately cannot authorize merges.
 
 ## CI Gate ownership
 
