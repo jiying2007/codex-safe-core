@@ -95,12 +95,9 @@ function desiredStatusChecks(detail, { bindStatusSource = false } = {}) {
     return { context, ...((bindStatusSource || existingId === source.integrationId) ? { integration_id: source.integrationId } : {}) };
   });
 }
-async function verifyExpectedCheckSource(full) {
+function validateMainGateCheckRuns(checks, sha, full = 'repository') {
   const source = contract.requiredStatusChecks.expectedSource;
-  const branch = await api('GET', `/repos/${full}/branches/${contract.defaultBranch}`, undefined, { anonymousRetry: true });
-  const sha = String(branch?.commit?.sha || '');
-  if (!/^[0-9a-f]{40}$/.test(sha)) throw new Error(`${full}: cannot freeze main head for status-source verification.`);
-  const checks = await api('GET', `/repos/${full}/commits/${sha}/check-runs?per_page=100`, undefined, { anonymousRetry: true });
+  if (!/^[0-9a-f]{40}$/.test(String(sha))) throw new Error(`${full}: invalid main-HEAD SHA.`);
   if (!Number.isSafeInteger(checks?.total_count) || checks.total_count < 1 ||
       checks.total_count > 100 || !Array.isArray(checks.check_runs) ||
       checks.check_runs.length !== checks.total_count) {
@@ -114,6 +111,13 @@ async function verifyExpectedCheckSource(full) {
   }
   return { headSha: sha, integrationId: source.integrationId, appSlug: source.appSlug };
 }
+async function verifyExpectedCheckSource(full) {
+  const source = contract.requiredStatusChecks.expectedSource;
+  const branch = await api('GET', `/repos/${full}/branches/${contract.defaultBranch}`, undefined, { anonymousRetry: true });
+  const sha = String(branch?.commit?.sha || '');
+  if (!/^[0-9a-f]{40}$/.test(sha)) throw new Error(`${full}: cannot freeze main head for status-source verification.`);
+  const checks = await api('GET', `/repos/${full}/commits/${sha}/check-runs?per_page=100`, undefined, { anonymousRetry: true });
+  return validateMainGateCheckRuns(checks, sha, full);
 function desiredRuleset(repo, detail, { bindStatusSource = bindCiSource } = {}) {
   const rules = Array.isArray(detail?.rules) ? detail.rules : [];
   const allowed = new Set(contract.requiredRuleTypes);
@@ -254,4 +258,4 @@ if (require.main === module) main().catch(error => {
   console.error(error.stack || error.message || String(error));
   process.exitCode = 2;
 });
-module.exports = { desiredRuleset, desiredStatusChecks, verifyExpectedCheckSource };
+module.exports = { desiredRuleset, desiredStatusChecks, validateMainGateCheckRuns, verifyExpectedCheckSource };
