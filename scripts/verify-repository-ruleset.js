@@ -38,10 +38,22 @@ function normalizedContexts(parameters = {}) {
     .map(item => String(item?.context || '').trim())
     .filter(Boolean))].sort();
 }
+function requiredCheckSourceBinding(parameters = {}) {
+  const expected = contract.requiredStatusChecks.expectedSource;
+  const contexts = Array.isArray(parameters.required_status_checks) ? parameters.required_status_checks : [];
+  const relevant = contexts.filter(item => item?.context === 'CI Gate');
+  const actual = relevant.length === 1 ? relevant[0].integration_id : null;
+  const binding = actual == null ? null : actual;
+  const state = relevant.length !== 1 ? 'ambiguous'
+    : binding == null ? 'unbound'
+      : Number.isSafeInteger(binding) && binding === expected.integrationId ? 'bound' : 'unexpected';
+  return { state, context: 'CI Gate', expectedIntegrationId: expected.integrationId,
+    observedIntegrationId: binding, expectedAppSlug: expected.appSlug };
+}
 function deleteBranchOnMergeState(repository = {}) {
   return typeof repository?.delete_branch_on_merge === 'boolean' ? repository.delete_branch_on_merge : null;
 }
-function assess(detail, repository = {}) {
+function assess(detail, repository = {}, { requireStatusSource = false } = {}) {
   const reasons = [];
   if (detail?.name !== contract.rulesetName) reasons.push(`ruleset-name:${detail?.name || 'missing'}`);
   if (detail?.enforcement !== contract.enforcement) reasons.push(`enforcement:${detail?.enforcement || 'missing'}`);
@@ -74,6 +86,9 @@ function assess(detail, repository = {}) {
   }
   const checks = byType.get('required_status_checks')?.parameters || {};
   const actualContexts = normalizedContexts(checks);
+  const sourceBinding = requiredCheckSourceBinding(checks);
+  if (requireStatusSource && sourceBinding.state !== 'bound') reasons.push(`required-check-source-${sourceBinding.state}`);
+
   if (contract.requiredStatusChecks.requireNonEmpty && actualContexts.length === 0) reasons.push('required-checks-empty');
   if (contract.requiredStatusChecks.strictRequiredStatusChecksPolicy && checks.strict_required_status_checks_policy !== true) reasons.push('required-checks-not-strict');
   if (contract.requiredStatusChecks.requireExactContexts) {
@@ -91,7 +106,7 @@ function assess(detail, repository = {}) {
   // sees the boolean and remains fail-closed on an explicit false value.
   const deleteBranchOnMerge = deleteBranchOnMergeState(repository);
   if (contract.deleteBranchOnMerge && deleteBranchOnMerge === false) reasons.push('delete-branch-on-merge-disabled');
-  return { ok: reasons.length === 0, reasons, administrativeMetadata: { deleteBranchOnMerge } };
+  return { ok: reasons.length === 0, reasons, sourceBinding, administrativeMetadata: { deleteBranchOnMerge } };
 }
 function policyFor(repo) {
   const explicit = contract.repositoryPolicies?.[repo];
@@ -126,8 +141,8 @@ async function auditRepository(repo, token) {
     if (!summary?.id) continue;
     const detail = await json(`/repos/${owner}/${repo}/rulesets/${summary.id}`, token);
     const result = assess(detail, repository);
-    if (result.ok) active.push({ id: detail.id, name: detail.name });
-    else rejected.push({ id: detail.id, name: detail.name, reasons: result.reasons });
+    if (result.ok) active.push({ id: detail.id, name: detail.name, sourceBinding: result.sourceBinding });
+    else rejected.push({ id: detail.id, name: detail.name, reasons: result.reasons, sourceBinding: result.sourceBinding });
   }
   const deleteBranchOnMerge = deleteBranchOnMergeState(repository);
   return {
@@ -160,4 +175,4 @@ async function main() {
   }
 }
 if (require.main === module) main().catch(error => { console.error(error.message || String(error)); process.exitCode = 2; });
-module.exports = { assess, auditRepository, branchCovered, normalizedContexts, deleteBranchOnMergeState, json, policyFor };
+module.exports = { assess, auditRepository, branchCovered, normalizedContexts, requiredCheckSourceBinding, deleteBranchOnMergeState, json, policyFor };
