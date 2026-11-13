@@ -42,7 +42,11 @@
     "requireExactContexts": true,
     "contexts": [
       "CI Gate"
-    ]
+    ],
+    "expectedSource": {
+      "integrationId": 15368,
+      "appSlug": "github-actions"
+    }
   },
   "maximumBypassActors": 1,
   "allowedBypassModes": [

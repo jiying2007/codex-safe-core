@@ -8,6 +8,7 @@ const { assess } = require('./verify-repository-ruleset');
 const API = 'https://api.github.com';
 const apply = process.argv.includes('--apply');
 const zeroBypass = process.argv.includes('--zero-bypass');
+const bindCiSource = process.argv.includes('--bind-ci-source');
 const cleanBranches = process.argv.includes('--clean-branches');
 const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '';
 
@@ -78,7 +79,54 @@ function desiredBypass(detail) {
   }));
 }
 
-function desiredRuleset(repo, detail) {
+function desiredStatusChecks(detail, { bindStatusSource = false } = {}) {
+  const source = contract.requiredStatusChecks.expectedSource;
+  const rule = (detail.rules || []).find(item => item.type === 'required_status_checks');
+  const current = rule?.parameters?.required_status_checks;
+  if (!Array.isArray(current) || current.length !== contract.requiredStatusChecks.contexts.length)
+    throw new Error('Refusing to replace an incomplete or extra required-check policy.');
+  return contract.requiredStatusChecks.contexts.map(context => {
+    const found = current.filter(item => item?.context === context);
+    if (found.length !== 1) throw new Error(`Refusing ambiguous required status context: ${context}`);
+    const existingId = found[0].integration_id;
+    if (existingId != null && (!Number.isSafeInteger(existingId) || existingId !== source.integrationId))
+      throw new Error(`Refusing to replace a required check from a different source: ${context}`);
+    // Both ordinary apply and explicit binding preserve a prior source binding.
+    return { context, ...((bindStatusSource || existingId === source.integrationId) ? { integration_id: source.integrationId } : {}) };
+  });
+}
+function validateMainGateCheckRuns(checks, sha, full = 'repository') {
+  const source = contract.requiredStatusChecks.expectedSource;
+  if (!/^[0-9a-f]{40}$/.test(String(sha))) throw new Error(`${full}: invalid main-HEAD SHA.`);
+  if (!Number.isSafeInteger(checks?.total_count) || checks.total_count < 1 ||
+      checks.total_count > 100 || !Array.isArray(checks.check_runs) ||
+      checks.check_runs.length !== checks.total_count) {
+    throw new Error(`${full}: incomplete main-HEAD check-run inventory; no status-source binding.`);
+  }
+  const matches = checks.check_runs.filter(check => check?.name === 'CI Gate');
+  if (matches.length !== 1 || matches[0].head_sha !== sha ||
+      matches[0].app?.id !== source.integrationId || matches[0].app?.slug !== source.appSlug ||
+      matches[0].conclusion !== 'success') {
+    throw new Error(`${full}: CI Gate is not a successful, exact-main GitHub Actions check-run from the declared source.`);
+  }
+  return { headSha: sha, integrationId: source.integrationId, appSlug: source.appSlug };
+}
+async function verifyExpectedCheckSource(full) {
+  const branch = await api('GET', `/repos/${full}/branches/${contract.defaultBranch}`, undefined, { anonymousRetry: true });
+  const sha = String(branch?.commit?.sha || '');
+  if (!/^[0-9a-f]{40}$/.test(sha)) throw new Error(`${full}: cannot freeze main head for status-source verification.`);
+  const checks = await api('GET', `/repos/${full}/commits/${sha}/check-runs?per_page=100`, undefined, { anonymousRetry: true });
+  return validateMainGateCheckRuns(checks, sha, full);
+}
+function desiredRuleset(repo, detail, { bindStatusSource = bindCiSource } = {}) {
+  const rules = Array.isArray(detail?.rules) ? detail.rules : [];
+  const allowed = new Set(contract.requiredRuleTypes);
+  if (rules.some(rule => !allowed.has(rule.type)) || rules.length !== allowed.size ||
+      new Set(rules.map(rule => rule.type)).size !== allowed.size) {
+    throw new Error('Refusing to overwrite non-canonical or extra Ruleset rules.');
+  }
+  const existingPr = rules.find(rule => rule.type === 'pull_request')?.parameters || {};
+  const existingChecks = rules.find(rule => rule.type === 'required_status_checks')?.parameters || {};
   return {
     name: contract.rulesetName,
     target: 'branch',
@@ -91,6 +139,7 @@ function desiredRuleset(repo, detail) {
       {
         type: 'pull_request',
         parameters: {
+          ...existingPr,
           allowed_merge_methods: mergeMethods(repo),
           dismiss_stale_reviews_on_push: contract.pullRequest.dismissStaleReviewsOnPush,
           require_code_owner_review: contract.pullRequest.requireCodeOwnerReview,
@@ -102,8 +151,9 @@ function desiredRuleset(repo, detail) {
       {
         type: 'required_status_checks',
         parameters: {
+          ...existingChecks,
           do_not_enforce_on_create: false,
-          required_status_checks: contract.requiredStatusChecks.contexts.map(context => ({ context })),
+          required_status_checks: desiredStatusChecks(detail, { bindStatusSource }),
           strict_required_status_checks_policy: contract.requiredStatusChecks.strictRequiredStatusChecksPolicy
         }
       }
@@ -173,9 +223,10 @@ async function main() {
     const summary = summaries.find(item => item?.name === contract.rulesetName);
     if (!summary?.id) throw new Error(`${full} is missing Ruleset ${contract.rulesetName}.`);
     const detail = await api('GET', `/repos/${full}/rulesets/${summary.id}`, undefined, { anonymousRetry: true });
-    const desired = desiredRuleset(repo, detail);
+    const verifiedSource = bindCiSource ? await verifyExpectedCheckSource(full) : null;
+    const desired = desiredRuleset(repo, detail, { bindStatusSource: bindCiSource });
 
-    process.stdout.write(`${apply ? 'APPLY' : 'DRY-RUN'} ${full}: Ruleset ${summary.id} -> CI Gate; delete_branch_on_merge=true; bypass=${desired.bypass_actors.map(a => a.bypass_mode).join(',') || 'none'}\n`);
+    process.stdout.write(`${apply ? 'APPLY' : 'DRY-RUN'} ${full}: Ruleset ${summary.id} -> CI Gate; source=${bindCiSource ? 'github-actions#15368 (verified)' : 'preserve-current'}; delete_branch_on_merge=true; bypass=${desired.bypass_actors.map(a => a.bypass_mode).join(',') || 'none'}\n`);
 
     if (apply) {
       await api('PATCH', `/repos/${full}`, { delete_branch_on_merge: true });
@@ -184,9 +235,9 @@ async function main() {
 
     const postRepo = apply ? await api('GET', `/repos/${full}`, undefined, { anonymousRetry: true }) : { ...repo, delete_branch_on_merge: true };
     const postDetail = apply ? await api('GET', `/repos/${full}/rulesets/${summary.id}`, undefined, { anonymousRetry: true }) : { ...desired, id: summary.id };
-    const verdict = assess(postDetail, postRepo);
+    const verdict = assess(postDetail, postRepo, { requireStatusSource: bindCiSource });
     if (!verdict.ok) throw new Error(`${full} desired governance does not satisfy contract: ${verdict.reasons.join(', ')}`);
-    results.push({ repository: full, rulesetId: summary.id, cleanup: { requested: cleanBranches, deleted: [], skipped: [] } });
+    results.push({ repository: full, rulesetId: summary.id, sourceBinding: verdict.sourceBinding, verifiedSource, cleanup: { requested: cleanBranches, deleted: [], skipped: [] } });
   }
 
   // Phase 2 is optional hygiene. It is deliberately separate so a token with
@@ -198,12 +249,13 @@ async function main() {
     }
   }
 
-  process.stdout.write(`${JSON.stringify({ schemaVersion: 1, mode: apply ? 'apply' : 'dry-run', zeroBypass, cleanBranches, results }, null, 2)}\n`);
+  process.stdout.write(`${JSON.stringify({ schemaVersion: 1, mode: apply ? 'apply' : 'dry-run', bindCiSource, zeroBypass, cleanBranches, results }, null, 2)}\n`);
   if (!apply) process.stdout.write('Dry-run only. Re-run with --apply after CI Gate exists on every native-protected repository. Publisher-protected private repositories are intentionally skipped. Add --clean-branches only when the token also has Contents: write.\n');
   else if (!cleanBranches) process.stdout.write('Governance applied. Historical branch cleanup was not requested; use --apply --clean-branches with Contents: write if desired.\n');
 }
 
-main().catch(error => {
+if (require.main === module) main().catch(error => {
   console.error(error.stack || error.message || String(error));
   process.exitCode = 2;
 });
+module.exports = { desiredRuleset, desiredStatusChecks, validateMainGateCheckRuns, verifyExpectedCheckSource };
