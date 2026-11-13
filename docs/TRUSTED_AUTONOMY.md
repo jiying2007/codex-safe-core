@@ -20,6 +20,21 @@ An administrator must separately inspect the actual protected-branch Ruleset and
 
 Changing the protected workflow itself is classified as high risk by the still-trusted base revision. An attacker may change the copy in the PR, but that copy will not execute in this observer. This only protects the observer; it does **not** certify the rest of the CI pipeline against workflow tampering until independent required-check and Ruleset configuration is verified.
 
+## CI-result corroboration (independent read-only stage)
+
+`.github/workflows/trusted-ci-corroboration.yml` now listens to the existing `CI` **workflow_run.completed** event. It executes only trusted default-branch code, with Actions/Contents/PR **read-only** permissions. It does not checkout a PR, use a paid model, publish success status, approve, merge, release or deploy anything.
+
+For each pull-request-triggered CI run, the workflow retrieves the run twice, reads **all** paginated jobs, and associates the run's exact source SHA with GitHub's `commits/{sha}/pulls` endpoint. GitHub's `workflow_run.pull_requests` array is often empty; it is never used as provenance. It requires exactly one matching PR, the canonical repository and main target, matching run ID/attempt/workflow ID/workflow path, and the complete canonical job-name set. Any changed SHA, missing/duplicate job, unknown job, skipped mandatory job or mismatched run is refused; a legitimate failed CI is recorded as **observed-non-success**, never silently reclassified as success.
+
+A successful observation is saved as `TRUSTED_CI_OBSERVATION.json` in an ordinary GitHub Actions artifact, identified by run ID and attempt. It includes per-job conclusions, skipped optional Canary jobs, the matching PR head/base SHA and the executing trusted workflow SHA. The digest is a content checksum, not a signing key. **This is corroboration of GitHub-reported CI status, not independent proof that the PR's tests were honest or complete.** Its `mergeAuthorized` remains `false` even if every check is green.
+
+The two complementary artifacts are:
+
+- `TRUSTED_AUTONOMY_SHADOW.json`: risk classification of immutable PR paths and size, generated on PR events.
+- `TRUSTED_CI_OBSERVATION.json`: GitHub API run and job cross-check, generated after CI completion.
+
+They are **observations**, not a new CI Receipt contract. They are not yet automatically joined into an L2 approval, and neither can mutate the existing immutable Consumer CI Receipt or release provenance. Missing one of them means no claim of complete evidence. Post-merge revert/hotfix and runtime quality remain unverified until separately attributed to exact merges.
+
 ## L1 → L2 → L3 rollout
 
 - **L1 (current):** agents may prepare changes and self-verify. A human or already-authorized process still merges. This observer emits evidence only.
@@ -33,6 +48,8 @@ Assess *no-regret merge rate*, revert/hotfix attribution, escaped defects, manua
 ```sh
 node --test test/trusted-autonomy-shadow.test.js
 node --check scripts/trusted-autonomy-shadow.js
+node --test test/trusted-ci-corroboration.test.js
+node --check scripts/trusted-ci-corroboration.js
 ```
 
 Live observation is intentionally GitHub Actions-only and consumes GitHub API read calls, not Codex, ChatGPT Work or model tokens. After this branch merges, a **new** PR event is required for the protected-base workflow to run. This PR cannot qualify its own newly-added base workflow.
