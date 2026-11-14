@@ -111,4 +111,4 @@ Runtime Contract v3 允许 Review、Commit、Diagnose 与 Review Service 共享�
 
 `secureReadBuffer(path,options)` 与 `secureReadText` 复用文件描述符、有界读取和前后身份验证。session/snapshot 可启用 `requireSingleLink:true`；用户明确选择的外部附件可按用途配置 owner/写权限要求，但保留描述符和字节上限。
 
-Git 原始相对路径不做反斜杠归一化。统一复用 `decodeGitQuotedPath`、`parseGitDiffHeaderPaths` 与 `parseGitFileHeaderPath`；不明确的路径或无效 UTF-8 不获得补丁授权，rename/copy 两端都需纳入证据范围。
+Git 原始相对路径不做反斜杠归一化。统一复用 `quoteGitPath`、`decodeGitQuotedPath`、`parseGitDiffHeaderPaths` 与 `parseGitFileHeaderPath`；不明确的路径或无效 UTF-8 不获得补丁授权，rename/copy 两端都需纳入证据范围。

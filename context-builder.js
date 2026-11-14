@@ -26,6 +26,13 @@ function decodeGitQuotedPath(value){
  }
  return new TextDecoder('utf-8',{fatal:true}).decode(Buffer.from(bytes));
 }
+function quoteGitPath(value){
+ if(typeof value!=='string'||!value||value.includes('\0'))throw new TypeError('Git path must be a nonempty string without NUL.');
+ const bytes=Buffer.from(value,'utf8');
+ if(new TextDecoder('utf-8',{fatal:true}).decode(bytes)!==value)throw new TypeError('Git path contains invalid Unicode.');
+ const escapes={7:'\\a',8:'\\b',9:'\\t',10:'\\n',11:'\\v',12:'\\f',13:'\\r',34:'\\"',92:'\\\\'};
+ return '"'+Array.from(bytes,byte=>escapes[byte]||(byte<32||byte>=127?'\\'+byte.toString(8).padStart(3,'0'):String.fromCharCode(byte))).join('')+'"';
+}
 function quotedPathEnd(raw,start=0){
  let cursor=start+1;
  for(;cursor<raw.length;cursor++){
@@ -128,4 +135,4 @@ function buildSemanticContext({files=[],diff='',commits=[],maxBytes=512*1024}={}
 function splitReviewBlock(block,maxBytes){if(byteLength(block.text)<=maxBytes)return{units:[{path:block.path,kind:block.kind,text:block.text,bytes:byteLength(block.text)}],gaps:[]};const matches=[...block.text.matchAll(/^@@ /gm)];if(!matches.length)return{units:[],gaps:[`${block.path}:block_exceeds_budget`]};const header=block.text.slice(0,matches[0].index),units=[],gaps=[];for(let i=0;i<matches.length;i+=1){const hunk=block.text.slice(matches[i].index,matches[i+1]?.index??block.text.length),text=`${header}${hunk}`,bytes=byteLength(text);if(bytes>maxBytes)gaps.push(`${block.path}:hunk_exceeds_budget`);else units.push({path:block.path,kind:block.kind,text,bytes});}return{units,gaps};}
 function buildReviewEvidenceChunks({diff='',maxBytes=512*1024,maxChunks=8,includeKinds=['source']}={}){const budget=clampBudget(maxBytes),chunkLimit=Math.max(1,Math.min(64,Math.floor(Number(maxChunks)||8))),allowed=new Set(includeKinds),blocks=splitUnifiedDiff(diff),units=[],coverageGaps=[],excluded=[];for(const block of blocks){if(!allowed.has(block.kind)){excluded.push({path:block.path,kind:block.kind});continue;}const split=splitReviewBlock(block,budget);units.push(...split.units);coverageGaps.push(...split.gaps);}const chunks=[];let current=[],bytes=0;const flush=()=>{if(!current.length)return;chunks.push(Object.freeze({index:chunks.length,paths:Object.freeze([...new Set(current.map(unit=>unit.path))]),text:current.map(unit=>unit.text).join('\n'),bytes}));current=[];bytes=0;};for(const unit of units){if(current.length&&bytes+unit.bytes+1>budget)flush();if(chunks.length>=chunkLimit){coverageGaps.push(`${unit.path}:chunk_limit`);continue;}bytes+=unit.bytes+(current.length?1:0);current.push(unit);}if(current.length){if(chunks.length<chunkLimit)flush();else for(const unit of current)coverageGaps.push(`${unit.path}:chunk_limit`);}return Object.freeze({chunks:Object.freeze(chunks),complete:coverageGaps.length===0,coverageGaps:Object.freeze([...new Set(coverageGaps)]),excluded:Object.freeze(excluded),budgetBytes:budget,maxChunks:chunkLimit,inputDiffBytes:byteLength(diff)});}
 
-module.exports={decodeGitQuotedPath,parseGitDiffHeaderPaths,parseGitFileHeaderPath,classifyPath,clampBudget,splitUnifiedDiff,boundSourceBlock,allocateSourceBlocks,buildSemanticContext,splitReviewBlock,buildReviewEvidenceChunks};
+module.exports={quoteGitPath,decodeGitQuotedPath,parseGitDiffHeaderPaths,parseGitFileHeaderPath,classifyPath,clampBudget,splitUnifiedDiff,boundSourceBlock,allocateSourceBlocks,buildSemanticContext,splitReviewBlock,buildReviewEvidenceChunks};

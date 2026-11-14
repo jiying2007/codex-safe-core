@@ -127,7 +127,8 @@
     "boundUtf8Text",
     "secureReadBuffer",
     "parseGitDiffHeaderPaths",
-    "decodeGitQuotedPath"
+    "decodeGitQuotedPath",
+    "quoteGitPath"
   ],
   "productOwned": [
     "commit-domain",

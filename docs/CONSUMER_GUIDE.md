@@ -111,4 +111,4 @@ Use `redactDiagnosticText(text)` on all model-visible external fields before cal
 
 `secureReadBuffer(path, options)` shares the bounded descriptor reader used by `secureReadText`. Session/snapshot callers can set `requireSingleLink: true`; explicitly selected external artifacts may set `requireOwner: false` and `rejectGroupOtherWrite: false` when appropriate without disabling descriptor and byte-limit checks.
 
-Git-native paths remain raw repository-relative identities on every OS. Reuse `decodeGitQuotedPath`, `parseGitDiffHeaderPaths` and `parseGitFileHeaderPath`; never convert literal backslashes into separators. Ambiguous headers and malformed UTF-8 cannot authorize a patch. Both old and new paths must be in the reviewed scope.
+Git-native paths remain raw repository-relative identities on every OS. Reuse `quoteGitPath`, `decodeGitQuotedPath`, `parseGitDiffHeaderPaths` and `parseGitFileHeaderPath`; never convert literal backslashes into separators. Ambiguous headers and malformed UTF-8 cannot authorize a patch. Both old and new paths must be in the reviewed scope.

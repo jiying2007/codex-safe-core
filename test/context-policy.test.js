@@ -58,6 +58,17 @@ test('C-quoted deleted and binary-only Git diff paths remain identifiable',()=>{
   assert.deepEqual(core.splitUnifiedDiff(removed).map(v=>v.path),['驱动.c']);
 });
 
+test('raw provider paths serialize without introducing extra diff records',()=>{
+ for(const path of ['plain.c','x\\y.c','a b.c','tab\t.c','line\nnext.c','测试.c','quote".c',' padded.c ']){
+   const encoded=core.quoteGitPath(path);
+   assert.equal(core.decodeGitQuotedPath(encoded),path);
+   assert.ok(!encoded.includes('\n'));
+   const header=`diff --git ${core.quoteGitPath('a/'+path)} ${core.quoteGitPath('b/'+path)}`;
+   assert.deepEqual(core.parseGitDiffHeaderPaths(header),{old:path,new:path});
+ }
+ for(const invalid of ['',null,'nul\0.c','\ud800'])assert.throws(()=>core.quoteGitPath(invalid),/Git path/);
+});
+
 test('byte allocations never exceed limits even with thousands of tiny source chunks',()=>{
  const blocks=Array.from({length:800},(_,index)=>({path:'src/f'+index+'.c',text:'diff --git a/src/f'+index+'.c b/src/f'+index+'.c\n-old\n+new'+('x'.repeat(200))}));
  for(const maxBytes of [1,2,16,63,64,65,128,4096,65536]){
