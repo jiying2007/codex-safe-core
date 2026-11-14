@@ -33,7 +33,10 @@ function selectBaseline(releases,candidateSha,resolveTag,isAncestor){
 }
 function describeSource(root,expectedSha){
   requireValue(SHA.test(expectedSha),'source SHA must be exact');
-  requireValue(fs.realpathSync(command('git',['rev-parse','--show-toplevel'],root))===fs.realpathSync(root),'source must be a repository root');
+  const top=fs.statSync(command('git',['rev-parse','--show-toplevel'],root),{bigint:true}),directory=fs.statSync(root,{bigint:true});
+  // Windows short names/casing and macOS /var aliases can have different
+  // canonical strings. Compare the actual directory identity, not spelling.
+  requireValue(top.isDirectory()&&directory.isDirectory()&&top.ino>0n&&top.dev===directory.dev&&top.ino===directory.ino,'source must be a repository root');
   requireValue(command('git',['rev-parse','HEAD'],root)===expectedSha,'source checkout does not match expected SHA');
   requireValue(command('git',['status','--porcelain','--untracked-files=no'],root)==='','source checkout has tracked changes');
   const contract=JSON.parse(fs.readFileSync(path.join(root,'core-contract.json'),'utf8'));
