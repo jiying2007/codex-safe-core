@@ -1,5 +1,14 @@
 # Changelog
 
+## 4.18.3
+
+- Share diagnostic redaction, UTF-8 byte limits, descriptor-bound binary reads and optional single-link session checks across Diagnose and Debug; bind diagnosis manifests to the exact delivered prompt when supplied.
+- Preserve raw Git path identity across quoted Unicode, literal backslashes and whitespace; authorize both sides of rename/copy proposals and reject conflicting file headers.
+- Require explicit measured quality, complete economics and nonzero sample evidence before economics-based model selection or promotion.
+- Observe the actual three-platform canary matrix and distinguish successful credentialless jobs from live behavioral/quality execution; require matched environments before percentage performance comparisons.
+- Label stored scorer regressions separately from new model execution. Family Upgrade preparation and validation no longer confer merge authority; merging requires an explicit workflow input and all ordinary checks.
+- Runtime bytes change: consumers must pin the exact immutable 4.18.3 release after publication. Seven-repository server governance migration remains a separate administrative change.
+
 ## 4.18.2
 
 - Bind runtime, configuration and authentication reads to a bounded single descriptor; enforce complete streaming UTF-8 and terminal JSONL evidence, and clean up the child process group after direct-child exit.

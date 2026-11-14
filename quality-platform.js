@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('node:crypto');
+const {parseGitDiffHeaderPaths,parseGitFileHeaderPath,decodeGitQuotedPath}=require('./context-builder');
 
 const REVIEW_PROFILE_NAMES = Object.freeze(['quick','standard','deep','security','embedded']);
 const REVIEW_PROFILES = Object.freeze({
@@ -17,7 +18,7 @@ const RESOLUTION_VALUES = Object.freeze(['fixed','false_positive','accepted_risk
 function freeze(value){if(Array.isArray(value))return Object.freeze(value.map(freeze));if(value&&typeof value==='object')return Object.freeze(Object.fromEntries(Object.entries(value).map(([k,v])=>[k,freeze(v)])));return value;}
 function byteLength(value){return Buffer.byteLength(String(value||''),'utf8');}
 function sha(value){return crypto.createHash('sha256').update(String(value)).digest('hex');}
-function normalizePath(value){return String(value||'').replace(/\\/g,'/').replace(/^\.\//,'');}
+function normalizePath(value){return String(value||'');}
 function basename(value){const p=normalizePath(value);return p.slice(p.lastIndexOf('/')+1);}
 function stem(value){const b=basename(value),i=b.lastIndexOf('.');return(i>0?b.slice(0,i):b).toLowerCase();}
 
@@ -29,7 +30,7 @@ function resolveReviewProfile(name='standard',overrides={}){
 
 function extractImpactSignals(diff=''){
   const text=String(diff||''),paths=[];
-  for(const match of text.matchAll(/^diff --git a\/(.+?) b\/(.+)$/gm))paths.push(normalizePath(match[2]||match[1]));
+  for(const match of text.matchAll(/^diff --git .*$/gm)){const value=parseGitDiffHeaderPaths(match[0]);if(value)paths.push(value.new);}
   const changed=text.split(/\r?\n/).filter(line=>/^[+-](?![+-])/.test(line)).map(line=>line.slice(1));
   const includes=new Set(),modules=new Set(),symbols=new Set(),configs=new Set(),labels=new Set();
   const add=(set,value,max=128)=>{const v=String(value||'').trim().replace(/^["'<]+|[">';,)]+$/g,'');if(v&&set.size<max)set.add(v);};
@@ -82,7 +83,38 @@ function matchesExpected(finding,expected){if(normalizePath(finding.file)!==norm
 function evaluateQualityResults(cases=[],results=[]){const byId=new Map((results||[]).map(item=>[String(item.id),item]));let expectedTotal=0,criticalTotal=0,matched=0,criticalMatched=0,falsePositive=0,reviews=0,duplicates=0,invalidLines=0,totalFindings=0,inputTokens=0,outputTokens=0;for(const item of cases||[]){reviews++;const expected=Array.isArray(item.expected)?item.expected:[],result=byId.get(String(item.id))||{},findings=Array.isArray(result.findings)?result.findings:[];expectedTotal+=expected.length;criticalTotal+=expected.filter(e=>e.severity==='critical').length;const used=new Set(),seen=new Set();for(const f of findings){totalFindings++;const key=String(f.fingerprint||defectKey(f));if(seen.has(key)){duplicates++;continue;}seen.add(key);if(f.validLine===false)invalidLines++;const index=expected.findIndex((e,i)=>!used.has(i)&&matchesExpected(f,e));if(index>=0){used.add(index);matched++;if(expected[index].severity==='critical')criticalMatched++;}else falsePositive++;}inputTokens+=Number(result.usage?.inputTokens||0);outputTokens+=Number(result.usage?.outputTokens||0);}const recall=expectedTotal?matched/expectedTotal:1,criticalRecall=criticalTotal?criticalMatched/criticalTotal:1,precision=(matched+falsePositive)?matched/(matched+falsePositive):1;return freeze({reviews,expectedTotal,criticalTotal,truePositive:matched,falseNegative:expectedTotal-matched,falsePositive,recall,criticalRecall,precision,falsePositivePerReview:reviews?falsePositive/reviews:0,duplicateRate:totalFindings?duplicates/totalFindings:0,invalidLineRate:totalFindings?invalidLines/totalFindings:0,inputTokens,outputTokens,totalTokens:inputTokens+outputTokens,tokensPerTruePositive:matched?(inputTokens+outputTokens)/matched:0});}
 function assertQualityGate(metrics,{baseline=null,minCriticalRecall=1,minRecall=0.9,minPrecision=0.7,maxFalsePositivePerReview=1,maxRecallRegression=0.01,maxPrecisionRegression=0.03,maxTokenRegression=0.1}={}){const failures=[];if(metrics.criticalRecall<minCriticalRecall)failures.push(`critical recall ${metrics.criticalRecall.toFixed(3)} < ${minCriticalRecall}`);if(metrics.recall<minRecall)failures.push(`recall ${metrics.recall.toFixed(3)} < ${minRecall}`);if(metrics.precision<minPrecision)failures.push(`precision ${metrics.precision.toFixed(3)} < ${minPrecision}`);if(metrics.falsePositivePerReview>maxFalsePositivePerReview)failures.push(`false positives/review ${metrics.falsePositivePerReview.toFixed(3)} > ${maxFalsePositivePerReview}`);if(baseline){if(metrics.recall+maxRecallRegression<Number(baseline.recall||0))failures.push('recall regressed beyond baseline tolerance');if(metrics.precision+maxPrecisionRegression<Number(baseline.precision||0))failures.push('precision regressed beyond baseline tolerance');const baseTokens=Number(baseline.tokensPerTruePositive||0);if(baseTokens>0&&metrics.tokensPerTruePositive>baseTokens*(1+maxTokenRegression))failures.push('tokens/true-positive regressed beyond baseline tolerance');}if(failures.length){const error=new Error(`Quality gate failed: ${failures.join('; ')}`);error.code='EQUALITYGATE';error.failures=failures;error.metrics=metrics;throw error;}return metrics;}
 
-function validatePatchProposal(proposal,{allowedPaths=[],maxBytes=256*1024}={}){if(!proposal||typeof proposal!=='object'||Array.isArray(proposal))throw new TypeError('Patch proposal must be an object.');const patch=String(proposal.patch||''),rationale=String(proposal.rationale||'').trim();if(!patch.trim())throw new Error('Patch proposal is empty.');if(byteLength(patch)>Math.max(4096,Number(maxBytes)||256*1024))throw new Error('Patch proposal exceeds byte budget.');if(/GIT binary patch|^Binary files /m.test(patch))throw new Error('Binary patches are not allowed.');const touched=[...patch.matchAll(/^diff --git a\/(.+?) b\/(.+)$/gm)].map(m=>normalizePath(m[2]||m[1]));if(!touched.length)throw new Error('Patch proposal must be a unified git diff.');const allowed=new Set((allowedPaths||[]).map(normalizePath));if(allowed.size){const outside=touched.filter(path=>!allowed.has(path));if(outside.length)throw new Error(`Patch proposal touches paths outside reviewed evidence: ${outside.join(', ')}`);}if(patch.includes('\0'))throw new Error('Patch proposal contains NUL bytes.');return freeze({patch,rationale,touchedPaths:[...new Set(touched)],fingerprint:sha(patch)});}
+function validatePatchProposal(proposal,{allowedPaths=[],maxBytes=256*1024}={}){
+ if(!proposal||typeof proposal!=='object'||Array.isArray(proposal))throw new TypeError('Patch proposal must be an object.');
+ const patch=String(proposal.patch||''),rationale=String(proposal.rationale||'').trim();
+ if(!patch.trim())throw new Error('Patch proposal is empty.');
+ if(byteLength(patch)>Math.max(4096,Number(maxBytes)||256*1024))throw new Error('Patch proposal exceeds byte budget.');
+ if(patch.includes('\0'))throw new Error('Patch proposal contains NUL bytes.');
+ if(/GIT binary patch|^Binary files /m.test(patch))throw new Error('Binary patches are not allowed.');
+ const headers=[...patch.matchAll(/^diff --git .*$/gm)],touched=[];
+ if(!headers.length)throw new Error('Patch proposal must be a unified git diff.');
+ for(let i=0;i<headers.length;i++){
+   const paths=parseGitDiffHeaderPaths(headers[i][0]);
+   if(!paths)throw new Error('Patch proposal has an ambiguous or invalid Git path header.');
+   const metadata=patch.slice(headers[i].index,headers[i+1]?.index??patch.length).split(/^@@ /m,1)[0];
+   for(const [prefix,key] of [['--- ','old'],['+++ ','new']]){
+     const lines=metadata.split('\n').filter(line=>line.startsWith(prefix));
+     if(lines.length>1)throw new Error('Patch proposal has duplicate file headers.');
+     if(lines.length){const value=parseGitFileHeaderPath(lines[0],prefix);if(value!=='/dev/null'&&value!==paths[key])throw new Error('Patch proposal file header disagrees with Git path identity.');}
+   }
+   for(const [prefix,key] of [['rename from ','old'],['rename to ','new'],['copy from ','old'],['copy to ','new']]){
+     const line=metadata.split('\n').find(value=>value.startsWith(prefix));
+     if(line&&decodeGitQuotedPath(line.slice(prefix.length))!==paths[key])throw new Error('Patch proposal rename/copy path disagrees with Git path identity.');
+   }
+   for(const value of [paths.old,paths.new]){
+     if(!value||value.startsWith('/')||value.split('/').some(part=>part==='..'||part==='.'||part==='.git')||
+       (process.platform==='win32'&&(/\\|^[a-z]:/i.test(value))))throw new Error('Patch proposal contains an unsafe repository path.');
+     touched.push(value);
+   }
+ }
+ const allowed=new Set((allowedPaths||[]).map(normalizePath));
+ if(allowed.size){const outside=touched.filter(path=>!allowed.has(path));if(outside.length)throw new Error(`Patch proposal touches paths outside reviewed evidence: ${outside.join(', ')}`);}
+ return freeze({patch,rationale,touchedPaths:[...new Set(touched)],fingerprint:sha(patch)});
+}
 function comparePerformanceSnapshot(current={},baseline={},limits={}){const pct=(value,base)=>base>0?(value-base)/base:0,checks=[['latencyMs',Number(limits.latencyRegressionPct??10)/100],['rssBytes',Number(limits.rssRegressionPct??10)/100],['artifactBytes',Number(limits.artifactRegressionPct??5)/100]],regressions=[];for(const[key,limit]of checks){const value=Number(current[key]||0),base=Number(baseline[key]||0),regression=pct(value,base);if(base>0&&regression>limit)regressions.push({key,value,baseline:base,regression,limit});}return freeze({ok:regressions.length===0,regressions});}
 
 module.exports={REVIEW_PROFILE_NAMES,REVIEW_PROFILES,ANALYZER_SEVERITIES,ANALYZER_CATEGORIES,RESOLUTION_VALUES,resolveReviewProfile,extractImpactSignals,scoreImpactCandidate,buildImpactEvidenceGraph,normalizeAnalyzerFinding,normalizeSarif,dedupeAnalyzerFindings,formatAnalyzerEvidence,evaluateQualityResults,assertQualityGate,validatePatchProposal,comparePerformanceSnapshot};

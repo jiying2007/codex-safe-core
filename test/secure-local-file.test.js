@@ -5,9 +5,37 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { atomicWriteText, secureReadText, withExclusiveFileLock } = require('../secure-local-file');
+const { atomicWriteText, secureReadBuffer, secureReadText, withExclusiveFileLock } = require('../secure-local-file');
 
 function temp() { return fs.mkdtempSync(path.join(os.tmpdir(), 'codex-secure-local-')); }
+
+test('binary reader preserves arbitrary bytes under the same descriptor and byte budget', () => {
+  const dir = temp();
+  try {
+    const file = path.join(dir, 'artifact.bin'), value = Buffer.from([0,255,128,10,13,42]);
+    fs.writeFileSync(file, value, { mode: 0o600 });
+    assert.deepEqual(secureReadBuffer(file, { maxBytes: value.length }), value);
+    assert.throws(() => secureReadBuffer(file, { maxBytes: value.length - 1 }), error => error.code === 'ELOCALFILE');
+    assert.equal(secureReadBuffer(path.join(dir, 'missing'), { allowMissing: true }), null);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('optional single-link policy rejects a second name before and during a read', () => {
+  const dir = temp();
+  try {
+    const file = path.join(dir, 'snapshot'), alias = path.join(dir, 'alias');
+    fs.writeFileSync(file, 'private snapshot', { mode: 0o600 });
+    fs.linkSync(file, alias);
+    assert.throws(() => secureReadBuffer(file, { requireSingleLink: true }), /exactly one link/);
+    fs.unlinkSync(alias);
+    const fsImpl = Object.create(fs); let linked = false;
+    fsImpl.readSync = (...args) => {
+      if (!linked) { fs.linkSync(file, alias); linked = true; }
+      return fs.readSync(...args);
+    };
+    assert.throws(() => secureReadBuffer(file, { requireSingleLink: true, fsImpl }), /exactly one link/);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
 
 test('secure local file round-trip uses private regular file', () => {
   const dir = temp();

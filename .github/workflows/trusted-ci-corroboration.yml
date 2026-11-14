@@ -43,7 +43,7 @@ jobs:
           jq '.workflow_run' "$GITHUB_EVENT_PATH" > "$RUNNER_TEMP/ci-event.json"
           gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${CI_RUN_ID}" > "$RUNNER_TEMP/ci-before.json"
           gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/runs/${CI_RUN_ID}/jobs?per_page=100" \
-            --jq '.jobs[] | {id, name, run_id, head_sha, status, conclusion}' \
+            --jq '.jobs[] | {id, name, run_id, head_sha, status, conclusion, steps: [.steps[]? | {name, status, conclusion}]}' \
             | jq -s '.' > "$RUNNER_TEMP/ci-jobs.json"
           gh api --paginate "repos/${GITHUB_REPOSITORY}/commits/${CI_HEAD_SHA}/pulls?per_page=100" \
             --jq '.[] | {number, head: {sha: .head.sha}, base: {sha: .base.sha, ref: .base.ref, repo: {full_name: .base.repo.full_name}}}' \

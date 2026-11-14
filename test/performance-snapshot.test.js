@@ -2,7 +2,15 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const{median,percentile95,summarizeSamples,withinBroadBudget,buildSnapshot}=require('../scripts/write-performance-snapshot');
-const{compareSnapshots,describeComparability,workloadComparable}=require('../scripts/compare-performance-snapshot');
+const{compareSnapshots:compareRawSnapshots,describeComparability,workloadComparable}=require('../scripts/compare-performance-snapshot');
+const environmentFixture={node:'v22.22.2',platform:'linux',environment:{arch:'x64',osRelease:'6.1',cpuModel:'fixture-cpu',logicalCpus:4}};
+const workloadFixture={inputDiffBytes:4194330,maxEvidenceBytes:512*1024,maxChunks:8,maxImpactBytes:128*1024,inputSha256:'a'.repeat(64)};
+// Metric and workload cases below use an explicitly matched execution environment.
+function compareSnapshots(current,baseline){
+ const workloadSpecified=Object.hasOwn(current,'workload')||Object.hasOwn(baseline,'workload');
+ const defaults={...environmentFixture,...(workloadSpecified?{}:{workload:workloadFixture})};
+ return compareRawSnapshots({...defaults,...current},{...defaults,...baseline});
+}
 const base={elapsedMs:100,rssGrowthBytes:1000,evidenceChunks:8,evidenceInputBytes:4194330,contextInputBytes:4194330,impactNodes:32,impactBytes:39340,estimatedTokens:497856,risk:2,plannedBytes:1046730};
 test('performance snapshots use a stable odd-sample median',()=>{assert.equal(median([180,120,150,140,160,130,170]),150);const samples=[90,100,110,95,105,120,80].map((elapsedMs,index)=>({...base,elapsedMs,rssGrowthBytes:1000+index*10}));const out=summarizeSamples(samples);assert.equal(out.elapsedMs,100);assert.equal(out.rssGrowthBytes,1030);assert.equal(out.elapsedP95Ms,120);assert.equal(out.rssP95Bytes,1060);});
 test('performance samples fail closed on structural drift',()=>{const samples=Array.from({length:7},()=>({...base}));samples[3]={...samples[3],plannedBytes:123};assert.throws(()=>summarizeSamples(samples),/structural drift/);});
@@ -147,6 +155,19 @@ test('comparing different 4 MiB workloads cannot produce a passing performance r
     assert.deepEqual(result,{ok:false,migration:false,reason:'workload_drift'},JSON.stringify(changed));
   }
   const noSha=Object.fromEntries(Object.entries(workload).filter(([key])=>key!=='inputSha256'));
-  assert.equal(compareSnapshots(candidate,make(noSha)).ok,true,'older v3 baselines preserve fixed-shape comparison');
+  assert.equal(compareSnapshots(candidate,make(noSha)).reason,'incomparable_environment','missing workload identity is not measured regression evidence');
   assert.equal(compareSnapshots(candidate,{schemaVersion:3,metrics:baseline.metrics}).reason,'workload_drift');
+});
+
+test('mismatched or missing environments are incomparable without a fabricated percentage regression',()=>{
+ const a={...environmentFixture,schemaVersion:3,metrics:{elapsedMs:300,rssGrowthBytes:100},workload:workloadFixture};
+ const b={...a,metrics:{elapsedMs:100,rssGrowthBytes:100},environment:{...a.environment,cpuModel:'other-cpu'}};
+ const mismatch=compareRawSnapshots(a,b);
+ assert.equal(mismatch.ok,false);assert.equal(mismatch.reason,'incomparable_environment');assert.equal(mismatch.result,null);
+ assert.deepEqual(mismatch.comparability.mismatched,['cpuModel']);
+ const missing=compareRawSnapshots({...a,environment:undefined},b);
+ assert.equal(missing.reason,'incomparable_environment');assert.ok(missing.comparability.missing.includes('cpuModel'));
+ const matched=compareRawSnapshots(a,{...a,metrics:b.metrics});
+ assert.equal(matched.reason,'regression');assert.ok(matched.result.regressions.some(item=>item.key==='latencyMs'));
+ assert.equal(compareRawSnapshots({...a,metrics:{elapsedMs:6000,rssGrowthBytes:100}},b).reason,'broad_budget');
 });

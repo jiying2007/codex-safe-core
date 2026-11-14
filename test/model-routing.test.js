@@ -125,6 +125,22 @@ test('quality-rejected economics candidate is excluded from auto routing', () =>
   assert.equal(result.resolvedModel, 'balanced-a');
 });
 
+test('missing quality approval or metrics cannot buy an automatic economics preference', () => {
+  const balancedB = { ...balancedReviewer, model: 'balanced-b', id: 'relay/balanced-b', priority: 100 };
+  const complete = { samples: 20, qualityApproved: true, tokensPerVerifiedFinding: 1,
+    costPerVerifiedFinding: 0.001, latencyP95Ms: 1, falsePositiveRate: 0, coverageRatio: 1 };
+  for (const record of [
+    { ...complete, qualityApproved: undefined }, { ...complete, qualityApproved: 'true' },
+    { ...complete, costPerVerifiedFinding: undefined }, { ...complete, costPerVerifiedFinding: null },
+    { ...complete, latencyP95Ms: NaN }, { ...complete, coverageRatio: 2 }
+  ]) {
+    const result = resolveModelSelection({ registry: registry([balancedReviewer, balancedB]),
+      mode: 'balanced', role: 'reviewer', strategy: 'auto', provider: 'relay',
+      economicsByModel: { 'relay/balanced-b': record } });
+    assert.equal(result.resolvedModel, 'balanced-a', JSON.stringify(record));
+  }
+});
+
 test('scout can use fast while adjudicator requires frontier', () => {
   assert.equal(assessModelCompatibility({ mode: 'fast', role: 'scout', modelClass: 'fast', policy: 'strict' }).compatible, true);
   assert.equal(assessModelCompatibility({ mode: 'fast', role: 'adjudicator', modelClass: 'balanced', policy: 'strict' }).allowed, false);

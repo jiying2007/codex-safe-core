@@ -24,6 +24,35 @@ test('patch authorization distinguishes literal a/ and b/ repository directories
   }
 });
 
+test('real Git patch identities preserve quoted Unicode, whitespace and literal POSIX backslashes', {skip:process.platform==='win32'},()=>{
+  const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),{execFileSync}=require('node:child_process');
+  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'safe-git-paths-'));
+  const git=(...args)=>execFileSync('git',args,{cwd:directory,encoding:'utf8',stdio:['ignore','pipe','pipe']});
+  const paths=['x\\y.c','x/y.c','测试.c',' padded.c ','a/inner.c'];
+  try{
+    git('init','-q');
+    for(const file of paths){fs.mkdirSync(path.dirname(path.join(directory,file)),{recursive:true});fs.writeFileSync(path.join(directory,file),'old\n');}
+    git('add','--all');
+    git('-c','user.name=fixture','-c','user.email=fixture@example.invalid','commit','-qm','initial');
+    for(const file of paths)fs.writeFileSync(path.join(directory,file),'new\n');
+    const patch=git('diff','--no-ext-diff','--no-textconv');
+    assert.deepEqual([...validatePatchProposal({patch},{allowedPaths:paths}).touchedPaths].sort(),[...paths].sort());
+    assert.deepEqual([...extractImpactSignals(patch).paths].sort(),[...paths].sort());
+    assert.throws(()=>validatePatchProposal({patch},{allowedPaths:paths.filter(file=>file!=='x\\y.c')}),/outside reviewed evidence/);
+  }finally{fs.rmSync(directory,{recursive:true,force:true});}
+});
+test('rename authorization binds both sides and rejects conflicting file headers',()=>{
+  const patch='diff --git a/from.c "b/to\\t.c"\nsimilarity index 100%\nrename from from.c\nrename to "to\\t.c"\n';
+  assert.deepEqual(validatePatchProposal({patch},{allowedPaths:['from.c','to\t.c']}).touchedPaths,['from.c','to\t.c']);
+  assert.throws(()=>validatePatchProposal({patch},{allowedPaths:['to\t.c']}),/outside reviewed evidence/);
+  const mismatch='diff --git a/safe.c b/safe.c\n--- a/outside.c\n+++ b/safe.c\n@@ -1 +1 @@\n-old\n+new\n';
+  assert.throws(()=>validatePatchProposal({patch:mismatch},{allowedPaths:['safe.c']}),/disagrees/);
+  const traversal='diff --git a/../outside.c b/../outside.c\n';
+  assert.throws(()=>validatePatchProposal({patch:traversal}),/unsafe repository path/);
+  const invalid='diff --git "a/\\377.c" "b/\\377.c"\n';
+  assert.throws(()=>validatePatchProposal({patch:invalid}),/invalid Git path/);
+});
+
 test('impact extraction reuses regexes without carrying state between changed lines',()=>{
  const diff=['diff --git a/src/main.js b/src/main.js','--- a/src/main.js','+++ b/src/main.js','@@ -1 +1,5 @@',
    '-old','+import "lib/first"','+import "lib/second"','+function alpha() {}','+function beta() {}','+function gamma() {}'].join('\n');
