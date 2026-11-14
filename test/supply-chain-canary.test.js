@@ -153,8 +153,13 @@ test('security findings and private governance reads feed the existing CI Gate',
 
 });
 
-test('offline zizmor reuses the existing Security job and scans only high-signal workflow YAML', () => {
+test('offline zizmor retains required reporting in an isolated Security job', () => {
   const security = fs.readFileSync(path.join(workflowDir, 'security.yml'), 'utf8');
+  const codeqlJob = security.slice(security.indexOf('\n  codeql:'), security.indexOf('\n  zizmor:'));
+  const zizmorJob = security.slice(security.indexOf('\n  zizmor:'));
+  assert.doesNotMatch(codeqlJob, /zizmorcore\/zizmor-action/);
+  assert.doesNotMatch(zizmorJob, /github\/codeql-action\/(?:init|analyze)/);
+  assert.match(zizmorJob, /zizmorcore\/zizmor-action/);
   assert.match(security, /zizmorcore\/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd/);
   assert.match(security, /inputs: \.github\/workflows/);
   assert.match(security, /collect: workflows/);
@@ -165,6 +170,9 @@ test('offline zizmor reuses the existing Security job and scans only high-signal
   assert.match(security, /advanced-security: 'true'/);
   assert.match(security, /github\/codeql-action\/analyze/);
   assert.equal((security.match(/^\s{2}[A-Za-z0-9_-]+:$/gm) || []).filter(x => x.trim() === 'codeql:').length, 1);
+  assert.equal((security.match(/^\s{2}[A-Za-z0-9_-]+:$/gm) || []).filter(x => x.trim() === 'zizmor:').length, 1);
+  assert.match(ci, /needs: \[verify, package-reproducibility, security,/);
+  assert.doesNotMatch(security, /continue-on-error:\s*true/);
   assert.doesNotMatch(security, /pull_request_target:|contents: write|pull-requests: write/);
 });
 

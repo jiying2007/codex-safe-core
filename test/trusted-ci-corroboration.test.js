@@ -53,7 +53,7 @@ function activeCanaryFixture(){
 test('active canary uses all three observed matrix names without claiming credentialless live success',()=>{
   const input=activeCanaryFixture(),report=corroborate(input);
   assert.equal(report.verification.ci,'observed-success');
-  assert.equal(report.verification.canonicalJobs,15);
+  assert.equal(report.verification.canonicalJobs,16);
   assert.equal(report.verification.runtimeBehavior,'not-evaluated');
   assert.equal(report.verification.canaryApplication,'capability-matrix-requested');
   const behavioral=input.jobs.find(job=>job.name==='codex-canary-behavioral');
@@ -94,6 +94,16 @@ test('no fake CI trust through missing, skipped, duplicate or renamed jobs', () 
   const e = fixture();
   e.jobs.find(job => job.name === 'CI Gate').conclusion = 'failure';
   assert.equal(corroborate(e).verification.ci, 'observed-non-success');
+});
+test('isolated workflow security audit remains mandatory CI evidence', () => {
+  const missing = fixture();
+  missing.jobs = missing.jobs.filter(job => job.name !== 'security / zizmor');
+  assert.throws(() => corroborate(missing), /incomplete/);
+  for (const conclusion of ['failure', 'skipped']) {
+    const input = fixture();
+    input.jobs.find(job => job.name === 'security / zizmor').conclusion = conclusion;
+    assert.equal(corroborate(input).verification.ci, 'observed-non-success');
+  }
 });
 test('rejects job result from different run or SHA, even with successful conclusion', () => {
   const a = fixture();

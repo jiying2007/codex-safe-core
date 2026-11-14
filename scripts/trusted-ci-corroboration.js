@@ -18,6 +18,7 @@ const EXPECTED = Object.freeze([
   'dependency-review',
   'package-reproducibility',
   'security / codeql',
+  'security / zizmor',
   'canary-impact',
   'codex-canary-capability',
   'codex-canary-behavioral',
