@@ -1,78 +1,49 @@
-# Trusted autonomy: evidence before automatic merge
+# Trusted PR evidence: verify before autonomy
 
-Status: **shadow only**. This document is a governance implementation note, not a new release protocol.
+Status: **read-only shadow observation; no automatic approval, merge or release authority**. This is governance-only and does not create a new Consumer CI/Review/Commit/Diagnosis Receipt.
 
-## What is implemented
+## Why the event changed
 
-`.github/workflows/trusted-autonomy-shadow.yml` uses `pull_request_target` and checks out **only the event's base SHA on protected `main`**. It never checks out PR head, runs PR code, passes credentials to PR code, or approves/merges a PR. The token can read PR metadata and publish one commit status; it cannot push, approve or merge.
+On 2026-11-02, GitHub announced that public repositories without an applicable event-policy exception will have `pull_request_target` **blocked by default on 2026-12-02**, with a brownout on 2026-11-16. See [GitHub Changelog](https://github.blog/changelog/2026-11-02-pull_request_target-blocked-by-default-december-2/). There is no reason to add a privileged event-policy exception solely for optional risk observations.
 
-For each PR event, the observer reads live metadata, retrieves the paginated file inventory, then reads metadata again. The deterministic observer refuses mismatched head/base identity, stale event SHA, incomplete inventory, rename tricks, implausible metrics and malformed paths. The policy keeps changes to workflows, governance, security and sensitive Core files **high risk**. Normal source/test/package changes are at least **medium risk**. Small bounded documentation-only changes are low-risk candidates in **shadow mode only**.
+The former `.github/workflows/trusted-autonomy-shadow.yml` has been **deleted**. Its successful historical `Codex Safe / Trusted Observation` commit statuses are archival, no longer published or required. We do not add them to the server-side Ruleset. No new schedule or model-consuming loop is introduced.
 
-The observer uploads `TRUSTED_AUTONOMY_SHADOW.json` and publishes `Codex Safe / Trusted Observation` on the exact PR head. Failure to produce/upload proof publishes a failing status where possible. Status **success means only that the observation was recorded**. It does not mean CI passed, that the patch is correct, or that merging is authorized.
+## One observer, two deterministic views
 
-The evidence binds repository, PR number, head SHA, base SHA, trusted checkout SHA, run ID, attempt, changed paths and risk. Its content digest is for accidental integrity detection, **not a signature**. It deliberately sets CI, CodeQL, runtime and downstream validation to `not-evaluated`; do not fabricate results or confuse this report with existing Consumer CI / Review / Commit / Diagnosis Receipts.
+`.github/workflows/trusted-ci-corroboration.yml` reacts to `workflow_run.completed` **only for the canonical `CI` workflow when its source event was `pull_request`**. All work runs from the protected default-branch source checkout, with `contents:read`, `actions:read`, `pull-requests:read`; no `statuses:write`, PR checkout, approval, merge, deployment, Secrets, or model invocation. All PR data and CI metadata are untrusted JSON inputs, never executed as code. CI-run artifacts are not downloaded or executed.
 
-## Enforcement and separate server-side qualification
+The observer performs these independently checkable predicates inside one read-only execution:
 
-As of this change the existing server-side protection still requires **CI Gate**, not `Codex Safe / Trusted Observation`. This new status is **not an enforced merge gate yet**. The GitHub connector cannot update repository Rulesets or establish which GitHub App is the authoritative status origin.
+1. Bind the completed CI event to its exact repository, run ID, attempt, workflow ID/path and source head SHA. Re-read GitHub's run metadata around a paginated **13-job** census; do not trust the often-empty `workflow_run.pull_requests` field. Associate the exact commit SHA with **exactly one** PR.
+2. Require the canonical job names, source SHA, run ID and complete outcomes. A missing/duplicated job or unknown skip fails closed. A real failed CI records `observed-non-success`, not a fabricated green result. CI status is not proof the checks themselves were honest, since a PR can alter its own CI workflow.
+3. Read the matching PR twice around its complete file inventory, then classify paths and size. Workflows, governance, security and critical code are high risk; source/test/package changes are at least medium. Only bounded documentation-only edits can be low. For a PR already merged by the time of observation, keep its historical risk evidence but **never** make it an auto-merge candidate.
+4. Before publication, require both views to match exact repository, PR number, source head SHA, target base SHA and trusted executor SHA. Any drift with the actual current PR state fails closed. The two views are produced by the **same observer**, not independent attestations.
 
-An administrator must separately inspect the actual protected-branch Ruleset and GitHub Actions status origin, then decide whether to add the trusted observation as an **additional** required status with an expected source. Never replace `CI Gate`; never permit a PR-modifiable workflow to be the sole authority; never enable automatic merge based solely on the observation status. The existing ruleset contract and Family release controls stay unchanged in this PR.
+The single GitHub Actions artifact is named `trusted-pr-evidence-<CI run ID>-<attempt>` and contains two small JSON files:
 
-Changing the protected workflow itself is classified as high risk by the still-trusted base revision. An attacker may change the copy in the PR, but that copy will not execute in this observer. This only protects the observer; it does **not** certify the rest of the CI pipeline against workflow tampering until independent required-check and Ruleset configuration is verified.
+- `TRUSTED_CI_OBSERVATION.json` — run/job identity and observed CI verdict.
+- `TRUSTED_AUTONOMY_SHADOW.json` — paths, risk, PR state and conservative candidate classification.
 
-## CI-result corroboration (independent read-only stage)
+The JSON digests detect accidental changes; they are **not signatures, release attestations, independent checks or authorization tokens**. Both explicitly retain `mergeAuthorized=false` and `autoMerge=false`. A failed observer emits **no evidence artifact** and cannot be mistaken for an approval.
 
-`.github/workflows/trusted-ci-corroboration.yml` now listens to the existing `CI` **workflow_run.completed** event. It executes only trusted default-branch code, with Actions/Contents/PR **read-only** permissions. It does not checkout a PR, use a paid model, publish success status, approve, merge, release or deploy anything.
+## Rollout and non-goals
 
-For each pull-request-triggered CI run, the workflow retrieves the run twice, reads **all** paginated jobs, and associates the run's exact source SHA with GitHub's `commits/{sha}/pulls` endpoint. GitHub's `workflow_run.pull_requests` array is often empty; it is never used as provenance. It requires exactly one matching PR, the canonical repository and main target, matching run ID/attempt/workflow ID/workflow path, and the complete canonical job-name set. Any changed SHA, missing/duplicate job, unknown job, skipped mandatory job or mismatched run is refused; a legitimate failed CI is recorded as **observed-non-success**, never silently reclassified as success.
+- **L1 (current):** agents may prepare PRs and self-verify; the actual provider's protected `CI Gate` and existing Change Safe confirmation rules remain authoritative. Shadow observation may lag a merge and has no power to block it.
+- **L2 (not enabled):** independent trusted CI authority, server-side expected status source, exact-head evidence and post-merge no-regret metrics must first demonstrate acceptable false-green/false-negative behavior on comparable cohorts. No observer artifact alone qualifies.
+- **L3 (not enabled):** broaden only by explicit human governance approval and measured production outcomes, never to security/governance/credential/release/migration changes.
 
-A successful observation is saved as `TRUSTED_CI_OBSERVATION.json` in an ordinary GitHub Actions artifact, identified by run ID and attempt. It includes per-job conclusions, skipped optional Canary jobs, the matching PR head/base SHA and the executing trusted workflow SHA. The digest is a content checksum, not a signing key. **This is corroboration of GitHub-reported CI status, not independent proof that the PR's tests were honest or complete.** Its `mergeAuthorized` remains `false` even if every check is green.
+The live native Ruleset still requires `CI Gate` only. See [GitHub Governance](GITHUB_GOVERNANCE.md) for binding its actual GitHub Actions app source (`integration_id=15368`) through independent administrator authorization. Do not claim this server-side binding is complete from a dry-run or a green CI result. Do not expand the existing `workflow_run` observer's permissions or use PR-supplied scripts.
 
-The two complementary artifacts are:
+Formal proofs and runtime UI recordings should be added **only for high-value state-machine or user-facing behaviors that need them**. Unit/property tests and static analysis remain the default inexpensive verification. A new runner, distributed job queue, multi-model reviewer or redundant skill library is not a prerequisite.
 
-- `TRUSTED_AUTONOMY_SHADOW.json`: risk classification of immutable PR paths and size, generated on PR events.
-- `TRUSTED_CI_OBSERVATION.json`: GitHub API run and job cross-check, generated after CI completion.
-
-They are **observations**, not a new CI Receipt contract. They are not yet automatically joined into an L2 approval, and neither can mutate the existing immutable Consumer CI Receipt or release provenance. Missing one of them means no claim of complete evidence. Post-merge revert/hotfix and runtime quality remain unverified until separately attributed to exact merges.
-
-## L1 → L2 → L3 rollout
-
-- **L1 (current):** agents may prepare changes and self-verify. A human or already-authorized process still merges. This observer emits evidence only.
-- **L2 (not enabled):** after shadow observation, real CI and post-merge outcomes have been independently joined by exact head SHA and run, consider enabling automatic merge for strictly bounded low-risk changes. Require trusted status origin, independent CI success, a repository opt-in, and a demonstrated rollback path.
-- **L3 (not enabled):** broaden scope only by measured outcomes and explicit governance approval; never include workflow/policy/security/release/permission changes or unpublished production credentials.
-
-Assess *no-regret merge rate*, revert/hotfix attribution, escaped defects, manual intervention, CI p95, and tokens per verified completed task. Prefer comparing human and agent changes on equivalent risk cohorts. A green CI or low aggregate revert rate is not sufficient. Any missing evidence, drift, unexpected skip or unknown source must defer to manual action. Do not use periodic polling loops to simulate throughput.
-
-## Read-only live qualification checklist
-
-For a PR that changes only a bounded documentation path, use the two **independent, event-driven** observations, then read the existing protected CI result. These commands are intentionally read-only and make no merge decision:
+## Verification without model calls
 
 ```sh
-repo=jiying2007/codex-safe-core
-pr=100  # replace with the actual PR under examination
-gh pr view "$pr" -R "$repo" --json number,headRefOid,baseRefName
-gh api "repos/$repo/pulls/$pr" --jq '{number,state,head_sha:.head.sha,base_sha:.base.sha}'
-gh api "repos/$repo/rulesets/22321766" \
-  --jq '.rules[] | select(.type=="required_status_checks") | .parameters.required_status_checks'
-# Only after the CI/observer workflow runs appear in the Actions UI:
-gh run list -R "$repo" --limit 20
-```
-
-Acceptance is evidence, not a claim: the PR head matches the CI workflow run's `head_sha`, the CI observation lists the same head and exactly thirteen canonical jobs, `CI Gate` succeeds, and the separate PR-event observation reports a bounded low-risk classification with `mergeAuthorized=false`. The second observer's artifact is named `trusted-ci-observation-<CI run ID>-<attempt>`; it is not the same thing as a required status check. If Github does not associate the commit with **exactly one** PR, if the metadata changes mid-fetch, or if any Job is missing, report the gap and keep the workflow non-authoritative.
-
-A protected PR is not proven safe because those two artifacts exist. The canonical `CI Gate` workflow can still be edited by a PR, and its status may not yet have an explicit expected-source binding. Verify this GitHub server-side independently. Do not modify the Ruleset or enable auto-merge on the strength of a read-only workflow's success. There is no fixed sample count that alone demonstrates low defect rates: promotion depends on independently attributed regressions, comparable baseline cohorts, and a formally approved error budget.
-
-## Running locally (no model calls)
-
-```sh
-node --test test/trusted-autonomy-shadow.test.js
+node --test test/trusted-autonomy-shadow.test.js test/trusted-ci-corroboration.test.js
 node --check scripts/trusted-autonomy-shadow.js
-node --test test/trusted-ci-corroboration.test.js
 node --check scripts/trusted-ci-corroboration.js
 ```
 
-Live observation is intentionally GitHub Actions-only and consumes GitHub API read calls, not Codex, ChatGPT Work or model tokens. After this branch merges, a **new** PR event is required for the protected-base workflow to run. This PR cannot qualify its own newly-added base workflow.
+For live qualification, use the first **new PR CI completion after this change is merged**. Confirm the protected-default-branch observer ran successfully, produced one artifact with two matching exact-head observations, and never published a merge status. Then verify the unchanged, actual server-side Ruleset separately. A PR modifying this observer cannot verify its own PR with the new code: `workflow_run` executes the version committed to the default branch.
 
-## Scope and non-goals
-
-This change adds no automation that merges, approves, deploys, rewrites release metadata, or weakens independent publication validation. No shadow result is trusted until the real artifact and head-bound status are inspected. It does not address the separate live GitLab/SQLite deployment and authoritative final-ref Merge Gate issues, or substitute synthetic performance checks for production measurements.
+This feature intentionally does not validate live GitLab/SQLite deployment, migration/rollback, or user-visible performance, and does not substitute for those projects' own acceptance gates.

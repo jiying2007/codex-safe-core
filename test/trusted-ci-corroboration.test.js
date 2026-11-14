@@ -112,3 +112,51 @@ test('future or malformed run metadata cannot count as completed evidence', () =
   c.context.trustedWorkflowSha = 'main';
   assert.throws(() => corroborate(c), /exact SHA/);
 });
+
+test('CI and risk views can be joined only on exact PR/head/base and trusted workflow SHA', () => {
+  const {evaluate} = require('../scripts/trusted-autonomy-shadow');
+  const {verifyObservationPair} = require('../scripts/trusted-ci-corroboration');
+  const run = fixture(), ci = corroborate(run);
+  const pr = {
+    number: 98, state: 'open', draft: false,
+    head: {sha: HEAD, repo: {full_name: run.context.repository}},
+    base: {sha: BASE, ref: 'main', repo: {full_name: run.context.repository}},
+    changed_files: 1, additions: 3, deletions: 1
+  };
+  const risk = evaluate({
+    pr, before: structuredClone(pr),
+    files: [{filename: 'docs/guide.md', status: 'modified', additions: 3, deletions: 1}],
+    context: {
+      repository: run.context.repository, prNumber: 98, eventHead: HEAD,
+      trustedBase: BASE, trustedWorkflowSha: TRUSTED,
+      runId: '501', runAttempt: '1'
+    }
+  });
+  assert.deepEqual(verifyObservationPair(ci, risk), {consistent: true, mergeAuthorized: false});
+  for (const field of ['repository', 'prNumber', 'headSha', 'baseSha', 'trustedWorkflowSha']) {
+    const changed = structuredClone(risk);
+    changed.identity[field] = field === 'prNumber' ? 97 : 'changed';
+    assert.throws(() => verifyObservationPair(ci, changed), /identity drift/, field);
+  }
+  const forged = structuredClone(risk);
+  forged.autonomy.mergeAuthorized = true;
+  assert.throws(() => verifyObservationPair(ci, forged), /must not confer merge/);
+  const retroactive = structuredClone(risk);
+  retroactive.identity.prLifecycle = 'merged';
+  retroactive.autonomy.candidate = true;
+  assert.throws(() => verifyObservationPair(ci, retroactive), /retroactively/);
+});
+test('post-CI observation is one read-only workflow without pull_request_target or merge writes', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const root = path.join(__dirname, '..');
+  const workflow = fs.readFileSync(path.join(root, '.github/workflows/trusted-ci-corroboration.yml'), 'utf8');
+  assert.equal(fs.existsSync(path.join(root, '.github/workflows/trusted-autonomy-shadow.yml')), false);
+  assert.match(workflow, /workflow_run:\s*\n\s+workflows: \[CI\]/);
+  assert.doesNotMatch(workflow, /pull_request_target:|statuses: write|pull-requests: write|contents: write/);
+  assert.match(workflow, /trusted-ci-corroboration\.js/);
+  assert.match(workflow, /trusted-autonomy-shadow\.js/);
+  assert.match(workflow, /verifyObservationPair/);
+  assert.doesNotMatch(workflow, /gh\s+(?:pr\s+checkout|api --method (?:POST|PUT|PATCH|DELETE))/);
+  assert.doesNotMatch(workflow, /ref:\s*\$\{\{\s*github\.event\.workflow_run\.head_sha/);
+});

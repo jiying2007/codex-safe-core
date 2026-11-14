@@ -137,6 +137,25 @@ function corroborate({eventRun, before, after, prs, jobs, context}) {
   result.contentDigest = digest(result); // Content checksum, not signature or trusted CI receipt.
   return result;
 }
+// Two views come from one read-only workflow. They must match by exact PR/head/base
+// and trusted executor identity before publication. This is NOT a merge decision.
+function verifyObservationPair(ci, risk) {
+  if (!ci || !risk || ci.kind !== 'codex-safe-ci-corroboration' ||
+      risk.kind !== 'codex-safe-autonomy-observation' || !ci.identity || !risk.identity) {
+    throw new Error('Missing or unexpected evidence type.');
+  }
+  for (const field of ['repository', 'prNumber', 'headSha', 'baseSha', 'trustedWorkflowSha']) {
+    if (ci.identity[field] !== risk.identity[field]) throw new Error('CI and risk observation identity drift: ' + field);
+  }
+  if (ci.autonomy?.mergeAuthorized !== false || ci.autonomy?.autoMerge !== false ||
+      risk.autonomy?.mergeAuthorized !== false || risk.autonomy?.autoMerge !== false) {
+    throw new Error('Shadow observations must not confer merge authorization.');
+  }
+  if (risk.identity.prLifecycle === 'merged' && risk.autonomy?.candidate !== false) {
+    throw new Error('Merged PR cannot retroactively qualify for auto-merge.');
+  }
+  return Object.freeze({consistent: true, mergeAuthorized: false});
+}
 function parseArgs(args) {
   const out = {};
   for (let i = 0; i < args.length; i += 2) {
@@ -167,4 +186,4 @@ function main() {
 if (require.main === module) {
   try { main(); } catch (error) { console.error(error.message); process.exitCode = 2; }
 }
-module.exports = {corroborate, sourceIdentity, EXPECTED, digest};
+module.exports = {corroborate, verifyObservationPair, sourceIdentity, EXPECTED, digest};

@@ -41,11 +41,20 @@ function evaluate({pr, before, files, context}) {
   if (!context || typeof context !== 'object' || !REPO.test(context.repository || '')) throw new Error('Missing repository identity.');
   const number = metric(pr.number, 'PR number');
   if (number < 1 || number !== context.prNumber || number !== before.number) throw new Error('PR number drift.');
-  if (pr.state !== 'open' || before.state !== 'open') throw new Error('PR is not open.');
+  // workflow_run executes after CI completion and may race an already-merged PR.
+  // A closed, confirmed-merged PR can be observed retrospectively; it can never
+  // become a candidate for autonomous merging.
+  const isOpen = pr.state === 'open' && before.state === 'open';
+  const isMerged = pr.state === 'closed' && before.state === 'closed' &&
+    pr.merged === true && before.merged === true &&
+    typeof pr.merged_at === 'string' && pr.merged_at.length > 0 &&
+    pr.merged_at === before.merged_at;
+  if (!isOpen && !isMerged) throw new Error('PR is neither open nor consistently merged.');
   const head = exactSha(pr.head?.sha, 'PR head');
   const base = exactSha(pr.base?.sha, 'PR base');
   exactSha(context.eventHead, 'Event head');
-  exactSha(context.trustedBase, 'Trusted checkout');
+  exactSha(context.trustedBase, 'PR base');
+  const trustedWorkflowSha = exactSha(context.trustedWorkflowSha, 'Trusted workflow checkout');
   if (head !== context.eventHead || head !== before.head?.sha) throw new Error('PR head changed during observation.');
   if (base !== context.trustedBase || base !== before.base?.sha) throw new Error('PR base changed during observation.');
   if (pr.base?.ref !== 'main' || before.base?.ref !== 'main' || pr.base?.repo?.full_name !== context.repository ||
@@ -95,7 +104,7 @@ function evaluate({pr, before, files, context}) {
     kind: 'codex-safe-autonomy-observation',
     identity: {
       repository: context.repository, prNumber: number, headSha: head, baseSha: base,
-      trustedWorkflowSha: context.trustedBase,
+      trustedWorkflowSha, prLifecycle: isOpen ? 'open' : 'merged',
       runId: String(context.runId || ''), runAttempt: String(context.runAttempt || '')
     },
     change: { fileCount: changed, additions, deletions, paths: [...new Set(filenames)].sort() },
@@ -106,7 +115,7 @@ function evaluate({pr, before, files, context}) {
       downstream: 'not-evaluated'
     },
     autonomy: {
-      mode: 'shadow', candidate: level === 'low' && !pr.draft,
+      mode: 'shadow', candidate: level === 'low' && !pr.draft && isOpen,
       autoMerge: false, mergeAuthorized: false, requiresHuman: true
     }
   };
@@ -119,7 +128,7 @@ function options(args) {
     if (!args[i]?.startsWith('--') || !args[i + 1] || out[args[i]]) throw new Error('Invalid CLI arguments.');
     out[args[i]] = args[i + 1];
   }
-  const required = ['--pr', '--before', '--files', '--out', '--head', '--base', '--repo', '--number', '--run', '--attempt'];
+  const required = ['--pr', '--before', '--files', '--out', '--head', '--base', '--trusted-sha', '--repo', '--number', '--run', '--attempt'];
   if (Object.keys(out).length !== required.length || required.some(key => !out[key])) throw new Error('Incomplete CLI arguments.');
   return out;
 }
@@ -129,7 +138,7 @@ function main() {
   const report = evaluate({
     pr: read(args['--pr']), before: read(args['--before']), files: read(args['--files']),
     context: {
-      eventHead: args['--head'], trustedBase: args['--base'], repository: args['--repo'],
+      eventHead: args['--head'], trustedBase: args['--base'], trustedWorkflowSha: args['--trusted-sha'], repository: args['--repo'],
       prNumber: Number(args['--number']), runId: args['--run'], runAttempt: args['--attempt']
     }
   });

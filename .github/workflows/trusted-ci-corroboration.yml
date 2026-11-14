@@ -1,7 +1,7 @@
 name: Trusted CI Corroboration
 
-# Triggered only when CI completes; no schedules, agent loops or model calls.
-# workflow_run has privileged context, so never checkout or execute PR code.
+# One read-only, event-driven observer for CI results and PR risk.
+# Never checkout PR head, process untrusted artifacts, or grant merge authority.
 on:
   workflow_run:
     workflows: [CI]
@@ -18,10 +18,10 @@ concurrency:
 
 jobs:
   corroborate:
-    name: Corroborate CI evidence (read-only)
+    name: Corroborate CI and PR risk (read-only)
     if: github.event.workflow_run.event == 'pull_request'
     runs-on: ubuntu-24.04
-    timeout-minutes: 6
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -30,7 +30,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: '22.22.2'
-      - name: Fetch exact run / job / PR association from GitHub
+      - name: Fetch exact CI run / jobs / PR association
         env:
           GH_TOKEN: ${{ github.token }}
           CI_RUN_ID: ${{ github.event.workflow_run.id }}
@@ -49,7 +49,7 @@ jobs:
             --jq '.[] | {number, head: {sha: .head.sha}, base: {sha: .base.sha, ref: .base.ref, repo: {full_name: .base.repo.full_name}}}' \
             | jq -s '.' > "$RUNNER_TEMP/ci-prs.json"
           gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${CI_RUN_ID}" > "$RUNNER_TEMP/ci-after.json"
-      - name: Verify provenance and create CI corroboration observation
+      - name: Verify CI provenance from trusted code
         env:
           CI_RUN_ID: ${{ github.event.workflow_run.id }}
           CI_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
@@ -69,9 +69,54 @@ jobs:
             --run "$CI_RUN_ID" \
             --attempt "$CI_ATTEMPT" \
             --trusted-sha "$(git rev-parse HEAD)"
-      - name: Upload exact-run observation without publishing a merge check
+      - name: Fetch bounded PR changes twice around the inventory
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          pr="$(jq -er 'if length == 1 then .[0].number else error("ambiguous PR") end' "$RUNNER_TEMP/ci-prs.json")"
+          [[ "$pr" =~ ^[0-9]+$ ]] || exit 2
+          gh api "repos/${GITHUB_REPOSITORY}/pulls/${pr}" > "$RUNNER_TEMP/autonomy-pr-before.json"
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${pr}/files?per_page=100" \
+            --jq '.[] | {filename, previous_filename, status, additions, deletions}' \
+            | jq -s '.' > "$RUNNER_TEMP/autonomy-pr-files.json"
+          gh api "repos/${GITHUB_REPOSITORY}/pulls/${pr}" > "$RUNNER_TEMP/autonomy-pr-after.json"
+      - name: Classify exact PR risk and check both observations agree
+        env:
+          CI_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          OBSERVER_ATTEMPT: ${{ github.run_attempt }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          pr="$(jq -er '.[0].number' "$RUNNER_TEMP/ci-prs.json")"
+          base="$(jq -er '.[0].base.sha' "$RUNNER_TEMP/ci-prs.json")"
+          node scripts/trusted-autonomy-shadow.js \
+            --pr "$RUNNER_TEMP/autonomy-pr-after.json" \
+            --before "$RUNNER_TEMP/autonomy-pr-before.json" \
+            --files "$RUNNER_TEMP/autonomy-pr-files.json" \
+            --out "$RUNNER_TEMP/TRUSTED_AUTONOMY_SHADOW.json" \
+            --head "$CI_HEAD_SHA" \
+            --base "$base" \
+            --trusted-sha "$(git rev-parse HEAD)" \
+            --repo "$GITHUB_REPOSITORY" \
+            --number "$pr" \
+            --run "$GITHUB_RUN_ID" \
+            --attempt "$OBSERVER_ATTEMPT"
+          node - "$RUNNER_TEMP/TRUSTED_CI_OBSERVATION.json" "$RUNNER_TEMP/TRUSTED_AUTONOMY_SHADOW.json" <<'NODE'
+          'use strict';
+          const fs = require('node:fs');
+          const {verifyObservationPair} = require('./scripts/trusted-ci-corroboration');
+          const ci = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          const risk = JSON.parse(fs.readFileSync(process.argv[3], 'utf8'));
+          verifyObservationPair(ci, risk);
+          console.log('Risk and CI identities match; automatic merge remains disabled.');
+          NODE
+      - name: Upload risk and CI views as one observation artifact
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: trusted-ci-observation-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}
-          path: ${{ runner.temp }}/TRUSTED_CI_OBSERVATION.json
+          name: trusted-pr-evidence-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}
+          path: |
+            ${{ runner.temp }}/TRUSTED_CI_OBSERVATION.json
+            ${{ runner.temp }}/TRUSTED_AUTONOMY_SHADOW.json
           if-no-files-found: error
