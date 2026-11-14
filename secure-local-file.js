@@ -39,11 +39,9 @@ function secureReadBuffer(filePath, { maxBytes = 1024 * 1024, allowMissing = fal
   if (!Number.isSafeInteger(maxBytes) || maxBytes < 0) throw localFileError('ELOCALFILE', 'Machine-local read limit is invalid.');
   let fd;
   try {
-    const noFollow = Number(fs.constants.O_NOFOLLOW || 0);
     // Reject FIFOs through fstat without waiting for a writer at open. Checking
     // the path first would leave a regular-file-to-FIFO replacement window.
-    const nonBlock = Number(fs.constants.O_NONBLOCK || 0);
-    fd = fsImpl.openSync(target, fs.constants.O_RDONLY | noFollow | nonBlock);
+    fd = fsImpl.openSync(target, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0) | (fs.constants.O_NONBLOCK || 0));
   } catch (error) {
     if (allowMissing && error?.code === 'ENOENT') return null;
     if (['ELOOP', 'EMLINK'].includes(error?.code)) throw localFileError('ELOCALFILE', `Machine-local file must not be a symbolic link: ${target}.`, { cause: error, filePath: target });

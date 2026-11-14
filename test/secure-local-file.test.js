@@ -39,15 +39,18 @@ test('secure reader passes available no-follow and nonblocking flags to the open
 });
 
 test('secure reader closes a nonregular descriptor before any path check or read on every platform', () => {
-  const fsImpl = Object.create(fs);
-  let closed = 0;
-  fsImpl.openSync = () => 123;
-  fsImpl.fstatSync = fd => { assert.equal(fd, 123); return { isFile: () => false }; };
-  fsImpl.lstatSync = () => assert.fail('a nonregular descriptor must be rejected before checking its path');
-  fsImpl.readSync = () => assert.fail('a nonregular descriptor must never be read');
-  fsImpl.closeSync = fd => { assert.equal(fd, 123); closed++; };
-  assert.throws(() => secureReadBuffer(path.join(os.tmpdir(), 'nonregular'), { fsImpl }), error => error.code === 'ELOCALFILE' && /not a regular file/.test(error.message));
-  assert.equal(closed, 1);
+  const dir = temp();
+  try {
+    const fsImpl = Object.create(fs);
+    let closed = 0;
+    fsImpl.openSync = () => 123;
+    fsImpl.fstatSync = fd => { assert.equal(fd, 123); return { isFile: () => false }; };
+    fsImpl.lstatSync = () => assert.fail('a nonregular descriptor must be rejected before checking its path');
+    fsImpl.readSync = () => assert.fail('a nonregular descriptor must never be read');
+    fsImpl.closeSync = fd => { assert.equal(fd, 123); closed++; };
+    assert.throws(() => secureReadBuffer(path.join(dir, 'nonregular'), { fsImpl }), error => error.code === 'ELOCALFILE' && /not a regular file/.test(error.message));
+    assert.equal(closed, 1);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
 function assertFifoRejectedWithoutBlocking(target, replacement = '') {

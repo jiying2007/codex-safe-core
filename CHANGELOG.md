@@ -6,6 +6,7 @@
 - Retain descriptor-bound regular-file, identity, ownership, permissions, single-link and byte-limit checks, along with the existing text decoding behavior.
 - Cover real POSIX FIFOs and replacement races in timeout-bounded subprocesses, plus portable flag and nonregular-descriptor regressions.
 - Pin CodeQL init/analyze to v4.39.3, which fixes diff-informed alert filtering for changed paths containing spaces, special characters or non-ASCII characters; retain the existing SARIF findings gate.
+- Isolate the pinned zizmor composite uploader from CodeQL's initialization state while keeping both security jobs required by CI Gate and trusted CI observation.
 
 ## 4.18.4
 
