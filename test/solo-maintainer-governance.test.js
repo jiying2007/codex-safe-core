@@ -88,10 +88,12 @@ test('cross-repository private credential is not a Core development or release-v
   const fresh=fs.readFileSync(path.join(root,'.github/workflows/family-freshness.yml'),'utf8');
   assert.doesNotMatch(governance,/Missing CODEX_SAFE_FAMILY_READ_TOKEN|exit 2/);
   assert.doesNotMatch(release,/Missing CODEX_SAFE_FAMILY_READ_TOKEN|exit 2/);
-  assert.match(status,/private-family-visibility-unavailable/);
-  assert.match(fresh,/dispatch=false/);
-  assert.match(status,/available != 'true'/);
-  assert.match(fresh,/available != 'true'/);
+  assert.doesNotMatch(status,/private-family-visibility-unavailable/);
+  assert.ok(status.includes('GITHUB_TOKEN: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN || github.token }}'));
+  assert.match(status,/node scripts\/generate-family-status\.js FAMILY_STATUS\.json/);
+  assert.match(fresh,/if: steps\.evaluate\.outputs\.dispatch == 'true'/);
+  assert.doesNotMatch(status,/steps\.visibility|available != 'true'/);
+  assert.doesNotMatch(fresh,/steps\.visibility|available != 'true'/);
 });
 
 test('CI Gate source is reported independently without inventing server-side enforcement',()=>{
@@ -166,9 +168,9 @@ test('Service and development Debug are audited against actual public native ser
   const {auditRepository}=require('../scripts/verify-repository-ruleset');
   const {desiredRuleset,newRulesetTemplate}=require('../scripts/apply-repository-governance');
   const repository={default_branch:'main',delete_branch_on_merge:true,allow_auto_merge:false,private:false,allow_squash_merge:true};
-  const detail={id:17,...desiredRuleset(repository,newRulesetTemplate())};
-  assert.deepEqual(detail.bypass_actors,[],'new development protection grants no bypass actor');
   for(const name of ['codex-review-service','codex-debug']){
+    const detail={id:17,...desiredRuleset(repository,newRulesetTemplate(),{repositoryName:name})};
+    assert.deepEqual(detail.bypass_actors,[],'new development protection grants no bypass actor');
     const reads=[];
     const readJson=async url=>{reads.push(url);return url.endsWith('/rulesets/17')?detail:url.endsWith('/rulesets')?[{id:17}]:repository;};
     const report=await auditRepository(name,'',{readJson});
@@ -176,6 +178,45 @@ test('Service and development Debug are audited against actual public native ser
     const unbound=structuredClone(detail);delete unbound.rules.at(-1).parameters.required_status_checks[0].integration_id;
     assert.equal((await auditRepository(name,'',{readJson:async url=>url.endsWith('/rulesets/17')?unbound:url.endsWith('/rulesets')?[{id:17}]:repository})).ok,false);
     assert.equal((await auditRepository(name,'',{readJson:async url=>url.endsWith('/rulesets')?[]:repository})).ok,false);
+    assert.equal(assess(detail,{...repository,allow_auto_merge:true},{repositoryName:name}).ok,false);
   }
-  assert.equal(assess(detail,{...repository,allow_auto_merge:true}).ok,false);
+});
+
+test('Service source binding preserves its existing stronger approval protections',()=>{
+  const {desiredRuleset,newRulesetTemplate}=require('../scripts/apply-repository-governance');
+  const repository={name:'codex-review-service',default_branch:'main',delete_branch_on_merge:true,allow_auto_merge:false,allow_squash_merge:true};
+  const detail=newRulesetTemplate();
+  const existing={required_approving_review_count:1,dismiss_stale_reviews_on_push:true,require_last_push_approval:true,require_code_owner_review:false,required_review_thread_resolution:true};
+  detail.rules.find(rule=>rule.type==='pull_request').parameters={...existing};
+  const proposed=desiredRuleset(repository,detail);
+  const pr=proposed.rules.find(rule=>rule.type==='pull_request').parameters;
+  for(const [field,value] of Object.entries(existing))assert.equal(pr[field],value,field);
+  assert.equal(assess(proposed,repository).ok,true);
+  for(const [field,value,reason] of [
+    ['required_approving_review_count',0,'insufficient-approvals'],
+    ['dismiss_stale_reviews_on_push',false,'stale-review-dismissal-drift'],
+    ['require_last_push_approval',false,'last-push-approval-drift']
+  ]){
+    const downgraded=structuredClone(proposed);
+    downgraded.rules.find(rule=>rule.type==='pull_request').parameters[field]=value;
+    const result=assess(downgraded,repository);
+    assert.equal(result.ok,false,field);assert.ok(result.reasons.includes(reason));
+  }
+});
+
+test('undeclared stricter review settings survive preparation and fail policy qualification',()=>{
+  const {desiredRuleset,newRulesetTemplate}=require('../scripts/apply-repository-governance');
+  for(const name of ['codex-review-service','codex-safe-core']){
+    const repository={name,default_branch:'main',delete_branch_on_merge:true,allow_auto_merge:false,allow_squash_merge:true};
+    const detail=newRulesetTemplate();
+    const existing={required_approving_review_count:2,dismiss_stale_reviews_on_push:true,require_last_push_approval:true,require_code_owner_review:true,required_review_thread_resolution:true};
+    detail.rules.find(rule=>rule.type==='pull_request').parameters={...existing};
+    const proposed=desiredRuleset(repository,detail);
+    const pr=proposed.rules.find(rule=>rule.type==='pull_request').parameters;
+    for(const [field,value] of Object.entries(existing))assert.equal(pr[field],value,`${name}:${field}`);
+    const verdict=assess(proposed,repository);
+    assert.equal(verdict.ok,false);assert.ok(verdict.reasons.includes('unexpected-solo-approval-requirement'));
+    assert.ok(verdict.reasons.includes('code-owner-review-drift'));
+    assert.deepEqual(detail.rules.find(rule=>rule.type==='pull_request').parameters,existing);
+  }
 });

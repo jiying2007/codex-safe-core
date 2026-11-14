@@ -10,7 +10,18 @@
     "codex-diagnose",
     "codex-debug"
   ],
-  "repositoryPolicies": {},
+  "repositoryPolicies": {
+    "codex-review-service": {
+      "protection": "native",
+      "nativeRulesetRequired": true,
+      "pullRequest": {
+        "minimumApprovals": 1,
+        "dismissStaleReviewsOnPush": true,
+        "requireCodeOwnerReview": false,
+        "requireLastPushApproval": true
+      }
+    }
+  },
   "defaultRepositoryPolicy": {
     "protection": "native",
     "nativeRulesetRequired": true

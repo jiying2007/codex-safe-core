@@ -3,8 +3,40 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const crypto=require('node:crypto');
 const {repositoryJson,inspectConsumer,downloadJson,releaseAssets}=require('../scripts/family-release-state');
+const {CORE_REPO,ALL_CONSUMERS}=require('../scripts/family-release-state');
 const commit='a'.repeat(40);
 function contents(value){const data=Buffer.from(JSON.stringify(value));return{type:'file',encoding:'base64',content:data.toString('base64'),size:data.length,sha:crypto.createHash('sha1').update(`blob ${data.length}\0`).update(data).digest('hex')};}
+test('all seven public repository JSON reads use the existing job token without a private read secret',async()=>{
+  const original=global.fetch,oldToken=process.env.GITHUB_TOKEN,oldPrivate=process.env.CODEX_SAFE_FAMILY_READ_TOKEN,seen=[];
+  process.env.GITHUB_TOKEN='synthetic-job-token';delete process.env.CODEX_SAFE_FAMILY_READ_TOKEN;
+  global.fetch=async(url,options)=>{seen.push({url:String(url),options});return Response.json(contents({version:'fixture'}));};
+  try{
+    for(const repo of [CORE_REPO,...ALL_CONSUMERS])assert.deepEqual(await repositoryJson(repo,commit,'package.json'),{version:'fixture'});
+    assert.equal(seen.length,7);
+    for(const repo of [CORE_REPO,...ALL_CONSUMERS])assert.ok(seen.some(item=>item.url.includes(`/repos/jiying2007/${repo}/contents/package.json?ref=${commit}`)));
+    assert.ok(seen.every(item=>item.options.headers.authorization==='Bearer synthetic-job-token'));
+  }finally{
+    global.fetch=original;
+    if(oldToken===undefined)delete process.env.GITHUB_TOKEN;else process.env.GITHUB_TOKEN=oldToken;
+    if(oldPrivate===undefined)delete process.env.CODEX_SAFE_FAMILY_READ_TOKEN;else process.env.CODEX_SAFE_FAMILY_READ_TOKEN=oldPrivate;
+  }
+});
+test('failed public reads retain their error without retrying anonymously or using a write identity',async()=>{
+  const original=global.fetch,oldToken=process.env.GITHUB_TOKEN,oldBot=process.env.FAMILY_BOT_TOKEN;
+  process.env.GITHUB_TOKEN='synthetic-job-token';process.env.FAMILY_BOT_TOKEN='synthetic-write-token';
+  try{
+    for(const status of [401,403,404]){
+      const seen=[];
+      global.fetch=async(url,options)=>{seen.push({url:String(url),options});return Response.json({message:'fixture denied'},{status});};
+      await assert.rejects(repositoryJson('codex-review-service',commit,'package.json'),new RegExp(`failed: ${status}`));
+      assert.equal(seen.length,1);assert.equal(seen[0].options.headers.authorization,'Bearer synthetic-job-token');
+    }
+  }finally{
+    global.fetch=original;
+    if(oldToken===undefined)delete process.env.GITHUB_TOKEN;else process.env.GITHUB_TOKEN=oldToken;
+    if(oldBot===undefined)delete process.env.FAMILY_BOT_TOKEN;else process.env.FAMILY_BOT_TOKEN=oldBot;
+  }
+});
 test('exact private repository file reads use the authenticated Contents API',async()=>{
   const original=global.fetch,seen=[];
   global.fetch=async(url,options)=>{seen.push({url:String(url),options});return Response.json(contents({version:'7.6.2'}));};
@@ -119,18 +151,13 @@ test('private Core admission executes and rejects invalid immutable-release evid
 });
 
 
-test('only coordinated private Family validation requires the scoped credential',()=>{
+test('public Family collection does not infer visibility from an optional secret',()=>{
   const fs=require('node:fs'),path=require('node:path');
-  const family=fs.readFileSync(path.join(__dirname,'..','.github','workflows','family-ci.yml'),'utf8').replace(/\r\n/g,'\n');
-  assert.match(family,/Require scoped private Family read credential before checkout/);
-  assert.match(family,/FAMILY_READ_TOKEN: \$\{\{ secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \}\}/);
-  assert.match(family,/Missing CODEX_SAFE_FAMILY_READ_TOKEN/);
-  assert.match(family,/^\s+exit 2\s*$/m);
-  for(const name of ['family-freshness.yml','family-status.yml']){
+  for(const name of ['family-ci.yml','family-freshness.yml','family-status.yml']){
     const text=fs.readFileSync(path.join(__dirname,'..','.github','workflows',name),'utf8').replace(/\r\n/g,'\n');
-    assert.match(text,/Detect optional private Family visibility/);
-    assert.match(text,/FAMILY_READ_TOKEN: \$\{\{ secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \}\}/);
-    assert.doesNotMatch(text,/Missing CODEX_SAFE_FAMILY_READ_TOKEN|^\s+exit 2\s*$/m);
+    assert.ok(text.includes('GITHUB_TOKEN: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN || github.token }}'));
+    assert.doesNotMatch(text,/Require scoped private Family read credential|steps\.visibility|private-family-visibility-unavailable/);
+    assert.doesNotMatch(text,/FAMILY_BOT_TOKEN|secrets: inherit/);
   }
   const governance=fs.readFileSync(path.join(__dirname,'..','.github','workflows','repository-governance.yml'),'utf8');
   assert.match(governance,/GITHUB_TOKEN: \$\{\{ github\.token \}\}/);

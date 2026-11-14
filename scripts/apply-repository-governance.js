@@ -3,7 +3,7 @@
 
 const contract = require('../repository-governance-contract.json');
 const registry = require('../family-registry.json');
-const { assess, policyFor } = require('./verify-repository-ruleset');
+const { assess, policyFor, pullRequestPolicyFor, repositoryNameOf } = require('./verify-repository-ruleset');
 
 const API = 'https://api.github.com';
 const apply = process.argv.includes('--apply');
@@ -121,7 +121,7 @@ async function verifyExpectedCheckSource(full) {
   const checks = await api('GET', `/repos/${full}/commits/${sha}/check-runs?per_page=100`, undefined, { anonymousRetry: true });
   return validateMainGateCheckRuns(checks, sha, full);
 }
-function desiredRuleset(repo, detail, { bindStatusSource = bindCiSource } = {}) {
+function desiredRuleset(repo, detail, { bindStatusSource = bindCiSource, repositoryName = repositoryNameOf(repo) } = {}) {
   const rules = Array.isArray(detail?.rules) ? detail.rules : [];
   const allowed = new Set(contract.requiredRuleTypes);
   if (rules.some(rule => !allowed.has(rule.type)) || rules.length !== allowed.size ||
@@ -130,6 +130,14 @@ function desiredRuleset(repo, detail, { bindStatusSource = bindCiSource } = {}) 
   }
   const existingPr = rules.find(rule => rule.type === 'pull_request')?.parameters || {};
   const existingChecks = rules.find(rule => rule.type === 'required_status_checks')?.parameters || {};
+  const pullRequestPolicy = pullRequestPolicyFor(repositoryName);
+  const existingApprovals = existingPr.required_approving_review_count;
+  if (existingApprovals != null && (!Number.isSafeInteger(existingApprovals) || existingApprovals < 0))
+    throw new Error('Refusing to replace an invalid existing approval requirement.');
+  for (const field of ['dismiss_stale_reviews_on_push', 'require_code_owner_review', 'require_last_push_approval', 'required_review_thread_resolution']) {
+    if (existingPr[field] != null && typeof existingPr[field] !== 'boolean')
+      throw new Error(`Refusing to replace an invalid existing pull request requirement: ${field}.`);
+  }
   return {
     name: contract.rulesetName,
     target: 'branch',
@@ -144,10 +152,10 @@ function desiredRuleset(repo, detail, { bindStatusSource = bindCiSource } = {}) 
         parameters: {
           ...existingPr,
           allowed_merge_methods: mergeMethods(repo),
-          dismiss_stale_reviews_on_push: contract.pullRequest.dismissStaleReviewsOnPush,
-          require_code_owner_review: contract.pullRequest.requireCodeOwnerReview,
-          require_last_push_approval: contract.pullRequest.requireLastPushApproval,
-          required_approving_review_count: contract.pullRequest.minimumApprovals,
+          dismiss_stale_reviews_on_push: existingPr.dismiss_stale_reviews_on_push === true || pullRequestPolicy.dismissStaleReviewsOnPush,
+          require_code_owner_review: existingPr.require_code_owner_review === true || pullRequestPolicy.requireCodeOwnerReview,
+          require_last_push_approval: existingPr.require_last_push_approval === true || pullRequestPolicy.requireLastPushApproval,
+          required_approving_review_count: Math.max(existingApprovals || 0, pullRequestPolicy.minimumApprovals),
           required_review_thread_resolution: existingPr.required_review_thread_resolution === true
         }
       },
@@ -234,7 +242,12 @@ async function main() {
     if (!rulesetId && !createMissing) throw new Error(`${full} is missing Ruleset ${contract.rulesetName}; use --create-missing after reviewing the creation plan.`);
     const detail = rulesetId ? await api('GET', `/repos/${full}/rulesets/${rulesetId}`, undefined, { anonymousRetry: true }) : newRulesetTemplate();
     const verifiedSource = bindCiSource ? await verifyExpectedCheckSource(full) : null;
-    const desired = desiredRuleset(repo, detail, { bindStatusSource: bindCiSource });
+    const desired = desiredRuleset(repo, detail, { bindStatusSource: bindCiSource, repositoryName: repoName });
+    // Preserve stronger existing protections, then reject undeclared policy drift
+    // before any write to this repository. Binding CI must never lower reviews.
+    const proposedRepo = { ...repo, delete_branch_on_merge: true, allow_auto_merge: false };
+    const proposal = assess(desired, proposedRepo, { requireStatusSource: bindCiSource, repositoryName: repoName });
+    if (!proposal.ok) throw new Error(`${full}: existing protection was preserved but the proposal does not satisfy the declared policy: ${proposal.reasons.join(', ')}`);
 
     process.stdout.write(`${apply ? 'APPLY' : 'DRY-RUN'} ${full}: Ruleset ${rulesetId || 'CREATE'} -> CI Gate; source=${bindCiSource ? 'github-actions#15368 (verified)' : 'preserve-current'}; delete_branch_on_merge=true; allow_auto_merge=false; bypass=${desired.bypass_actors.map(a => a.bypass_mode).join(',') || 'none'}\n`);
 
@@ -250,7 +263,7 @@ async function main() {
 
     const postRepo = apply ? await api('GET', `/repos/${full}`, undefined, { anonymousRetry: true }) : { ...repo, delete_branch_on_merge: true, allow_auto_merge: false };
     const postDetail = apply ? await api('GET', `/repos/${full}/rulesets/${rulesetId}`, undefined, { anonymousRetry: true }) : { ...desired, id: rulesetId };
-    const verdict = assess(postDetail, postRepo, { requireStatusSource: bindCiSource, requireAdministrativeMetadata: apply });
+    const verdict = assess(postDetail, postRepo, { requireStatusSource: bindCiSource, requireAdministrativeMetadata: apply, repositoryName: repoName });
     if (!verdict.ok) throw new Error(`${full} desired governance does not satisfy contract: ${verdict.reasons.join(', ')}`);
     results.push({ repository: full, rulesetId, sourceBinding: verdict.sourceBinding, verifiedSource, cleanup: { requested: cleanBranches, deleted: [], skipped: [] } });
   }

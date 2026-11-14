@@ -12,6 +12,7 @@ on:
     - cron: '43 3 * * 1'
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
@@ -25,15 +26,6 @@ jobs:
     outputs:
       snapshot: ${{ steps.resolve.outputs.snapshot }}
     steps:
-      - name: Require scoped private Family read credential before checkout
-        env:
-          FAMILY_READ_TOKEN: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN }}
-        shell: bash
-        run: |
-          if [ -z "$FAMILY_READ_TOKEN" ]; then
-            echo 'Missing CODEX_SAFE_FAMILY_READ_TOKEN for private Family checks (Core #85).' >&2
-            exit 2
-          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -43,7 +35,7 @@ jobs:
       - id: resolve
         name: Freeze exact released, CI-attested, governed and distributed consumer snapshot
         env:
-          GITHUB_TOKEN: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN || github.token }}
         shell: bash
         run: node scripts/resolve-family-snapshot.js --github-output "$GITHUB_OUTPUT"
 

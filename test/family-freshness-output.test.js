@@ -10,17 +10,46 @@ const {CONSUMERS}=require('../scripts/family-release-state');
 const {latestFamilyManifest}=require('../scripts/family-freshness');
 
 const root=path.resolve(__dirname,'..'),script=path.join(root,'scripts','family-freshness.js');
-function cliFixture(){
+function cliFixture(scriptPath=script){
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'family-freshness-cli-'));
   const preload=path.join(dir,'preload.cjs'),output=path.join(dir,'github-output');
-  fs.writeFileSync(preload,`'use strict';\nconst family=require(${JSON.stringify(path.join(root,'scripts','family-release-state.js'))});\nfamily.collectFamilyState=async()=>{if(process.env.FRESHNESS_FIXTURE_FAIL==='1')throw new Error('fixture evidence unavailable');return JSON.parse(process.env.FRESHNESS_FIXTURE_STATE);};\nfamily.githubJson=async()=>[];\n`);
+  fs.writeFileSync(preload,`'use strict';\nconst family=require(${JSON.stringify(path.join(root,'scripts','family-release-state.js'))});\nfamily.collectFamilyState=async({token}={})=>{if(process.env.FRESHNESS_EXPECT_TOKEN&&token!==process.env.FRESHNESS_EXPECT_TOKEN)throw new Error('job token was not forwarded');if(process.env.FRESHNESS_FIXTURE_FAIL==='1')throw new Error('fixture evidence unavailable');return JSON.parse(process.env.FRESHNESS_FIXTURE_STATE);};\nfamily.githubJson=async()=>[];\n`);
   return{dir,output,run(state,args,extra={}){
     const env={...process.env,GITHUB_OUTPUT:output,FRESHNESS_FIXTURE_STATE:JSON.stringify(state),...extra};
     delete env.NODE_TEST_CONTEXT;
-    return spawnSync(process.execPath,['--require',preload,script,...args],{cwd:root,encoding:'utf8',timeout:10000,env});
+    return spawnSync(process.execPath,['--require',preload,scriptPath,...args],{cwd:root,encoding:'utf8',timeout:10000,env});
   }};
 }
 function familyState(ready){return{core:{releaseReady:ready,reason:'fixture-state\ndispatch=true\ndecision=forged\r\n',metadata:{note:'remote-looking value\nwith another line'}},consumers:Object.fromEntries(CONSUMERS.map(name=>[name,{ready,reason:'fixture-consumer'}]))};}
+
+test('public status and freshness evaluate every active consumer with only the job read token',()=>{
+  const env={GITHUB_TOKEN:'synthetic-job-token',CODEX_SAFE_FAMILY_READ_TOKEN:'',FRESHNESS_EXPECT_TOKEN:'synthetic-job-token'};
+  const status=cliFixture(path.join(root,'scripts','generate-family-status.js')),freshness=cliFixture();
+  try{
+    const output=path.join(status.dir,'status.json');
+    const report=status.run(familyState(false),[output],env);
+    assert.equal(report.status,0,report.stderr);
+    const value=JSON.parse(fs.readFileSync(output,'utf8'));
+    assert.deepEqual(Object.keys(value.consumers).sort(),[...CONSUMERS].sort());
+    assert.ok(value.consumers['codex-review-service']);
+    assert.equal(value.healthy,false);assert.equal(value.family.ready,false);
+    assert.equal(value.partial,undefined,'a missing private token must not fabricate a partial report');
+    const decision=freshness.run(familyState(false),['--github-output'],env);
+    assert.equal(decision.status,0,decision.stderr);
+    assert.deepEqual(Object.keys(JSON.parse(decision.stdout).consumers).sort(),[...CONSUMERS].sort());
+    assert.equal(fs.readFileSync(freshness.output,'utf8'),'dispatch=false\n');
+  }finally{fs.rmSync(status.dir,{recursive:true,force:true});fs.rmSync(freshness.dir,{recursive:true,force:true});}
+});
+
+test('status fails on unreadable evidence instead of writing an empty-consumer success artifact',()=>{
+  const fixture=cliFixture(path.join(root,'scripts','generate-family-status.js'));
+  try{
+    const output=path.join(fixture.dir,'status.json');
+    const result=fixture.run(familyState(false),[output],{GITHUB_TOKEN:'synthetic-job-token',CODEX_SAFE_FAMILY_READ_TOKEN:'',FRESHNESS_FIXTURE_FAIL:'1'});
+    assert.equal(result.status,1);assert.match(result.stderr,/fixture evidence unavailable/);
+    assert.equal(fs.existsSync(output),false);
+  }finally{fs.rmSync(fixture.dir,{recursive:true,force:true});}
+});
 
 test('freshness CLI writes only one boolean Actions output and reports full JSON on stdout',()=>{
   const fixture=cliFixture();
