@@ -25,7 +25,9 @@ function decodeGitQuotedPath(value){
    const symbol=String.fromCodePoint(body.codePointAt(i));
    bytes.push(...Buffer.from(symbol));i+=symbol.length-1;
  }
- return new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(Buffer.from(bytes));
+ const decoded=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(Buffer.from(bytes));
+ if(decoded.includes('\0'))throw new Error('Invalid Git path text: decoded NUL.');
+ return decoded;
 }
 function quoteGitPath(value){
  if(typeof value!=='string'||!value||value.includes('\0'))throw new TypeError('Git path must be a nonempty string without NUL.');

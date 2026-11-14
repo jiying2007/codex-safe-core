@@ -73,7 +73,7 @@ test('branch range helpers reject unsafe refs before invoking Git', async () => 
   }
 });
 
-test('Git path lists preserve exact POSIX names and reject invalid UTF-8 bytes', { skip: process.platform === 'win32' }, async () => {
+test('Git path lists preserve exact POSIX names', { skip: process.platform === 'win32' }, async () => {
   const root = createRepo();
   try {
     gitSync(root, ['commit', '--allow-empty', '-m', 'base']);
@@ -85,6 +85,14 @@ test('Git path lists preserve exact POSIX names and reject invalid UTF-8 bytes',
     assert.deepEqual(new Set(await repo.getStagedPaths(root)), new Set(names));
     gitSync(root, ['commit', '-m', 'names']);
     assert.deepEqual(new Set(await repo.getChangedPaths(root, base)), new Set(names));
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});
+
+test('Git byte names on Linux fail without UTF-8 replacement aliases', { skip: process.platform !== 'linux' }, async () => {
+  const root = createRepo();
+  try {
+    // macOS rejects this filename before Git runs (EILSEQ). The buffer-decoder
+    // test below still exercises the same unsupported-byte boundary on every OS.
     const invalid = Buffer.concat([Buffer.from(`${root}/`), Buffer.from([0xff]), Buffer.from('.c')]);
     fs.writeFileSync(invalid, 'invalid byte name');
     gitSync(root, ['add', '-A']);
@@ -92,10 +100,13 @@ test('Git path lists preserve exact POSIX names and reject invalid UTF-8 bytes',
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
 
-test('buffered Git inventory keeps an initial BOM and requires a complete NUL frame', async () => {
+test('buffered Git inventory preserves BOM and rejects invalid UTF-8 or incomplete frames', async () => {
   let bytes = Buffer.from('\ufeffname.c\0');
   const mocked = createGitRepository({ runProcess: async () => { throw new Error('text runner must not decode path bytes'); }, runProcessBuffer: async () => ({ stdout: bytes }) });
   assert.deepEqual(await mocked.getStagedPaths('/fixture'), ['\ufeffname.c']);
+  bytes = Buffer.from([0xff, 0]);
+  await assert.rejects(mocked.getStagedPaths('/fixture'), /encoded data was not valid/i);
+  await assert.rejects(mocked.getChangedPaths('/fixture', 'main'), /encoded data was not valid/i);
   bytes = Buffer.from('partial');
   await assert.rejects(mocked.getStagedPaths('/fixture'), /NUL-terminated/);
 });

@@ -11,6 +11,7 @@ test('Git C quoting retains BOM names and refuses malformed JavaScript path text
   const file='\ufeffname.c';
   assert.equal(core.decodeGitQuotedPath(core.quoteGitPath(file)),file);
   for(const invalid of ['bad\ud800','bad\0name'])assert.throws(()=>core.decodeGitQuotedPath(invalid),/Invalid Git path text/);
+  assert.throws(()=>core.decodeGitQuotedPath('"bad\\000name"'),/decoded NUL/);
 });
 
 const semanticDiff=['diff --git a/src/a.js b/src/a.js','--- a/src/a.js','+++ b/src/a.js','@@ -1 +1 @@','-old','+new','diff --git a/package-lock.json b/package-lock.json','--- a/package-lock.json','+++ b/package-lock.json','@@ -1 +1 @@','-old-lock','+new-lock','diff --git a/images/a.png b/images/a.png','Binary files a/images/a.png and b/images/a.png differ'].join('\n');
