@@ -100,21 +100,22 @@ test('non-product evidence never becomes the default latest product release', ()
   }
 });
 
-test('coordinated Family validation keeps the dedicated credential while status/freshness degrade safely', () => {
+test('Family collectors read public evidence while retaining optional private Git authentication', () => {
   const family = fs.readFileSync(path.join(workflowDir, 'family-ci.yml'), 'utf8');
   const freshness = fs.readFileSync(path.join(workflowDir, 'family-freshness.yml'), 'utf8');
   const status = fs.readFileSync(path.join(workflowDir, 'family-status.yml'), 'utf8');
-  assert.match(family, /GITHUB_TOKEN: \$\{\{ secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \}\}/);
-  assert.match(family, /Require scoped private Family read credential before checkout/);
-  assert.doesNotMatch(family, /secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \|\| github\.token/);
-  for (const workflow of [freshness, status]) {
-    assert.match(workflow, /Detect optional private Family visibility/);
-    assert.match(workflow, /FAMILY_READ_TOKEN: \$\{\{ secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \}\}/);
-    assert.doesNotMatch(workflow, /Require scoped private Family read credential before checkout/);
+  const apiBinding = 'GITHUB_TOKEN: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN || github.token }}';
+  for (const workflow of [family, freshness, status]) {
+    assert.ok(workflow.includes(apiBinding));
+    assert.doesNotMatch(workflow, /steps\.visibility|Missing CODEX_SAFE_FAMILY_READ_TOKEN|private-family-visibility-unavailable|FAMILY_BOT_TOKEN/);
+    assert.doesNotMatch(workflow, /continue-on-error:\s*true/);
   }
-  assert.match(freshness, /dispatch=false/);
-  assert.match(status, /private-family-visibility-unavailable/);
+  assert.match(family, /node scripts\/resolve-family-snapshot\.js --github-output/);
+  assert.match(freshness, /node scripts\/family-freshness\.js --github-output/);
+  assert.match(status, /node scripts\/generate-family-status\.js FAMILY_STATUS\.json/);
+  assert.doesNotMatch(status, /consumers:\s*\{\}|partial:\s*true/);
   assert.equal((family.match(/CODEX_SAFE_FAMILY_READ_TOKEN: \$\{\{ secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \}\}/g) || []).length, 2);
+  for (const workflow of [family, status]) assert.match(workflow, /permissions:\n  actions: read\n  contents: read/);
   assert.match(freshness, /GH_TOKEN: \$\{\{ github\.token \}\}/);
   assert.match(family, /GH_TOKEN: \$\{\{ github\.token \}\}/);
   assert.match(freshness, /full_matrix=false/);

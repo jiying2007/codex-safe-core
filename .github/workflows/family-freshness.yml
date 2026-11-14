@@ -26,27 +26,12 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: '22.22.2'
-      - id: visibility
-        name: Detect optional private Family visibility
-        env:
-          FAMILY_READ_TOKEN: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN }}
-        shell: bash
-        run: |
-          if [ -n "$FAMILY_READ_TOKEN" ]; then echo 'available=true' >> "$GITHUB_OUTPUT"; else echo 'available=false' >> "$GITHUB_OUTPUT"; fi
       - id: evaluate
-        if: steps.visibility.outputs.available == 'true'
         name: Compare released Core and aligned consumer heads with immutable manifest
         env:
-          GITHUB_TOKEN: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN || github.token }}
         shell: bash
         run: node scripts/family-freshness.js --github-output "$GITHUB_OUTPUT"
-      - id: partial
-        if: steps.visibility.outputs.available != 'true'
-        name: Record partial status without dispatching Family validation
-        shell: bash
-        run: |
-          echo 'dispatch=false' >> "$GITHUB_OUTPUT"
-          echo 'Private Family credential is not configured; freshness is partial and no Family validation is dispatched.' >> "$GITHUB_STEP_SUMMARY"
       - name: Dispatch fresh Family Compatibility
         if: steps.evaluate.outputs.dispatch == 'true'
         env:
