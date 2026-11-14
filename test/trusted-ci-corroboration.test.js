@@ -152,6 +152,17 @@ test('post-CI observation is one read-only workflow without pull_request_target 
   const root = path.join(__dirname, '..');
   const workflow = fs.readFileSync(path.join(root, '.github/workflows/trusted-ci-corroboration.yml'), 'utf8');
   assert.equal(fs.existsSync(path.join(root, '.github/workflows/trusted-autonomy-shadow.yml')), false);
+  // Make the November 2026 GitHub event policy a permanent deterministic gate.
+  // Renaming the retired workflow must not silently reintroduce its privileged trigger.
+  const workflowDir = path.join(root, '.github/workflows');
+  for (const filename of fs.readdirSync(workflowDir).filter(name => /\.ya?ml$/i.test(name))) {
+    const source = fs.readFileSync(path.join(workflowDir, filename), 'utf8');
+    assert.doesNotMatch(
+      source,
+      /^\s{0,4}pull_request_target\s*:|^on\s*:\s*\[[^\n]*\bpull_request_target\b|^on\s*:\s*\{[^\n]*\bpull_request_target\b/m,
+      filename + ' must not reintroduce the default-blocked public-repository event'
+    );
+  }
   assert.match(workflow, /workflow_run:\s*\n\s+workflows: \[CI\]/);
   assert.doesNotMatch(workflow, /pull_request_target:|statuses: write|pull-requests: write|contents: write/);
   assert.match(workflow, /trusted-ci-corroboration\.js/);
