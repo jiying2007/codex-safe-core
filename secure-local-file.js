@@ -18,10 +18,11 @@ function assertPath(filePath) {
   return path.resolve(filePath);
 }
 
-function validateOpenFile(fd, target, { maxBytes = 1024 * 1024, requireOwner = true, rejectGroupOtherWrite = true, fsImpl = fs } = {}) {
+function validateOpenFile(fd, target, { maxBytes = 1024 * 1024, requireOwner = true, rejectGroupOtherWrite = true, requireSingleLink = false, fsImpl = fs } = {}) {
   const stat = fsImpl.fstatSync(fd);
   if (!stat.isFile()) throw localFileError('ELOCALFILE', `Machine-local path is not a regular file: ${target}.`, { filePath: target });
   if (Number(stat.size) > Number(maxBytes)) throw localFileError('ELOCALFILE', `Machine-local file exceeds ${maxBytes} bytes: ${target}.`, { filePath: target });
+  if (requireSingleLink && stat.nlink !== 1) throw localFileError('ELOCALFILE', `Machine-local file must have exactly one link: ${target}.`, { filePath: target });
   if (process.platform !== 'win32') {
     if (requireOwner && typeof process.getuid === 'function' && Number(stat.uid) !== Number(process.getuid())) {
       throw localFileError('ELOCALFILE', `Machine-local file is not owned by the current user: ${target}.`, { filePath: target });
@@ -33,7 +34,7 @@ function validateOpenFile(fd, target, { maxBytes = 1024 * 1024, requireOwner = t
   return stat;
 }
 
-function secureReadText(filePath, { maxBytes = 1024 * 1024, allowMissing = false, requireOwner = true, rejectGroupOtherWrite = true, fsImpl = fs } = {}) {
+function secureReadBuffer(filePath, { maxBytes = 1024 * 1024, allowMissing = false, requireOwner = true, rejectGroupOtherWrite = true, requireSingleLink = false, fsImpl = fs } = {}) {
   const target = assertPath(filePath);
   if (!Number.isSafeInteger(maxBytes) || maxBytes < 0) throw localFileError('ELOCALFILE', 'Machine-local read limit is invalid.');
   let fd;
@@ -46,7 +47,7 @@ function secureReadText(filePath, { maxBytes = 1024 * 1024, allowMissing = false
     throw localFileError('ELOCALFILE', `Unable to open machine-local file: ${target}.`, { cause: error, filePath: target });
   }
   try {
-    const options = { maxBytes, requireOwner, rejectGroupOtherWrite, fsImpl };
+    const options = { maxBytes, requireOwner, rejectGroupOtherWrite, requireSingleLink, fsImpl };
     const before = validateOpenFile(fd, target, options);
     const assertSameTarget = () => {
       const entry = fsImpl.lstatSync(target);
@@ -72,10 +73,15 @@ function secureReadText(filePath, { maxBytes = 1024 * 1024, allowMissing = false
     if (before.size !== after.size || before.mtimeMs !== after.mtimeMs || before.ctimeMs !== after.ctimeMs) {
       throw localFileError('ELOCALFILE', `Machine-local file changed while being read: ${target}.`, { filePath: target });
     }
-    return Buffer.concat(chunks, total).toString('utf8');
+    return Buffer.concat(chunks, total);
   } finally {
     try { fsImpl.closeSync(fd); } catch {}
   }
+}
+
+function secureReadText(filePath, options = {}) {
+  const bytes = secureReadBuffer(filePath, options);
+  return bytes === null ? null : bytes.toString('utf8');
 }
 
 function rejectSymlinkTarget(target, fsImpl = fs) {
@@ -153,6 +159,7 @@ function withExclusiveFileLock(filePath, fn, { timeoutMs = 2000, retryMs = 25, s
 module.exports = {
   assertPath,
   atomicWriteText,
+  secureReadBuffer,
   secureReadText,
   validateOpenFile,
   withExclusiveFileLock

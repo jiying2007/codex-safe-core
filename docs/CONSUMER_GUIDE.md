@@ -104,3 +104,11 @@ npm run ci
 Core CI covers contract/runtime identity, Policy Schema v4, Provider Contract v3 credential/transport safety, deterministic review rules, adversarial fixtures, Promotion Corpus structure, quality/Profile/Test-Impact/Diagnosis primitives, model routing/economics, digest classification, broad performance budgets and supply-chain gates.
 
 Runtime Contract v3 lets Review, Commit, Diagnose and Review Service share machine-scoped `~/.codex-safe/runtime.json`; the profile stores no secret, and API keys remain environment/auth.json references.
+
+## Shared diagnostic and path boundaries (4.18.3)
+
+Use `redactDiagnosticText(text)` on all model-visible external fields before calling `boundUtf8Text(text, maxBytes)`. This covers structured report messages and URIs, source snippets, history, names and logs; it is a shared bounded-pattern scrubber, not a guarantee of complete secret discovery. Preserve original local patch bytes for explicit application rather than applying a redacted patch. Pass the exact prepared `deliveredPrompt` to `buildDiagnosisInputManifest` to obtain `promptBound: true` and its SHA-256 digest. Callers omitting that optional field remain supported and explicitly report `promptBound: false`.
+
+`secureReadBuffer(path, options)` shares the bounded descriptor reader used by `secureReadText`. Session/snapshot callers can set `requireSingleLink: true`; explicitly selected external artifacts may set `requireOwner: false` and `rejectGroupOtherWrite: false` when appropriate without disabling descriptor and byte-limit checks.
+
+Git-native paths remain raw repository-relative identities on every OS. Reuse `quoteGitPath`, `decodeGitQuotedPath`, `parseGitDiffHeaderPaths` and `parseGitFileHeaderPath`; never convert literal backslashes into separators. Ambiguous headers and malformed UTF-8 cannot authorize a patch. Both old and new paths must be in the reviewed scope.

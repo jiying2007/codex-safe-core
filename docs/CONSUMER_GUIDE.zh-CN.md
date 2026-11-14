@@ -104,3 +104,11 @@ npm run ci
 Core CI 覆盖 Contract/Runtime Identity、Policy Schema v4、Provider Contract v3 Credential/Transport Safety、确定性 Review Rule、Adversarial Fixture、Promotion Corpus 结构、Quality/Profile/Test-Impact/Diagnosis Primitive、Model Routing/Economics、Digest Classification、性能预算与供应链门禁。
 
 Runtime Contract v3 允许 Review、Commit、Diagnose 与 Review Service 共享机器级 `~/.codex-safe/runtime.json`；该文件不保存 Secret，API Key 仍来自环境变量或 Codex `auth.json`。
+
+## 共享诊断与路径边界（4.18.3）
+
+所有模型可见的外部字段先经 `redactDiagnosticText(text)`，再经 `boundUtf8Text(text,maxBytes)` 限制 UTF-8 字节；覆盖附件消息和 URI、源码、提交摘要、名称和日志。该规则是共用模式脱敏，不代表能发现所有秘密。补丁本地应用保留原始字节，不应用脱敏后的补丁。`buildDiagnosisInputManifest` 可传实际交付的 `deliveredPrompt`，返回其摘要与 `promptBound:true`；旧调用未提供时明确为 `promptBound:false`。
+
+`secureReadBuffer(path,options)` 与 `secureReadText` 复用文件描述符、有界读取和前后身份验证。session/snapshot 可启用 `requireSingleLink:true`；用户明确选择的外部附件可按用途配置 owner/写权限要求，但保留描述符和字节上限。
+
+Git 原始相对路径不做反斜杠归一化。统一复用 `quoteGitPath`、`decodeGitQuotedPath`、`parseGitDiffHeaderPaths` 与 `parseGitFileHeaderPath`；不明确的路径或无效 UTF-8 不获得补丁授权，rename/copy 两端都需纳入证据范围。

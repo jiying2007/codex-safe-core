@@ -162,17 +162,20 @@ function normalizeCandidate(raw, name = 'candidate') {
 function normalizeEconomicsRecord(raw = {}, name = 'economics') {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new TypeError(`${name} must be an object.`);
   const number = key => {
-    const value = Number(raw[key]);
-    return Number.isFinite(value) && value >= 0 ? value : 0;
+    const value = raw[key];
+    return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null;
   };
+  const metrics = ['tokensPerVerifiedFinding', 'costPerVerifiedFinding', 'latencyP95Ms', 'falsePositiveRate', 'coverageRatio'];
+  const complete = metrics.every(key => number(key) !== null)
+    && number('falsePositiveRate') <= 1 && number('coverageRatio') <= 1;
   return freeze({
-    samples: Math.max(0, Math.floor(Number(raw.samples) || 0)),
-    qualityApproved: raw.qualityApproved !== false,
+    samples: Number.isSafeInteger(raw.samples) && raw.samples > 0 ? raw.samples : 0,
+    qualityApproved: raw.qualityApproved === true && complete,
     tokensPerVerifiedFinding: number('tokensPerVerifiedFinding'),
     costPerVerifiedFinding: number('costPerVerifiedFinding'),
     latencyP95Ms: number('latencyP95Ms'),
     falsePositiveRate: number('falsePositiveRate'),
-    coverageRatio: Math.max(0, Math.min(1, Number(raw.coverageRatio) || 0))
+    coverageRatio: number('coverageRatio')
   });
 }
 

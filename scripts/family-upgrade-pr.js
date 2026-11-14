@@ -49,7 +49,9 @@ function assertIdentity(pr,entry,expected,{merged=false}={}){
   return pr;
 }
 function assertApproval(pr,reviews,head){
-  requireValue(pr.reviewDecision==='APPROVED'&&pr.mergeStateStatus==='CLEAN'&&pr.mergeable==='MERGEABLE','independent approval and ordinary clean merge state are required');
+  requireValue(pr.mergeStateStatus==='CLEAN'&&pr.mergeable==='MERGEABLE','ordinary clean merge state is required');
+  requireValue(!['CHANGES_REQUESTED','REVIEW_REQUIRED'].includes(pr.reviewDecision),'server review requirements must be satisfied');
+  if(governance.pullRequest.minimumApprovals>0)requireValue(pr.reviewDecision==='APPROVED','independent approval is required by the active contract');
   requireValue(Array.isArray(reviews),'review evidence is missing');
   const latest=new Map();
   for(const review of reviews){
@@ -103,12 +105,12 @@ function ready(entry,expected,client,{ordinary=false}={}){
   // checks. Neutral/skipped required contexts cannot authorize a merge.
   client.checks(entry,false);
   assertRequiredChecks(client.requiredChecks(entry));
-  const reviewIds=assertApproval(before,client.reviews(entry),entry.headSha);
+  const reviewIds=ordinary?assertApproval(before,client.reviews(entry),entry.headSha):[];
   const gate=assertGate(client.gates(entry),entry,expected,id=>client.run(entry,id));
   if(ordinary)assertOrdinaryProtection(client.repository(entry),client.rulesets(entry),entry,expected);
   const after=assertIdentity(client.pr(entry),entry,expected);
-  assertApproval(after,client.reviews(entry),entry.headSha);
-  return{...gate,reviewIds};
+  if(ordinary)assertApproval(after,client.reviews(entry),entry.headSha);
+  return{...gate,reviewIds,mergeAuthorized:false};
 }
 function validateUpgrade(input,expected,client){
   const state=validateState(input,expected,'validate'),pending=state.entries.filter(entry=>entry.status==='prepared');
@@ -118,14 +120,15 @@ function validateUpgrade(input,expected,client){
   for(const entry of pending)client.checks(entry,true);
   for(const entry of pending)entry.validation=ready(entry,expected,client);
   for(const entry of pending)entry.status='validated';
-  state.phase='validated';return state;
+  state.phase='validated';state.mergeAuthorized=false;return state;
 }
 function observedMerge(entry,expected,client){
   const pr=assertIdentity(client.pr(entry),entry,expected,{merged:true});
   requireValue(SHA.test(pr.mergeCommit?.oid)&&typeof pr.mergedAt==='string'&&Number.isFinite(Date.parse(pr.mergedAt)),'merge completion is not observable');
   return{mergeCommitSha:pr.mergeCommit.oid,mergedAt:pr.mergedAt};
 }
-function mergeUpgrade(input,expected,client,persist=()=>{}){
+function mergeUpgrade(input,expected,client,persist=()=>{},{authorized=false}={}){
+  requireValue(authorized===true,'explicit merge authorization is required independently of validation');
   const state=validateState(input,expected,'merge'),pending=state.entries.filter(entry=>entry.status==='validated');
   // A resumed transaction must verify the previously recorded merged prefix.
   for(const entry of state.entries.filter(value=>value.status==='merged'))requireValue(observedMerge(entry,expected,client).mergeCommitSha===entry.mergeCommitSha,'recorded merge commit changed');
@@ -168,7 +171,7 @@ function main(){
   requireValue(['validate','merge'].includes(mode)&&process.argv.length<=4,'expected validate or merge and an optional transaction file');
   const expected=expectation(),client=createGitHubClient(expected),input=JSON.parse(secureReadText(file,{maxBytes:1024*1024}));
   const persist=state=>atomicWriteText(file,JSON.stringify(state,null,2)+'\n');
-  if(mode==='validate')persist(validateUpgrade(input,expected,client));else mergeUpgrade(input,expected,client,persist);
+  if(mode==='validate')persist(validateUpgrade(input,expected,client));else mergeUpgrade(input,expected,client,persist,{authorized:process.env.FAMILY_UPGRADE_MERGE_AUTHORIZED==='true'});
 }
 if(require.main===module){try{main();}catch(error){console.error(error.message||String(error));process.exitCode=1;}}
 module.exports={assertApproval,assertGate,assertIdentity,assertOrdinaryProtection,assertRequiredChecks,createGitHubClient,expectation,mergeUpgrade,validateState,validateUpgrade};

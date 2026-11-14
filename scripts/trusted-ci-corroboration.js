@@ -24,6 +24,12 @@ const EXPECTED = Object.freeze([
   'CI Gate'
 ]);
 const CONDITIONAL = new Set(['codex-canary-capability', 'codex-canary-behavioral']);
+const CAPABILITY_MATRIX = Object.freeze(['ubuntu-latest','windows-latest','macos-latest']
+  .map(os => `codex-canary-capability (${os})`));
+function expectedJobNames(jobs) {
+  const expanded = jobs.some(job => CAPABILITY_MATRIX.includes(job?.name));
+  return { expanded, names: expanded ? EXPECTED.flatMap(name => name === 'codex-canary-capability' ? CAPABILITY_MATRIX : [name]) : [...EXPECTED] };
+}
 function positiveInt(value, name) {
   if (!Number.isSafeInteger(value) || value <= 0) throw new Error(name + ' must be a positive integer.');
   return value;
@@ -85,10 +91,12 @@ function corroborate({eventRun, before, after, prs, jobs, context}) {
       pr.base?.ref !== 'main' || !SHA.test(pr.base?.sha || '')) {
     throw new Error('Pull request association is missing, stale, or ambiguous.');
   }
-  if (!Array.isArray(jobs) || jobs.length !== EXPECTED.length) throw new Error('CI job inventory is incomplete or changed.');
+  if (!Array.isArray(jobs)) throw new Error('CI job inventory is incomplete or changed.');
+  const {expanded,names:expectedNames}=expectedJobNames(jobs);
+  if (jobs.length !== expectedNames.length) throw new Error('CI job inventory is incomplete or changed.');
   const byName = new Map();
   for (const job of jobs) {
-    if (!job || typeof job.name !== 'string' || !EXPECTED.includes(job.name) || byName.has(job.name)) {
+    if (!job || typeof job.name !== 'string' || !expectedNames.includes(job.name) || byName.has(job.name)) {
       throw new Error('CI job name is unknown or duplicated.');
     }
     if (positiveInt(job.run_id, 'Job run ID') !== wantedRun || sha(job.head_sha, 'Job head') !== wantedHead ||
@@ -98,15 +106,22 @@ function corroborate({eventRun, before, after, prs, jobs, context}) {
     positiveInt(job.id, 'Job ID');
     byName.set(job.name, job);
   }
-  for (const name of EXPECTED) if (!byName.has(name)) throw new Error('Missing canonical CI job: ' + name);
+  for (const name of expectedNames) if (!byName.has(name)) throw new Error('Missing canonical CI job: ' + name);
   const gate = byName.get('CI Gate');
   const critical = EXPECTED.filter(name => !CONDITIONAL.has(name));
   const allRequiredGreen = critical.every(name => byName.get(name).conclusion === 'success');
+  const canaryGreen=expanded
+    ? [...CAPABILITY_MATRIX,'codex-canary-behavioral'].every(name=>byName.get(name).conclusion==='success')
+    : [...CONDITIONAL].every(name=>byName.get(name).conclusion==='skipped');
   const observedSuccess = live.conclusion === 'success' && allRequiredGreen && gate.conclusion === 'success' &&
-    [...CONDITIONAL].every(name => ['success', 'skipped'].includes(byName.get(name).conclusion));
-  const summary = EXPECTED.map(name => {
+    canaryGreen;
+  const behavioral=byName.get('codex-canary-behavioral');
+  const liveSteps=['Live filesystem/network negative behavior check','Live model quality smoke'];
+  const liveCanary=expanded&&behavioral.conclusion==='success'&&Array.isArray(behavioral.steps)&&
+    liveSteps.every(name=>behavioral.steps.filter(step=>step.name===name&&step.status==='completed'&&step.conclusion==='success').length===1);
+  const summary = expectedNames.map(name => {
     const j = byName.get(name);
-    return {id: j.id, name, conclusion: j.conclusion, conditional: CONDITIONAL.has(name)};
+    return {id: j.id, name, conclusion: j.conclusion, conditional: CONDITIONAL.has(name)||CAPABILITY_MATRIX.includes(name)};
   });
   const result = {
     schemaVersion: 1,
@@ -123,7 +138,8 @@ function corroborate({eventRun, before, after, prs, jobs, context}) {
       skippedJobs: summary.filter(job => job.conclusion === 'skipped').map(job => job.name),
       jobResults: summary,
       ciTrust: 'workflow-result-only-not-independent-security-proof',
-      runtimeBehavior: 'not-evaluated',
+      canaryApplication: expanded ? 'capability-matrix-requested' : 'not-requested',
+      runtimeBehavior: liveCanary ? 'observed-live-canary-success' : 'not-evaluated',
       postMergeQuality: 'not-evaluated'
     },
     autonomy: {
@@ -186,4 +202,4 @@ function main() {
 if (require.main === module) {
   try { main(); } catch (error) { console.error(error.message); process.exitCode = 2; }
 }
-module.exports = {corroborate, verifyObservationPair, sourceIdentity, EXPECTED, digest};
+module.exports = {corroborate, verifyObservationPair, sourceIdentity, EXPECTED, CAPABILITY_MATRIX, expectedJobNames, digest};

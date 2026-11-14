@@ -11,6 +11,11 @@ on:
         description: Released Core version, for example 4.16.0
         required: true
         type: string
+      merge_validated:
+        description: Explicitly merge validated PRs under ordinary protection
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -133,12 +138,15 @@ jobs:
           CORE_VERSION: ${{ inputs.core_version }}
         run: node scripts/family-upgrade-pr.js validate
       - name: Phase 2 - merge frozen validated heads
+        if: inputs.merge_validated == true
         env:
           GH_TOKEN: ${{ secrets.FAMILY_BOT_TOKEN }}
           CORE_SHA: ${{ inputs.core_sha }}
           CORE_VERSION: ${{ inputs.core_version }}
+          FAMILY_UPGRADE_MERGE_AUTHORIZED: ${{ inputs.merge_validated == true && 'true' || 'false' }}
         run: node scripts/family-upgrade-pr.js merge
       - name: Wait for exact immutable consumer releases and required distribution
+        if: inputs.merge_validated == true
         env:
           GITHUB_TOKEN: ${{ secrets.FAMILY_BOT_TOKEN }}
         shell: bash
@@ -170,6 +178,7 @@ jobs:
           echo 'Family consumers did not reach exact release + distribution + runtime readiness.' >&2
           exit 1
       - name: Trigger release-aware Family freshness
+        if: inputs.merge_validated == true
         env:
           GH_TOKEN: ${{ secrets.FAMILY_BOT_TOKEN }}
         shell: bash

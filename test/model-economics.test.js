@@ -37,3 +37,25 @@ test('promotion fails when quality regression exceeds budget even if candidate i
   assert.ok(result.reasons.some(reason=>reason.startsWith('recall_drop:')));
   assert.ok(result.reasons.some(reason=>reason.startsWith('critical_recall_drop:')));
 });
+
+test('promotion requires explicit measured quality, sample counts and reviewed limits',()=>{
+  const measured={recall:0.96,falsePositiveRate:0.02,criticalRecall:1,samples:80,criticalSamples:12};
+  const limits={maxRecallDrop:0,maxFalsePositiveIncrease:0,maxCriticalRecallDrop:0,minimumSamples:80,minimumCriticalSamples:12};
+  const input={baseline:measured,candidate:measured,limits};
+  assert.equal(qualityConstrainedPromotion(input).approved,true);
+  assert.equal(qualityConstrainedPromotion().approved,false);
+  for(const name of ['baseline','candidate','limits']){
+    assert.equal(qualityConstrainedPromotion({...input,[name]:{}}).approved,false,name);
+    assert.equal(qualityConstrainedPromotion({...input,[name]:null}).approved,false,name);
+  }
+  for(const key of ['recall','falsePositiveRate','criticalRecall','samples','criticalSamples']){
+    const incomplete={...measured};delete incomplete[key];
+    assert.equal(qualityConstrainedPromotion({...input,candidate:incomplete}).approved,false,key);
+    assert.equal(qualityConstrainedPromotion({...input,baseline:incomplete}).approved,false,key);
+  }
+  for(const value of [NaN,Infinity,-0.1,1.1,'1',null]){
+    assert.equal(qualityConstrainedPromotion({...input,candidate:{...measured,recall:value}}).approved,false,String(value));
+  }
+  assert.equal(qualityConstrainedPromotion({...input,baseline:{...measured,samples:79}}).approved,false);
+  assert.equal(qualityConstrainedPromotion({...input,limits:{...limits,minimumSamples:0}}).approved,false);
+});

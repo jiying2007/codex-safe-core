@@ -69,7 +69,9 @@
     "released-core-pin-validation",
     "repository-governance-contract",
     "family-scm-ui-contract-validation",
-    "user-visible-time-formatting"
+    "user-visible-time-formatting",
+    "diagnostic-text-sanitization",
+    "git-path-identity"
   ],
   "consumerForbiddenImplementations": [
     "SAFE_CODEX_CONFIG_OVERRIDES",
@@ -120,7 +122,13 @@
     "normalizeClaimKey",
     "computeFindingClaimIdentity",
     "validateEvidenceBackedFinding",
-    "compareFindingSets"
+    "compareFindingSets",
+    "redactDiagnosticText",
+    "boundUtf8Text",
+    "secureReadBuffer",
+    "parseGitDiffHeaderPaths",
+    "decodeGitQuotedPath",
+    "quoteGitPath"
   ],
   "productOwned": [
     "commit-domain",

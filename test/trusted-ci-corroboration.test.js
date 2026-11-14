@@ -39,6 +39,38 @@ test('exact CI and job census associates to PR without relying on workflow_run.p
   const {contentDigest, ...payload} = report;
   assert.equal(contentDigest, digest(payload));
 });
+function activeCanaryFixture(){
+  const input=fixture(),{CAPABILITY_MATRIX}=require('../scripts/trusted-ci-corroboration');
+  const placeholder=input.jobs.find(job=>job.name==='codex-canary-capability');
+  input.jobs=input.jobs.filter(job=>job!==placeholder);
+  for(const [index,name] of CAPABILITY_MATRIX.entries())input.jobs.push({...placeholder,id:20000+index,name,conclusion:'success'});
+  const behavioral=input.jobs.find(job=>job.name==='codex-canary-behavioral');
+  behavioral.conclusion='success';
+  behavioral.steps=['Live filesystem/network negative behavior check','Live model quality smoke']
+    .map(name=>({name,status:'completed',conclusion:'skipped'}));
+  return input;
+}
+test('active canary uses all three observed matrix names without claiming credentialless live success',()=>{
+  const input=activeCanaryFixture(),report=corroborate(input);
+  assert.equal(report.verification.ci,'observed-success');
+  assert.equal(report.verification.canonicalJobs,15);
+  assert.equal(report.verification.runtimeBehavior,'not-evaluated');
+  assert.equal(report.verification.canaryApplication,'capability-matrix-requested');
+  const behavioral=input.jobs.find(job=>job.name==='codex-canary-behavioral');
+  for(const step of behavioral.steps)step.conclusion='success';
+  assert.equal(corroborate(input).verification.runtimeBehavior,'observed-live-canary-success');
+  assert.equal(corroborate(input).autonomy.mergeAuthorized,false);
+});
+test('missing, skipped or mixed active canary matrix cannot qualify as observed CI success',()=>{
+  const missing=activeCanaryFixture();missing.jobs.pop();
+  assert.throws(()=>corroborate(missing),/incomplete/);
+  const skipped=activeCanaryFixture();skipped.jobs.at(-1).conclusion='skipped';
+  assert.equal(corroborate(skipped).verification.ci,'observed-non-success');
+  const mixed=activeCanaryFixture();mixed.jobs.at(-1).name='codex-canary-capability';
+  assert.throws(()=>corroborate(mixed),/unknown/);
+  const behavioral=activeCanaryFixture();behavioral.jobs.find(job=>job.name==='codex-canary-behavioral').conclusion='skipped';
+  assert.equal(corroborate(behavioral).verification.ci,'observed-non-success');
+});
 test('CI failure is recorded as non-success, not as green evidence', () => {
   const input = fixture();
   for (const part of [input.after, input.before, input.eventRun]) part.conclusion = 'failure';

@@ -1,6 +1,6 @@
 # Family Efficiency Contract
 
-Codex Safe Core v4.18.2 centralizes generic model-cost and execution-efficiency primitives for all Family consumers.
+Codex Safe Core v4.18.3 centralizes generic model-cost and execution-efficiency primitives for all Family consumers.
 
 The contract is intentionally product-neutral:
 
@@ -29,3 +29,9 @@ Model selection remains separate from repository policy. A machine Model Registr
 Quality optimization is constrained rather than token-minimal. The historical recorded corpus remains a regression baseline; the Promotion Corpus adds at least 80 dev/holdout/real-regression cases and clean negatives. A promotion candidate must produce real results and satisfy minimum total/critical sample counts before quality-constrained promotion can pass.
 
 Products remain responsible for their budgets, quality thresholds, deterministic evidence persistence, routing adoption and UI. Budget-induced evidence omissions must remain explicit. Persisted model judgment is not an efficiency primitive: Judgment Lifecycle v1 forbids treating historical model findings as fresh results or verdict input. Codex Change Safe uses zero model calls by default, so these primitives do not add a Change-stage model request.
+
+### Evidence admission
+
+Economics influence automatic selection only with explicit `qualityApproved: true`, complete finite metrics and the required sample count. Missing cost or quality fields are unknown, never zero-cost approval. Promotion requires valid baseline/candidate ratios, positive sample and critical-sample counts, and explicit reviewed limits. The scorer CLI labels checked-in records as `recorded-scorer-regression`; scoring a supplied result file is not fresh model execution or promotion evidence. Percentage performance comparisons require matching Node, OS, CPU and workload identity. Missing or mismatched environments are `incomparable_environment`, with no percentage regression result; absolute resource budgets still apply.
+
+Family Upgrade defaults to prepare/validate only. An explicit `merge_validated=true` workflow input authorizes the separate merge phase, which still checks exact heads, current server requirements, check provenance and non-bypass credentials. Prepared or validated state alone never grants that authority.

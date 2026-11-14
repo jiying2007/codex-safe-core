@@ -34,6 +34,8 @@ function compareSnapshots(current,baseline){
   if(currentSchema>=3&&baselineSchema===2)return{ok:true,migration:true,reason:'legacy_single_sample_baseline',result:null};
   if(currentSchema!==baselineSchema)return{ok:false,migration:false,reason:'incompatible_schema'};
   if(!workloadComparable(current,baseline))return{ok:false,migration:false,reason:'workload_drift'};
+  const comparability=describeComparability(current,baseline);
+  if(comparability.status!=='matched')return{ok:false,migration:false,reason:'incomparable_environment',comparability,result:null};
   // Percentage increase from zero has no finite denominator; do not let the
   // Core helper silently classify any nonzero RSS increase as zero regression.
   if(baselineMetrics.rssGrowthBytes===0&&currentMetrics.rssGrowthBytes>0)
@@ -44,8 +46,9 @@ function compareSnapshots(current,baseline){
     {latencyRegressionPct:10,rssRegressionPct:10,artifactRegressionPct:5});
   return{ok:result.ok,migration:false,reason:result.ok?'within_regression_budget':'regression',result};
 }
-// A cross-runner comparison is still subject to the strict performance gate.
-// Surface missing or different execution conditions instead of claiming code causality.
+// A percentage gate is meaningful only for matched, fully observed conditions.
+// Incomparable snapshots retain the absolute budget verdict, but cannot qualify
+// as a relative regression measurement or become a passing trend receipt.
 function describeComparability(current,baseline){
   const fields=[
     ['node',current.node,baseline.node],
