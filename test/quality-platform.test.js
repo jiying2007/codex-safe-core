@@ -4,6 +4,16 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const {resolveReviewProfile,extractImpactSignals,buildImpactEvidenceGraph,normalizeSarif,formatAnalyzerEvidence,evaluateQualityResults,assertQualityGate,validatePatchProposal,comparePerformanceSnapshot}=require('../quality-platform');
 
+test('SARIF URI decoding is scoped to URI input and never aliases raw Git paths',()=>{
+  const findingsFor=uri=>normalizeSarif({runs:[{results:[{ruleId:'r',message:{text:'issue'},locations:[{physicalLocation:{artifactLocation:{uri}}}]}]}]});
+  assert.equal(findingsFor('./src/%E6%B5%8B%E8%AF%95%20x%5Cy.c')[0].file,'src/测试 x\\y.c');
+  assert.equal(findingsFor('file:///C:/src/a.c')[0].file,'file:///C:/src/a.c');
+  const {normalizeAnalyzerFinding}=require('../quality-platform');
+  assert.equal(normalizeAnalyzerFinding({file:'src/a%5Cb.c',message:'issue'}).file,'src/a%5Cb.c');
+  assert.equal(normalizeAnalyzerFinding({file:'src/a\\b.c',message:'issue'}).file,'src/a\\b.c');
+  for(const bad of ['src/%ff.c','src/a%2Fb.c','src/a%00.c'])assert.throws(()=>findingsFor(bad),/SARIF artifact URI/);
+});
+
 test('review profiles are deterministic and cap-preserving inputs',()=>{assert.equal(resolveReviewProfile('quick').impactDepth,0);assert.equal(resolveReviewProfile('embedded').name,'embedded');assert.equal(resolveReviewProfile('unknown').name,'standard');assert.equal(resolveReviewProfile('deep',{contextFactor:2}).contextFactor,1);});
 
 test('impact evidence finds includes, symbols, config and build references',()=>{const diff=['diff --git a/src/motor.c b/src/motor.c','--- a/src/motor.c','+++ b/src/motor.c','@@ -1 +1,4 @@','+#include "motor_ctrl.h"','+int motor_set_speed(int rpm) { return rpm; }','+#if CONFIG_MOTOR_SAFE','+motor_set_speed(10);'].join('\n');const signals=extractImpactSignals(diff);assert.ok(signals.includes.includes('motor_ctrl.h'));assert.ok(signals.symbols.includes('motor_set_speed'));assert.ok(signals.configs.includes('CONFIG_MOTOR_SAFE'));const graph=buildImpactEvidenceGraph({diff,candidates:[{path:'include/motor_ctrl.h',content:'int motor_set_speed(int rpm);'},{path:'src/app.c',content:'void app(){ motor_set_speed(1); }'},{path:'README.md',content:'nothing'}],maxNodes:4,maxBytes:4096});assert.ok(graph.nodes.some(node=>node.path==='include/motor_ctrl.h'));assert.ok(graph.nodes.some(node=>node.path==='src/app.c'));assert.ok(graph.text.includes('IMPACT EVIDENCE GRAPH'));});
@@ -22,6 +32,35 @@ test('patch authorization distinguishes literal a/ and b/ repository directories
   for (const allowed of ['b/file.c', 'file.c']) {
     assert.throws(() => validatePatchProposal({ patch }, { allowedPaths: [allowed] }), /outside reviewed evidence/);
   }
+});
+
+test('real Git patch identities preserve quoted Unicode, whitespace and literal POSIX backslashes', {skip:process.platform==='win32'},()=>{
+  const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),{execFileSync}=require('node:child_process');
+  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'safe-git-paths-'));
+  const git=(...args)=>execFileSync('git',args,{cwd:directory,encoding:'utf8',stdio:['ignore','pipe','pipe']});
+  const paths=['x\\y.c','x/y.c','测试.c',' padded.c ','a/inner.c'];
+  try{
+    git('init','-q');
+    for(const file of paths){fs.mkdirSync(path.dirname(path.join(directory,file)),{recursive:true});fs.writeFileSync(path.join(directory,file),'old\n');}
+    git('add','--all');
+    git('-c','user.name=fixture','-c','user.email=fixture@example.invalid','commit','-qm','initial');
+    for(const file of paths)fs.writeFileSync(path.join(directory,file),'new\n');
+    const patch=git('diff','--no-ext-diff','--no-textconv');
+    assert.deepEqual([...validatePatchProposal({patch},{allowedPaths:paths}).touchedPaths].sort(),[...paths].sort());
+    assert.deepEqual([...extractImpactSignals(patch).paths].sort(),[...paths].sort());
+    assert.throws(()=>validatePatchProposal({patch},{allowedPaths:paths.filter(file=>file!=='x\\y.c')}),/outside reviewed evidence/);
+  }finally{fs.rmSync(directory,{recursive:true,force:true});}
+});
+test('rename authorization binds both sides and rejects conflicting file headers',()=>{
+  const patch='diff --git a/from.c "b/to\\t.c"\nsimilarity index 100%\nrename from from.c\nrename to "to\\t.c"\n';
+  assert.deepEqual(validatePatchProposal({patch},{allowedPaths:['from.c','to\t.c']}).touchedPaths,['from.c','to\t.c']);
+  assert.throws(()=>validatePatchProposal({patch},{allowedPaths:['to\t.c']}),/outside reviewed evidence/);
+  const mismatch='diff --git a/safe.c b/safe.c\n--- a/outside.c\n+++ b/safe.c\n@@ -1 +1 @@\n-old\n+new\n';
+  assert.throws(()=>validatePatchProposal({patch:mismatch},{allowedPaths:['safe.c']}),/disagrees/);
+  const traversal='diff --git a/../outside.c b/../outside.c\n';
+  assert.throws(()=>validatePatchProposal({patch:traversal}),/unsafe repository path/);
+  const invalid='diff --git "a/\\377.c" "b/\\377.c"\n';
+  assert.throws(()=>validatePatchProposal({patch:invalid}),/invalid Git path/);
 });
 
 test('impact extraction reuses regexes without carrying state between changed lines',()=>{

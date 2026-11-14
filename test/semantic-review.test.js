@@ -5,6 +5,19 @@ const assert = require('node:assert/strict');
 const semantic = require('../semantic-review');
 const claim = require('../finding-claim');
 
+test('evidence selection and finding digests preserve raw Git path identity', () => {
+  const paths = ['x\\y.c', 'x/y.c', ' padded.c ', 'padded.c', '\ufeffname.c', 'name.c'];
+  const entries = paths.map(file => ({ path: file, content: 'same content', relatedPaths: [file] }));
+  const manifest = semantic.buildEvidenceManifest(entries);
+  assert.equal(new Set(manifest.entries.map(item => item.id)).size, paths.length);
+  assert.equal(new Set(paths.map(file => semantic.computeStableFindingId({ file, category: 'security', line: 1 }))).size, paths.length);
+  assert.equal(new Set(paths.map(file => semantic.digestAnalyzerEvidence([{ file, message: 'same issue' }]))).size, paths.length);
+  for (const file of paths) {
+    assert.deepEqual(semantic.selectEvidenceForPaths(entries, [file]).entries.map(item => item.path), [file]);
+  }
+  assert.notEqual(semantic.buildEvidenceManifest([entries[0]]).manifestDigest, semantic.buildEvidenceManifest([entries[1]]).manifestDigest);
+});
+
 test('extractCallSymbols captures ordinary C/C++ call sites without control keywords', () => {
   const diff = [
     'diff --git a/app.c b/app.c',

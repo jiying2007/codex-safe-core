@@ -29,11 +29,24 @@ function compareShadowReview({production={},candidate={}}={}){
 }
 function qualityConstrainedPromotion({baseline={},candidate={},limits={}}={}){
   const reasons=[];
+  const metricKeys=['recall','falsePositiveRate','criticalRecall'];
+  const ratio=value=>typeof value==='number'&&Number.isFinite(value)&&value>=0&&value<=1;
+  const count=value=>Number.isSafeInteger(value)&&value>0;
+  for(const [name,record] of [['baseline',baseline],['candidate',candidate]]){
+    for(const key of metricKeys)if(!ratio(record?.[key]))reasons.push(`invalid_${name}_${key}`);
+    for(const key of ['samples','criticalSamples'])if(!count(record?.[key]))reasons.push(`invalid_${name}_${key}`);
+    if(count(record?.samples)&&count(record?.criticalSamples)&&record.criticalSamples>record.samples)reasons.push(`invalid_${name}_critical_sample_count`);
+  }
+  for(const key of ['maxRecallDrop','maxFalsePositiveIncrease','maxCriticalRecallDrop'])if(!ratio(limits?.[key]))reasons.push(`invalid_limit_${key}`);
+  for(const key of ['minimumSamples','minimumCriticalSamples'])if(!count(limits?.[key]))reasons.push(`invalid_limit_${key}`);
+  baseline=baseline||{};candidate=candidate||{};limits=limits||{};
   const maxRecallDrop=num(limits.maxRecallDrop),maxFalsePositiveIncrease=num(limits.maxFalsePositiveIncrease),maxCriticalRecallDrop=num(limits.maxCriticalRecallDrop),minimumSamples=Math.max(0,Math.floor(Number(limits.minimumSamples)||0)),minimumCriticalSamples=Math.max(0,Math.floor(Number(limits.minimumCriticalSamples)||0));
   const samples=Math.max(0,Math.floor(Number(candidate.samples)||0)),criticalSamples=Math.max(0,Math.floor(Number(candidate.criticalSamples)||0));
   const recallDrop=Math.max(0,num(baseline.recall)-num(candidate.recall)),fpIncrease=Math.max(0,num(candidate.falsePositiveRate)-num(baseline.falsePositiveRate)),criticalDrop=Math.max(0,num(baseline.criticalRecall)-num(candidate.criticalRecall));
   if(minimumSamples&&samples<minimumSamples)reasons.push(`insufficient_samples:${samples}<${minimumSamples}`);
   if(minimumCriticalSamples&&criticalSamples<minimumCriticalSamples)reasons.push(`insufficient_critical_samples:${criticalSamples}<${minimumCriticalSamples}`);
+  if(minimumSamples&&Number(baseline.samples)<minimumSamples)reasons.push(`insufficient_baseline_samples:${baseline.samples}<${minimumSamples}`);
+  if(minimumCriticalSamples&&Number(baseline.criticalSamples)<minimumCriticalSamples)reasons.push(`insufficient_baseline_critical_samples:${baseline.criticalSamples}<${minimumCriticalSamples}`);
   if(recallDrop>maxRecallDrop)reasons.push(`recall_drop:${recallDrop}`);if(fpIncrease>maxFalsePositiveIncrease)reasons.push(`false_positive_increase:${fpIncrease}`);if(criticalDrop>maxCriticalRecallDrop)reasons.push(`critical_recall_drop:${criticalDrop}`);
   return freeze({approved:reasons.length===0,reasons,samples,criticalSamples,recallDrop,falsePositiveIncrease:fpIncrease,criticalRecallDrop:criticalDrop});
 }

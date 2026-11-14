@@ -36,6 +36,11 @@ test('native policy accepts PR plus CI Gate without a second human approval',()=
   const result=assess(detail,{default_branch:'main',delete_branch_on_merge:true});
   assert.deepEqual(result.reasons,[]);
   assert.equal(result.ok,true);
+  assert.equal(result.administrativeMetadata.allowAutoMerge,null,'unobserved settings remain explicit');
+  const unobservable=assess(detail,{default_branch:'main'},{requireAdministrativeMetadata:true});
+  assert.ok(unobservable.reasons.includes('delete-branch-on-merge-unobservable'));
+  assert.ok(unobservable.reasons.includes('auto-merge-unobservable'));
+  assert.equal(assess(detail,{default_branch:'main',delete_branch_on_merge:true,allow_auto_merge:false},{requireAdministrativeMetadata:true}).ok,true);
 });
 
 test('solo ruleset rejects extra reviewers, last-push and code-owner drift despite a green CI Gate',()=>{
@@ -139,14 +144,15 @@ test('only a complete successful GitHub Actions CI Gate at exact main SHA qualif
   const {validateMainGateCheckRuns}=require('../scripts/apply-repository-governance');
   const head='a'.repeat(40);
   const base={total_count:2,check_runs:[
-    {name:'CI Gate',head_sha:head,app:{id:15368,slug:'github-actions'},conclusion:'success'},
-    {name:'Node 22',head_sha:head,app:{id:15368,slug:'github-actions'},conclusion:'success'}]};
+    {name:'CI Gate',head_sha:head,app:{id:15368,slug:'github-actions'},status:'completed',conclusion:'success'},
+    {name:'Node 22',head_sha:head,app:{id:15368,slug:'github-actions'},status:'completed',conclusion:'success'}]};
   assert.deepEqual(validateMainGateCheckRuns(base,head),{headSha:head,integrationId:15368,appSlug:'github-actions'});
   for(const [mutate,phrase] of [
     [x=>{x.check_runs[0].app.id=7},/declared source/],
     [x=>{x.check_runs[0].app.slug='other'},/declared source/],
     [x=>{x.check_runs[0].head_sha='b'.repeat(40)},/exact-main/],
     [x=>{x.check_runs[0].conclusion='failure'},/successful/],
+    [x=>{x.check_runs[0].status='in_progress'},/successful/],
     [x=>{x.total_count=3},/incomplete/],
     [x=>{x.check_runs.push(structuredClone(x.check_runs[0]));x.total_count=3},/declared source/]
   ]){

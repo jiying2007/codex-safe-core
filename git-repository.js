@@ -92,23 +92,35 @@ function createGitRepository({ runProcess, runProcessBuffer, ui = (_zh, en) => e
   }
 
   async function getStagedPaths(repoRoot, token) {
-    const { stdout } = await git(
+    return gitPathList(
       ['diff', '--cached', '--name-only', '--diff-filter=ACMRDTUXB', '-z'],
       repoRoot,
       token
     );
-    return stdout.split('\0').filter(Boolean);
   }
 
   async function getChangedPaths(repoRoot, base, head = 'HEAD', token) {
     const safeBase = assertSafeGitToken(base, 'base ref');
     const safeHead = assertSafeGitToken(head, 'head ref');
-    const { stdout } = await git(
+    return gitPathList(
       ['diff', '--name-only', '--diff-filter=ACMRDTUXB', '-z', `${safeBase}...${safeHead}`],
       repoRoot,
       token
     );
-    return stdout.split('\0').filter(Boolean);
+  }
+
+  async function gitPathList(args, repoRoot, token) {
+    const { stdout } = await runProcessBuffer('git', args, {
+      cwd: repoRoot,
+      timeoutMs: DEFAULT_GIT_TIMEOUT_MS,
+      maxStdoutBytes: 16 * 1024 * 1024,
+      maxStderrBytes: 256 * 1024,
+      env: { ...process.env, GIT_OPTIONAL_LOCKS: '0', LC_ALL: 'C' }
+    }, token);
+    // Unsupported byte names must fail instead of collapsing to U+FFFD.
+    const text = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(stdout);
+    if (text && !text.endsWith('\0')) throw new Error('Git path inventory is not NUL-terminated.');
+    return text.split('\0').filter(Boolean);
   }
 
   async function getBranchDiff(repoRoot, base, head = 'HEAD', token, unified = 3) {

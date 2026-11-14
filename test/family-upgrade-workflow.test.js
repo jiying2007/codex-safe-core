@@ -138,7 +138,7 @@ function upgradeFixture(count=2){
     merge:entry=>{const value=call('merge',entry);value.pr.state='MERGED';value.pr.mergeCommit={oid:'d'.repeat(40)};value.pr.mergedAt='2026-10-25T00:00:00Z';}
   };
   fixture.validate=()=>validateUpgrade(state,expected,fixture.client);
-  fixture.merge=validated=>mergeUpgrade(validated,expected,fixture.client,value=>writes.push(structuredClone(value)));
+  fixture.merge=validated=>mergeUpgrade(validated,expected,fixture.client,value=>writes.push(structuredClone(value)),{authorized:true});
   return fixture;
 }
 
@@ -147,7 +147,22 @@ test('Family validation freezes every identity before all-checks waits and commi
   assert.deepEqual(f.calls.slice(0,4).map(call=>call.method),['pr','pr','watch','watch']);
   assert.equal(validated.phase,'validated');assert.equal(validated.entries.filter(entry=>entry.status==='validated').length,2);
   assert.deepEqual(f.state,before);assert.equal(f.calls.some(call=>call.method==='merge'),false);
-  assert.deepEqual(validated.entries[0].validation,{checkRunId:701,workflowRunId:501,reviewIds:[901]});
+  assert.deepEqual(validated.entries[0].validation,{checkRunId:701,workflowRunId:501,reviewIds:[],mergeAuthorized:false});
+});
+
+test('validated state alone never authorizes a merge and automatic dispatch defaults to preparation',()=>{
+  const f=upgradeFixture(),validated=f.validate();f.calls.length=0;
+  assert.throws(()=>mergeUpgrade({...validated,mergeAuthorized:true},f.expected,f.client),/explicit merge authorization/);
+  assert.equal(f.calls.length,0);
+  assert.match(workflow,/merge_validated:[\s\S]*?default: false/);
+  assert.equal((workflow.match(/if: inputs\.merge_validated == true/g)||[]).length,3);
+  assert.match(workflow,/FAMILY_UPGRADE_MERGE_AUTHORIZED:/);
+});
+test('solo maintainer can validate and explicitly merge a clean PR without inventing a second reviewer',()=>{
+  const f=upgradeFixture();
+  for(const value of f.data.values()){value.pr.reviewDecision='';value.reviews=[];}
+  const validated=f.validate();assert.equal(validated.mergeAuthorized,false);
+  assert.equal(f.merge(validated).phase,'merged');
 });
 
 test('checked head A cannot authorize head B after a checks wait',()=>{
@@ -161,9 +176,10 @@ for(const [label,mutate]of [
   ['server review requirement',value=>{value.pr.reviewDecision='REVIEW_REQUIRED';}],
   ['blocked merge state',value=>{value.pr.mergeStateStatus='BLOCKED';}],
   ['unknown merge state',value=>{value.pr.mergeStateStatus='UNKNOWN';}]
-])test(`Family validation rejects ${label} even with a successful CI Gate`,()=>{
+])test(`Family validation records CI independently of ${label}`,()=>{
   const f=upgradeFixture();mutate([...f.data.values()][1]);
-  assert.throws(f.validate,/approval|merge state/);assert.equal(f.calls.some(call=>call.method==='merge'),false);
+  const validated=f.validate();assert.equal(validated.phase,'validated');assert.equal(validated.mergeAuthorized,false);
+  assert.throws(()=>f.merge(validated),/review requirements|merge state/);assert.equal(f.calls.some(call=>call.method==='merge'),false);
 });
 
 for(const [label,mutate]of [
@@ -215,7 +231,7 @@ test('the PR head binds CI metadata while a different synthetic merge checkout r
 test('every PR must still be approved in the Phase 2 batch barrier before the first merge',()=>{
   const f=upgradeFixture(),validated=f.validate();f.calls.length=0;
   [...f.data.values()][1].pr.reviewDecision='REVIEW_REQUIRED';
-  assert.throws(()=>f.merge(validated),/approval/);assert.equal(f.calls.some(call=>call.method==='merge'),false);assert.deepEqual(f.writes,[]);
+  assert.throws(()=>f.merge(validated),/review requirements/);assert.equal(f.calls.some(call=>call.method==='merge'),false);assert.deepEqual(f.writes,[]);
 });
 
 for(const bypass of ['always','pull_requests_only',undefined,'unknown'])test(`automatic merge refuses bypass capability ${String(bypass)}`,()=>{

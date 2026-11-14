@@ -49,3 +49,16 @@ test('runtime source or runtime contract changes alter runtime digest', () => {
     assert.notEqual(contractChanged.runtimeDigest, before.runtimeDigest);
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
+
+test('a leading-space tracked name is included in the exact runtime digest', () => {
+  const root = tempRepo();
+  try {
+    fs.writeFileSync(path.join(root, ' first.js'), 'one');
+    run(root, ['add', '--', ' first.js']);
+    const before = computeCoreDigests(root);
+    fs.writeFileSync(path.join(root, ' first.js'), 'two');
+    const after = computeCoreDigests(root);
+    assert.notEqual(after.runtimeDigest, before.runtimeDigest);
+    assert.equal(after.runtimeEntries, before.runtimeEntries);
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});

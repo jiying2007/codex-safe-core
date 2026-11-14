@@ -1,6 +1,6 @@
 # Family 效率契约
 
-Codex Safe Core v4.18.2 为整个产品族统一提供通用的模型成本与执行效率原语。
+Codex Safe Core v4.18.4 为整个产品族统一提供通用的模型成本与执行效率原语。
 
 该契约保持产品无关：
 
@@ -29,3 +29,9 @@ Model Selection 与 Repository Policy 严格分层。机器级 Model Registry �
 质量优化不是 Token 最小化。历史 recorded corpus 继续作为回归 baseline；Promotion Corpus 增加至少 80 个 dev/holdout/real-regression case 和 clean negative。候选模型必须产生真实评估结果，并满足最小总样本数/critical 样本数后，才允许进入 quality-constrained promotion。
 
 各产品继续负责自己的预算值、质量阈值、确定性 Evidence 持久化、Routing 接入和 UI。预算导致的证据遗漏必须显式暴露。持久化 Model Judgment 不属于效率原语：Judgment Lifecycle v1 禁止把历史模型 Finding 当成 fresh 结果或重新参与 Verdict。Codex Change Safe 默认模型调用为 0，因此这些原语不会给 Change 阶段增加模型请求。
+
+### 证据准入
+
+经济性自动选型要求显式 `qualityApproved:true`、完整有限指标和足够样本。缺失成本或质量不能当成零成本或已批准。晋级要求基线及候选的有效比例指标、正数样本/严重样本计数和显式阈值。评分器把仓内记录标为 `recorded-scorer-regression`；对输入结果文件评分不代表本轮模型执行或晋级证据。相对性能百分比要求 Node、系统、CPU 和工作负载身份一致；缺失或不匹配时为 `incomparable_environment`，不生成退化比例，绝对资源预算继续生效。
+
+Family Upgrade 默认只准备和验证。显式工作流输入 `merge_validated=true` 才进入独立合并阶段，并保留精确 HEAD、服务端要求、检查来源和不可绕过凭据验证。prepared/validated 状态不授予合并权限。

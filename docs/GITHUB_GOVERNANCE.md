@@ -37,6 +37,7 @@ For every repository whose protection mode is `native`, the default branch must 
 - at most one bounded bypass actor;
 - bypass limited to `pull_request` mode;
 - repository-side `delete_branch_on_merge` enabled when administratively observable.
+- repository-side `allow_auto_merge` disabled; preparation and validation never grant merge authority.
 
 The solo-maintainer contract specifies exactly zero required approvals, with no last-push or code-owner approval. The verifier rejects drift in either direction; independent reviewer advice remains welcome but must not be represented as a machine-required step.
 
@@ -60,6 +61,8 @@ node scripts/verify-repository-ruleset.js
 ```
 
 `--bind-ci-source` remains accepted; source binding is now contract-required by default. `--create-missing` is explicit and only creates the canonical rule when it does not exist. Every actual write is followed by a server readback. Dry-run output is a proposal, not evidence that GitHub has been changed. Do not merge the strict contract migration until the seven server configurations satisfy it; this keeps administrative availability separate from unrelated runtime repairs.
+
+Read-only workflow audits report hidden administrative settings as `null`, never as disabled/enabled. An actual apply must read back both settings as the intended booleans; missing observability fails post-write qualification instead of reporting a verified administration result.
 
 The GitHub connector may lack Administration-write capability. A prepared PR does not grant that capability, and no new credential or bypass is implied. The optional trusted observation remains evidence only and cannot authorize a merge.
 

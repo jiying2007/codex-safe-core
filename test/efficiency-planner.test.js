@@ -3,6 +3,13 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const{usageShape,extractCodexUsage,estimateRequestTokens,assertWithinTokenBudget,observedBytesPerInputToken,calibrateBytesPerToken,TokenEstimatorCalibration,changedEvidenceText,scoreEvidenceRisk,adaptiveBudget,selectModel,selectChunksWithinByteBudget,TokenBudgetLedger}=require('../efficiency-planner');
 
+test('path risk classification does not invent directories from literal backslashes',()=>{
+  assert.equal(scoreEvidenceRisk({paths:['src\\auth.js']}),0);
+  assert.equal(scoreEvidenceRisk({paths:['src/auth.js']}),5);
+  assert.equal(scoreEvidenceRisk({paths:['src\\docs/a.c']}),1);
+  assert.equal(scoreEvidenceRisk({paths:['src/docs/a.c']}),0);
+});
+
 test('normalizes latest Codex usage from JSONL',()=>{const stdout=[JSON.stringify({type:'turn.completed',usage:{input_tokens:100,cached_input_tokens:30,cache_write_input_tokens:5,output_tokens:20,reasoning_output_tokens:7}}),JSON.stringify({type:'item.completed',item:{type:'agent_message',text:'{}'}})].join('\n');assert.deepEqual(extractCodexUsage(stdout),usageShape({inputTokens:100,cachedInputTokens:30,cacheWriteInputTokens:5,outputTokens:20,reasoningOutputTokens:7}));});
 test('preflight estimate is conservative and fail-closed',()=>{const estimate=estimateRequestTokens('x'.repeat(3000),{estimatedOutputTokens:400});assert.ok(estimate.inputTokens>=1500);assert.equal(estimate.totalTokens,estimate.inputTokens+400);assert.deepEqual(Object.keys(estimate),['inputTokens','outputTokens','totalTokens','bytes']);assert.throws(()=>assertWithinTokenBudget('x'.repeat(3000),{maxTokens:1000,estimatedOutputTokens:400}),error=>error.code==='ETOKENBUDGET');});
 test('bounded token calibration activates only after enough samples and stays conservative',()=>{assert.equal(observedBytesPerInputToken(3000,{inputTokens:1000}),3);assert.ok(calibrateBytesPerToken(2,3)<3);const calibration=new TokenEstimatorCalibration({minSamples:3});assert.equal(calibration.bytesPerToken('openai','model-a'),2);for(let i=0;i<2;i++)calibration.observe('openai','model-a',{bytes:3000,usage:{inputTokens:1000}});assert.equal(calibration.bytesPerToken('openai','model-a'),2);const third=calibration.observe('openai','model-a',{bytes:3000,usage:{inputTokens:1000}});assert.equal(third.active,true);assert.ok(calibration.bytesPerToken('openai','model-a')>2);assert.ok(calibration.bytesPerToken('openai','model-a')<3);const estimate=calibration.estimate('openai','model-a','x'.repeat(3000),{estimatedOutputTokens:0});assert.ok(estimate.inputTokens>1000,'safety margin must remain conservative');assert.equal(calibration.snapshot()[0].samples,3);});

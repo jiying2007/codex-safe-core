@@ -53,7 +53,7 @@ function requiredCheckSourceBinding(parameters = {}) {
 function deleteBranchOnMergeState(repository = {}) {
   return typeof repository?.delete_branch_on_merge === 'boolean' ? repository.delete_branch_on_merge : null;
 }
-function assess(detail, repository = {}, { requireStatusSource = contract.requiredStatusChecks.requireSourceBinding === true } = {}) {
+function assess(detail, repository = {}, { requireStatusSource = contract.requiredStatusChecks.requireSourceBinding === true, requireAdministrativeMetadata = false } = {}) {
   const reasons = [];
   if (detail?.name !== contract.rulesetName) reasons.push(`ruleset-name:${detail?.name || 'missing'}`);
   if (detail?.enforcement !== contract.enforcement) reasons.push(`enforcement:${detail?.enforcement || 'missing'}`);
@@ -108,9 +108,12 @@ function assess(detail, repository = {}, { requireStatusSource = contract.requir
   // absent field means "not observable", not false. An administrator/local audit
   // sees the boolean and remains fail-closed on an explicit false value.
   const deleteBranchOnMerge = deleteBranchOnMergeState(repository);
+  const allowAutoMerge = typeof repository.allow_auto_merge === 'boolean' ? repository.allow_auto_merge : null;
   if (contract.deleteBranchOnMerge && deleteBranchOnMerge === false) reasons.push('delete-branch-on-merge-disabled');
-  if (contract.allowAutoMerge === false && repository.allow_auto_merge === true) reasons.push('auto-merge-enabled');
-  return { ok: reasons.length === 0, reasons, sourceBinding, administrativeMetadata: { deleteBranchOnMerge, allowAutoMerge: typeof repository.allow_auto_merge === 'boolean' ? repository.allow_auto_merge : null } };
+  if (contract.allowAutoMerge === false && allowAutoMerge === true) reasons.push('auto-merge-enabled');
+  if (requireAdministrativeMetadata && deleteBranchOnMerge === null) reasons.push('delete-branch-on-merge-unobservable');
+  if (requireAdministrativeMetadata && allowAutoMerge === null) reasons.push('auto-merge-unobservable');
+  return { ok: reasons.length === 0, reasons, sourceBinding, administrativeMetadata: { deleteBranchOnMerge, allowAutoMerge } };
 }
 function policyFor(repo) {
   const explicit = contract.repositoryPolicies?.[repo];
@@ -145,7 +148,8 @@ async function auditRepository(repo, token, { readJson = json } = {}) {
     rejectedRulesets: rejected,
     administrativeMetadata: {
       deleteBranchOnMerge,
-      observable: deleteBranchOnMerge !== null
+      allowAutoMerge: typeof repository.allow_auto_merge === 'boolean' ? repository.allow_auto_merge : null,
+      observable: deleteBranchOnMerge !== null && typeof repository.allow_auto_merge === 'boolean'
     }
   };
 }

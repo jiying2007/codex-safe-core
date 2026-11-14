@@ -109,7 +109,7 @@ function validateMainGateCheckRuns(checks, sha, full = 'repository') {
   const matches = checks.check_runs.filter(check => check?.name === 'CI Gate');
   if (matches.length !== 1 || matches[0].head_sha !== sha ||
       matches[0].app?.id !== source.integrationId || matches[0].app?.slug !== source.appSlug ||
-      matches[0].conclusion !== 'success') {
+      matches[0].status !== 'completed' || matches[0].conclusion !== 'success') {
     throw new Error(`${full}: CI Gate is not a successful, exact-main GitHub Actions check-run from the declared source.`);
   }
   return { headSha: sha, integrationId: source.integrationId, appSlug: source.appSlug };
@@ -250,7 +250,7 @@ async function main() {
 
     const postRepo = apply ? await api('GET', `/repos/${full}`, undefined, { anonymousRetry: true }) : { ...repo, delete_branch_on_merge: true, allow_auto_merge: false };
     const postDetail = apply ? await api('GET', `/repos/${full}/rulesets/${rulesetId}`, undefined, { anonymousRetry: true }) : { ...desired, id: rulesetId };
-    const verdict = assess(postDetail, postRepo, { requireStatusSource: bindCiSource });
+    const verdict = assess(postDetail, postRepo, { requireStatusSource: bindCiSource, requireAdministrativeMetadata: apply });
     if (!verdict.ok) throw new Error(`${full} desired governance does not satisfy contract: ${verdict.reasons.join(', ')}`);
     results.push({ repository: full, rulesetId, sourceBinding: verdict.sourceBinding, verifiedSource, cleanup: { requested: cleanBranches, deleted: [], skipped: [] } });
   }
