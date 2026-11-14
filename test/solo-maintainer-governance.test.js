@@ -78,10 +78,12 @@ test('cross-repository private credential is not a Core development or release-v
   const fresh=fs.readFileSync(path.join(root,'.github/workflows/family-freshness.yml'),'utf8');
   assert.doesNotMatch(governance,/Missing CODEX_SAFE_FAMILY_READ_TOKEN|exit 2/);
   assert.doesNotMatch(release,/Missing CODEX_SAFE_FAMILY_READ_TOKEN|exit 2/);
-  assert.match(status,/private-family-visibility-unavailable/);
-  assert.match(fresh,/dispatch=false/);
-  assert.match(status,/available != 'true'/);
-  assert.match(fresh,/available != 'true'/);
+  assert.doesNotMatch(status,/private-family-visibility-unavailable/);
+  assert.ok(status.includes('GITHUB_TOKEN: ${{ secrets.CODEX_SAFE_FAMILY_READ_TOKEN || github.token }}'));
+  assert.match(status,/node scripts\/generate-family-status\.js FAMILY_STATUS\.json/);
+  assert.match(fresh,/if: steps\.evaluate\.outputs\.dispatch == 'true'/);
+  assert.doesNotMatch(status,/steps\.visibility|available != 'true'/);
+  assert.doesNotMatch(fresh,/steps\.visibility|available != 'true'/);
 });
 
 test('CI Gate source is reported independently without inventing server-side enforcement',()=>{
