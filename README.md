@@ -126,7 +126,7 @@ For live server-side repository governance verification:
 npm run check:repository-governance
 ```
 
-See [ARCHITECTURE.md](ARCHITECTURE.md), [SECURITY.md](SECURITY.md), [Consumer Guide](docs/CONSUMER_GUIDE.md), [Quality Platform](docs/QUALITY_PLATFORM.md), [Trusted Autonomy Shadow](docs/TRUSTED_AUTONOMY.md), and [GitHub Governance](docs/GITHUB_GOVERNANCE.md).
+See [ARCHITECTURE.md](ARCHITECTURE.md), [SECURITY.md](SECURITY.md), [Consumer Guide](docs/CONSUMER_GUIDE.md), [Quality Platform](docs/QUALITY_PLATFORM.md), [Read-only PR Evidence](docs/TRUSTED_AUTONOMY.md), and [GitHub Governance](docs/GITHUB_GOVERNANCE.md).
 
 ## User-visible time zone
 
