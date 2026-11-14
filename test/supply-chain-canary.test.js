@@ -170,7 +170,7 @@ test('offline zizmor reuses the existing Security job and scans only high-signal
 
 
 test('trusted release uses job-scoped publishing authority and no shell-interpolated CI SHA', () => {
-  const release=fs.readFileSync(path.join(workflowDir, '_trusted-release.yml'), 'utf8');
+  const release=fs.readFileSync(path.join(workflowDir, '_trusted-release.yml'), 'utf8').replace(/\r\n/g, '\n');
   const [workflowHeader, admission, publish] = [
     release.slice(0, release.indexOf('\njobs:')),
     release.slice(release.indexOf('\n  admission:'), release.indexOf('\n  publish:')),
