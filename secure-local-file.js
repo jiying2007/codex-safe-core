@@ -40,7 +40,10 @@ function secureReadBuffer(filePath, { maxBytes = 1024 * 1024, allowMissing = fal
   let fd;
   try {
     const noFollow = Number(fs.constants.O_NOFOLLOW || 0);
-    fd = fsImpl.openSync(target, fs.constants.O_RDONLY | noFollow);
+    // Reject FIFOs through fstat without waiting for a writer at open. Checking
+    // the path first would leave a regular-file-to-FIFO replacement window.
+    const nonBlock = Number(fs.constants.O_NONBLOCK || 0);
+    fd = fsImpl.openSync(target, fs.constants.O_RDONLY | noFollow | nonBlock);
   } catch (error) {
     if (allowMissing && error?.code === 'ENOENT') return null;
     if (['ELOOP', 'EMLINK'].includes(error?.code)) throw localFileError('ELOCALFILE', `Machine-local file must not be a symbolic link: ${target}.`, { cause: error, filePath: target });
