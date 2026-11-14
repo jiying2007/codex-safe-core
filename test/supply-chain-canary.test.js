@@ -115,7 +115,7 @@ test('Family collectors read public evidence while retaining optional private Gi
   assert.match(status, /node scripts\/generate-family-status\.js FAMILY_STATUS\.json/);
   assert.doesNotMatch(status, /consumers:\s*\{\}|partial:\s*true/);
   assert.equal((family.match(/CODEX_SAFE_FAMILY_READ_TOKEN: \$\{\{ secrets\.CODEX_SAFE_FAMILY_READ_TOKEN \}\}/g) || []).length, 2);
-  for (const workflow of [family, status]) assert.match(workflow, /permissions:\n  actions: read\n  contents: read/);
+  for (const workflow of [family, status]) assert.match(workflow, /permissions:\r?\n  actions: read\r?\n  contents: read/);
   assert.match(freshness, /GH_TOKEN: \$\{\{ github\.token \}\}/);
   assert.match(family, /GH_TOKEN: \$\{\{ github\.token \}\}/);
   assert.match(freshness, /full_matrix=false/);
