@@ -19,10 +19,10 @@
       "expectedRules": ["forbiddenPathPrefix"]
     },
     {
-      "name": "paths-normalize-deterministically",
-      "changedPaths": ["./src/a.js", "src/a.js", "bad\npath"],
+      "name": "raw-path-identities-remain-distinct",
+      "changedPaths": ["./src/a.js", "src/a.js", "src\\a.js", " padded.js ", "bad\npath", "src/a.js", "/absolute", "bad\u0000path"],
       "rules": {},
-      "expectedChangedPaths": ["src/a.js"],
+      "expectedChangedPaths": ["./src/a.js", "src/a.js", "src\\a.js", " padded.js ", "bad\npath"],
       "expectedRules": []
     }
   ],

@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.18.4
+
+- Preserve raw Git path identity across test selection, semantic evidence, stable findings, review-rule prefixes, diagnosis output/scoring and risk classification. Literal backslashes, whitespace and BOM names no longer collapse to another file.
+- Read NUL-delimited Git inventories from bytes with strict UTF-8 decoding and preserve the complete first filename in source digests; invalid byte names fail without replacement-character aliases.
+- Decode percent escapes only at the SARIF relative-URI boundary; ordinary analyzer paths remain literal and absolute URIs require consumer-owned root mapping.
+- Keep actual path length validation separate from text truncation so diagnosis output cannot silently rename an affected file.
+
+
 ## 4.18.3
 
 - Share diagnostic redaction, UTF-8 byte limits, descriptor-bound binary reads and optional single-link session checks across Diagnose and Debug; bind diagnosis manifests to the exact delivered prompt when supplied.

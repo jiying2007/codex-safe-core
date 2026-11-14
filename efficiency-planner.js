@@ -203,7 +203,7 @@ function scoreEvidenceRisk({ paths = [], text = '' } = {}) {
   let score = 0;
   let languagePriorApplied = false;
   for (const raw of paths || []) {
-    const path = String(raw || '').replace(/\\/g, '/');
+    const path = String(raw || '');
     if (SEVERITY_RISK_PATTERNS.highPaths.some(pattern => pattern.test(path))) score += 5;
     else if (SEVERITY_RISK_PATTERNS.mediumPaths.some(pattern => pattern.test(path))) score += 2;
     if (!languagePriorApplied && SEVERITY_RISK_PATTERNS.languagePaths.some(pattern => pattern.test(path))) {

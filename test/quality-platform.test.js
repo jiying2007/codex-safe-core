@@ -4,6 +4,16 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const {resolveReviewProfile,extractImpactSignals,buildImpactEvidenceGraph,normalizeSarif,formatAnalyzerEvidence,evaluateQualityResults,assertQualityGate,validatePatchProposal,comparePerformanceSnapshot}=require('../quality-platform');
 
+test('SARIF URI decoding is scoped to URI input and never aliases raw Git paths',()=>{
+  const findingsFor=uri=>normalizeSarif({runs:[{results:[{ruleId:'r',message:{text:'issue'},locations:[{physicalLocation:{artifactLocation:{uri}}}]}]}]});
+  assert.equal(findingsFor('./src/%E6%B5%8B%E8%AF%95%20x%5Cy.c')[0].file,'src/测试 x\\y.c');
+  assert.equal(findingsFor('file:///C:/src/a.c')[0].file,'file:///C:/src/a.c');
+  const {normalizeAnalyzerFinding}=require('../quality-platform');
+  assert.equal(normalizeAnalyzerFinding({file:'src/a%5Cb.c',message:'issue'}).file,'src/a%5Cb.c');
+  assert.equal(normalizeAnalyzerFinding({file:'src/a\\b.c',message:'issue'}).file,'src/a\\b.c');
+  for(const bad of ['src/%ff.c','src/a%2Fb.c','src/a%00.c'])assert.throws(()=>findingsFor(bad),/SARIF artifact URI/);
+});
+
 test('review profiles are deterministic and cap-preserving inputs',()=>{assert.equal(resolveReviewProfile('quick').impactDepth,0);assert.equal(resolveReviewProfile('embedded').name,'embedded');assert.equal(resolveReviewProfile('unknown').name,'standard');assert.equal(resolveReviewProfile('deep',{contextFactor:2}).contextFactor,1);});
 
 test('impact evidence finds includes, symbols, config and build references',()=>{const diff=['diff --git a/src/motor.c b/src/motor.c','--- a/src/motor.c','+++ b/src/motor.c','@@ -1 +1,4 @@','+#include "motor_ctrl.h"','+int motor_set_speed(int rpm) { return rpm; }','+#if CONFIG_MOTOR_SAFE','+motor_set_speed(10);'].join('\n');const signals=extractImpactSignals(diff);assert.ok(signals.includes.includes('motor_ctrl.h'));assert.ok(signals.symbols.includes('motor_set_speed'));assert.ok(signals.configs.includes('CONFIG_MOTOR_SAFE'));const graph=buildImpactEvidenceGraph({diff,candidates:[{path:'include/motor_ctrl.h',content:'int motor_set_speed(int rpm);'},{path:'src/app.c',content:'void app(){ motor_set_speed(1); }'},{path:'README.md',content:'nothing'}],maxNodes:4,maxBytes:4096});assert.ok(graph.nodes.some(node=>node.path==='include/motor_ctrl.h'));assert.ok(graph.nodes.some(node=>node.path==='src/app.c'));assert.ok(graph.text.includes('IMPACT EVIDENCE GRAPH'));});

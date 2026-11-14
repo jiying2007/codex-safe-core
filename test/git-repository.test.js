@@ -72,3 +72,30 @@ test('branch range helpers reject unsafe refs before invoking Git', async () => 
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('Git path lists preserve exact POSIX names and reject invalid UTF-8 bytes', { skip: process.platform === 'win32' }, async () => {
+  const root = createRepo();
+  try {
+    gitSync(root, ['commit', '--allow-empty', '-m', 'base']);
+    const base = await repo.getHeadOid(root);
+    const names = [' x.c ', 'x\\y.c', 'x/y.c', 'line\nnext.c', '\ufeffname.c', '测试.c'];
+    fs.mkdirSync(path.join(root, 'x'));
+    for (const file of names) fs.writeFileSync(path.join(root, file), 'one');
+    gitSync(root, ['add', '-A']);
+    assert.deepEqual(new Set(await repo.getStagedPaths(root)), new Set(names));
+    gitSync(root, ['commit', '-m', 'names']);
+    assert.deepEqual(new Set(await repo.getChangedPaths(root, base)), new Set(names));
+    const invalid = Buffer.concat([Buffer.from(`${root}/`), Buffer.from([0xff]), Buffer.from('.c')]);
+    fs.writeFileSync(invalid, 'invalid byte name');
+    gitSync(root, ['add', '-A']);
+    await assert.rejects(repo.getStagedPaths(root), /encoded data was not valid/i);
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});
+
+test('buffered Git inventory keeps an initial BOM and requires a complete NUL frame', async () => {
+  let bytes = Buffer.from('\ufeffname.c\0');
+  const mocked = createGitRepository({ runProcess: async () => { throw new Error('text runner must not decode path bytes'); }, runProcessBuffer: async () => ({ stdout: bytes }) });
+  assert.deepEqual(await mocked.getStagedPaths('/fixture'), ['\ufeffname.c']);
+  bytes = Buffer.from('partial');
+  await assert.rejects(mocked.getStagedPaths('/fixture'), /NUL-terminated/);
+});

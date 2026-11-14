@@ -4,12 +4,13 @@ const crypto = require('node:crypto');
 
 const TEST_IMPACT_VERSION = 1;
 function freeze(value){if(Array.isArray(value))return Object.freeze(value.map(freeze));if(value&&typeof value==='object')return Object.freeze(Object.fromEntries(Object.entries(value).map(([k,v])=>[k,freeze(v)])));return value;}
-function normalizePath(value){return String(value||'').replace(/\\/g,'/').replace(/^\.\//,'');}
+// These are repository-relative Git identities, not host filesystem paths.
+function normalizePath(value){return String(value||'');}
 function basename(value){const path=normalizePath(value);return path.slice(path.lastIndexOf('/')+1);}
 function stem(value){const base=basename(value),index=base.lastIndexOf('.');return(index>0?base.slice(0,index):base).toLowerCase().replace(/(?:_test|test_|\.test|\.spec)$/,'');}
 function sha(value){return crypto.createHash('sha256').update(String(value)).digest('hex');}
 function escaped(value){return String(value).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
-function normalizeTestCandidate(raw={}){const path=normalizePath(raw.path||raw.file),id=String(raw.id||raw.name||path).trim().slice(0,512),content=String(raw.content||''),relatedPaths=Array.isArray(raw.relatedPaths)?raw.relatedPaths.map(normalizePath).filter(Boolean):[];if(!id||!path)return null;return freeze({id,path,content,relatedPaths:[...new Set(relatedPaths)]});}
+function normalizeTestCandidate(raw={}){const path=normalizePath(raw.path||raw.file),id=raw.id||raw.name?String(raw.id||raw.name).trim().slice(0,512):path,content=String(raw.content||''),relatedPaths=Array.isArray(raw.relatedPaths)?raw.relatedPaths.map(normalizePath).filter(Boolean):[];if(!id||!path)return null;return freeze({id,path,content,relatedPaths:[...new Set(relatedPaths)]});}
 function candidateScore(candidate,changedPaths,signals={},history={}){let score=0;const reasons=[];const hit=(points,reason)=>{score+=points;reasons.push(reason);};const low=candidate.path.toLowerCase(),candidateStem=stem(candidate.path);for(const changed of changedPaths){const normalized=normalizePath(changed),changedStem=stem(normalized);if(candidate.relatedPaths.includes(normalized))hit(100,'explicit-related-path');if(changedStem&&candidateStem&&changedStem===candidateStem)hit(55,'same-stem');const dir=normalized.includes('/')?normalized.slice(0,normalized.lastIndexOf('/')):'';if(dir&&low.startsWith(`${dir.toLowerCase()}/`))hit(18,'same-directory');if(candidate.content&&candidate.content.includes(basename(normalized)))hit(28,'changed-file-reference');}
 for(const symbol of signals.symbols||[]){if(candidate.content&&new RegExp(`\\b${escaped(symbol)}\\b`).test(candidate.content)){hit(12,'changed-symbol-reference');break;}}
 for(const moduleName of signals.modules||[]){const normalized=String(moduleName).replace(/^\.\//,'').replace(/\./g,'/');if(normalized&&(low.includes(normalized.toLowerCase())||candidate.content.includes(moduleName))){hit(16,'changed-module-reference');break;}}

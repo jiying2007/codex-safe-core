@@ -14,3 +14,18 @@ test('explicit test relationships do not alias actual a/ and b/ directories', ()
   assert.deepEqual(result.changedPaths, ['a/driver.c']);
   assert.deepEqual(result.recommendedTests.map(test => test.id), ['a']);
 });
+
+test('test impact keeps raw slash, backslash and padded path relationships distinct', () => {
+  const paths = ['src/a\\b.c', 'src/a/b.c', ' src/a.c ', 'src/a.c'];
+  const candidates = paths.map((file, index) => ({ path: `tests/${index}.test.c`, relatedPaths: [file] }));
+  const all = buildTestImpactMap({ changedPaths: paths, candidates, minScore: 100 });
+  assert.deepEqual(all.changedPaths, paths);
+  assert.equal(all.recommendedTests.length, paths.length);
+  for (let index = 0; index < paths.length; index++) {
+    const selected = buildTestImpactMap({ changedPaths: [paths[index]], candidates, minScore: 100 });
+    assert.deepEqual(selected.recommendedTests.map(item => item.path), [`tests/${index}.test.c`]);
+  }
+  const candidate = require('../test-impact').normalizeTestCandidate({ path: ' test.c ' });
+  assert.equal(candidate.id, ' test.c ');
+  assert.equal(candidate.path, ' test.c ');
+});
