@@ -12,6 +12,8 @@ The former `.github/workflows/trusted-autonomy-shadow.yml` has been **deleted**.
 
 `.github/workflows/trusted-ci-corroboration.yml` reacts to `workflow_run.completed` **only for the canonical `CI` workflow when its source event was `pull_request`**. All work runs from the protected default-branch source checkout, with `contents:read`, `actions:read`, `pull-requests:read`; no `statuses:write`, PR checkout, approval, merge, deployment, Secrets, or model invocation. All PR data and CI metadata are untrusted JSON inputs, never executed as code. CI-run artifacts are not downloaded or executed.
 
+Superseded **cancelled** CI runs are skipped before any API reads: their source SHA often no longer names the current PR head, and treating this ordinary supersession as a new observer failure creates noise. Completed success or genuine failure runs still undergo full provenance and job verification. A skipped observation is neither a pass nor an authorization.
+
 The observer performs these independently checkable predicates inside one read-only execution:
 
 1. Bind the completed CI event to its exact repository, run ID, attempt, workflow ID/path and source head SHA. Re-read GitHub's run metadata around a paginated **13-job** census; do not trust the often-empty `workflow_run.pull_requests` field. Associate the exact commit SHA with **exactly one** PR.
