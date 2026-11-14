@@ -132,11 +132,11 @@ function desiredRuleset(repo, detail, { bindStatusSource = bindCiSource, reposit
   const existingChecks = rules.find(rule => rule.type === 'required_status_checks')?.parameters || {};
   const pullRequestPolicy = pullRequestPolicyFor(repositoryName);
   const existingApprovals = existingPr.required_approving_review_count;
-  if (existingApprovals != null && (!Number.isSafeInteger(existingApprovals) || existingApprovals < 0))
-    throw new Error('Refusing to replace an invalid existing approval requirement.');
+  if (!Number.isSafeInteger(existingApprovals) || existingApprovals < 0)
+    throw new Error('Refusing to replace a missing or invalid existing approval requirement.');
   for (const field of ['dismiss_stale_reviews_on_push', 'require_code_owner_review', 'require_last_push_approval', 'required_review_thread_resolution']) {
-    if (existingPr[field] != null && typeof existingPr[field] !== 'boolean')
-      throw new Error(`Refusing to replace an invalid existing pull request requirement: ${field}.`);
+    if (typeof existingPr[field] !== 'boolean')
+      throw new Error(`Refusing to replace a missing or invalid existing pull request requirement: ${field}.`);
   }
   return {
     name: contract.rulesetName,
@@ -155,7 +155,7 @@ function desiredRuleset(repo, detail, { bindStatusSource = bindCiSource, reposit
           dismiss_stale_reviews_on_push: existingPr.dismiss_stale_reviews_on_push === true || pullRequestPolicy.dismissStaleReviewsOnPush,
           require_code_owner_review: existingPr.require_code_owner_review === true || pullRequestPolicy.requireCodeOwnerReview,
           require_last_push_approval: existingPr.require_last_push_approval === true || pullRequestPolicy.requireLastPushApproval,
-          required_approving_review_count: Math.max(existingApprovals || 0, pullRequestPolicy.minimumApprovals),
+          required_approving_review_count: Math.max(existingApprovals, pullRequestPolicy.minimumApprovals),
           required_review_thread_resolution: existingPr.required_review_thread_resolution === true
         }
       },
@@ -175,7 +175,13 @@ function desiredRuleset(repo, detail, { bindStatusSource = bindCiSource, reposit
 function newRulesetTemplate() {
   return { bypass_actors: [], rules: [
     { type: 'deletion' }, { type: 'non_fast_forward' },
-    { type: 'pull_request', parameters: {} },
+    { type: 'pull_request', parameters: {
+      required_approving_review_count: contract.pullRequest.minimumApprovals,
+      dismiss_stale_reviews_on_push: contract.pullRequest.dismissStaleReviewsOnPush,
+      require_code_owner_review: contract.pullRequest.requireCodeOwnerReview,
+      require_last_push_approval: contract.pullRequest.requireLastPushApproval,
+      required_review_thread_resolution: false
+    } },
     { type: 'required_status_checks', parameters: {
       required_status_checks: contract.requiredStatusChecks.contexts.map(context => ({ context }))
     } }

@@ -218,5 +218,9 @@ test('undeclared stricter review settings survive preparation and fail policy qu
     assert.equal(verdict.ok,false);assert.ok(verdict.reasons.includes('unexpected-solo-approval-requirement'));
     assert.ok(verdict.reasons.includes('code-owner-review-drift'));
     assert.deepEqual(detail.rules.find(rule=>rule.type==='pull_request').parameters,existing);
+    for(const field of Object.keys(existing)){
+      const missing=structuredClone(detail);delete missing.rules.find(rule=>rule.type==='pull_request').parameters[field];
+      assert.throws(()=>desiredRuleset(repository,missing),/missing or invalid existing/);
+    }
   }
 });
