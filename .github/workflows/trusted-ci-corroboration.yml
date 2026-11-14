@@ -19,7 +19,7 @@ concurrency:
 jobs:
   corroborate:
     name: Corroborate CI and PR risk (read-only)
-    if: github.event.workflow_run.event == 'pull_request'
+    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion != 'cancelled'
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     steps:

@@ -164,6 +164,9 @@ test('post-CI observation is one read-only workflow without pull_request_target 
     );
   }
   assert.match(workflow, /workflow_run:\s*\n\s+workflows: \[CI\]/);
+  // Cancelled CI attempts belong to superseded PR heads; their stale head
+  // association should not create a failing observer run or waste API calls.
+  assert.match(workflow, /workflow_run\.conclusion != 'cancelled'/);
   assert.doesNotMatch(workflow, /pull_request_target:|statuses: write|pull-requests: write|contents: write/);
   assert.match(workflow, /trusted-ci-corroboration\.js/);
   assert.match(workflow, /trusted-autonomy-shadow\.js/);
