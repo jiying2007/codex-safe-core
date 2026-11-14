@@ -6,6 +6,7 @@ function classifyPath(filePath){const lower=String(filePath||'').toLowerCase(),d
 function clampBudget(value,fallback=512*1024){const number=Number(value);return Number.isFinite(number)?Math.max(4096,Math.min(8*1024*1024,Math.floor(number))):fallback;}
 function decodeGitQuotedPath(value){
  const text=String(value??'');
+ if(text.includes('\0')||Buffer.from(text,'utf8').toString('utf8')!==text)throw new Error('Invalid Git path text.');
  if(text[0]!== '"')return text;
  if(!text.endsWith('"'))throw new Error('Unterminated Git quoted path.');
  const bytes=[],body=text.slice(1,-1),esc={a:7,t:9,n:10,r:13,b:8,f:12,v:11};
@@ -24,12 +25,14 @@ function decodeGitQuotedPath(value){
    const symbol=String.fromCodePoint(body.codePointAt(i));
    bytes.push(...Buffer.from(symbol));i+=symbol.length-1;
  }
- return new TextDecoder('utf-8',{fatal:true}).decode(Buffer.from(bytes));
+ const decoded=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(Buffer.from(bytes));
+ if(decoded.includes('\0'))throw new Error('Invalid Git path text: decoded NUL.');
+ return decoded;
 }
 function quoteGitPath(value){
  if(typeof value!=='string'||!value||value.includes('\0'))throw new TypeError('Git path must be a nonempty string without NUL.');
  const bytes=Buffer.from(value,'utf8');
- if(new TextDecoder('utf-8',{fatal:true}).decode(bytes)!==value)throw new TypeError('Git path contains invalid Unicode.');
+ if(new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(bytes)!==value)throw new TypeError('Git path contains invalid Unicode.');
  const escapes={7:'\\a',8:'\\b',9:'\\t',10:'\\n',11:'\\v',12:'\\f',13:'\\r',34:'\\"',92:'\\\\'};
  return '"'+Array.from(bytes,byte=>escapes[byte]||(byte<32||byte>=127?'\\'+byte.toString(8).padStart(3,'0'):String.fromCharCode(byte))).join('')+'"';
 }

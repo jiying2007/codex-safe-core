@@ -1,8 +1,10 @@
 'use strict';
 
 function normalizeGitPath(value) {
-  const text = String(value || '').trim().replace(/\\/g, '/').replace(/^\.\//, '');
-  if (!text || text.startsWith('/') || /[\r\n\0]/.test(text)) return '';
+  const text = String(value || '');
+  // Git permits whitespace and backslashes inside a name. Do not alias them
+  // to another file or silently omit newline-containing code changes.
+  if (!text || text.startsWith('/') || text.includes('\0')) return '';
   return text;
 }
 

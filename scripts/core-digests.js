@@ -14,7 +14,10 @@ function canonical(value) {
 }
 function git(root, args) { return execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim(); }
 function trackedFiles(root) {
-  return git(root, ['ls-files', '-z']).split('\0').filter(Boolean).sort();
+  const raw = execFileSync('git', ['ls-files', '-z'], { cwd: root });
+  const text = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(raw);
+  if (text && !text.endsWith('\0')) throw new Error('Tracked Git paths are not NUL-terminated.');
+  return text.split('\0').filter(Boolean).sort();
 }
 function blobDigest(root, relative) {
   const absolute = path.join(root, relative);

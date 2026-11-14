@@ -4,10 +4,12 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { evaluateReviewRules, normalizeGitPath } = require('..');
 
-test('normalizes Git paths without accepting absolute/control-character paths', () => {
-  assert.equal(normalizeGitPath('./src\\a.js'), 'src/a.js');
+test('preserves Git names without accepting absolute or NUL-containing paths', () => {
+  assert.equal(normalizeGitPath('./src\\a.js'), './src\\a.js');
+  assert.equal(normalizeGitPath(' padded.js '), ' padded.js ');
   assert.equal(normalizeGitPath('/etc/passwd'), '');
-  assert.equal(normalizeGitPath('bad\npath'), '');
+  assert.equal(normalizeGitPath('bad\npath'), 'bad\npath');
+  assert.equal(normalizeGitPath('bad\0path'), '');
 });
 
 test('forbidden path prefix violations are deterministic and deduplicated', () => {
@@ -62,4 +64,18 @@ test('explicit empty prefix arrays remain empty instead of restoring defaults', 
   assert.deepEqual(result.codePathPrefixes, []);
   assert.deepEqual(result.testPathPrefixes, []);
   assert.deepEqual(result.violations, []);
+});
+
+test('review rules match exact raw prefixes and retain newline code paths', () => {
+  const { validateReviewRules } = require('../policy');
+  const prefixes = ['secret\\', 'secret/', ' padded/'];
+  const rules = validateReviewRules({ forbiddenPathPrefixes: prefixes });
+  assert.deepEqual(rules.forbiddenPathPrefixes, prefixes);
+  const result = evaluateReviewRules(['secret\\key', 'secret/key', ' padded/key', 'padded/key'], rules);
+  assert.deepEqual(result.violations.map(item => [item.path, item.prefix]), [
+    ['secret\\key', 'secret\\'], ['secret/key', 'secret/'], [' padded/key', ' padded/']
+  ]);
+  const missing = evaluateReviewRules(['src/line\nbreak.c', 'test\\a.test.c'], { requireTestsForCodeChanges: true });
+  assert.deepEqual(missing.violations[0].codePaths, ['src/line\nbreak.c']);
+  assert.equal(evaluateReviewRules(['src\\a.c'], { requireTestsForCodeChanges: true }).violations.length, 0);
 });

@@ -3,6 +3,14 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const{compactFailureLog,classifyFailureDeterministically,buildDiagnosisEvidence,buildDiagnosisInputManifest,normalizeDiagnosisResult,createDiagnosisReceipt,validateDiagnosisReceipt,formatDiagnosisMarkdown}=require('../diagnosis-platform');
 
+test('diagnosis output preserves bounded path names and rejects identity truncation',()=>{
+  const raw={classification:'source',rootCause:'Compilation failed',confidence:0.9,recommendedActions:['Inspect source'],affectedFiles:[' x\\y.c ','x/y.c','line\nnext.c']};
+  assert.deepEqual(normalizeDiagnosisResult(raw).affectedFiles,raw.affectedFiles);
+  for(const invalid of ['a'.repeat(1025),'bad\0path','bad\ud800',42]){
+    assert.throws(()=>normalizeDiagnosisResult({...raw,affectedFiles:[invalid]}),error=>error.code==='EDIAGNOSISOUTPUT');
+  }
+});
+
 test('shared diagnostic redaction covers structured fields, URLs, headers and complete or truncated keys',()=>{
   const {redactDiagnosticText,boundUtf8Text}=require('../index');
   const secrets=['bearerCanary123','basicCanary456','queryCanary789','jsonCanary123','urlCanary456','pemCanary789','envCanary012'];

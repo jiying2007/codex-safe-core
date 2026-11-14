@@ -112,3 +112,11 @@ Use `redactDiagnosticText(text)` on all model-visible external fields before cal
 `secureReadBuffer(path, options)` shares the bounded descriptor reader used by `secureReadText`. Session/snapshot callers can set `requireSingleLink: true`; explicitly selected external artifacts may set `requireOwner: false` and `rejectGroupOtherWrite: false` when appropriate without disabling descriptor and byte-limit checks.
 
 Git-native paths remain raw repository-relative identities on every OS. Reuse `quoteGitPath`, `decodeGitQuotedPath`, `parseGitDiffHeaderPaths` and `parseGitFileHeaderPath`; never convert literal backslashes into separators. Ambiguous headers and malformed UTF-8 cannot authorize a patch. Both old and new paths must be in the reviewed scope.
+
+### Raw Git identity throughout evidence (4.18.4)
+
+Pass repository-relative Git names unchanged through test-impact candidates/relationships, semantic manifests, findings, review rules and diagnosis results. Do not convert backslashes, trim whitespace or remove `./` at these interfaces. A literal POSIX `x\\y.c` is a different file from `x/y.c`; raw path identity participates in selections and digests. Review-rule path prefixes also match exactly. Perform host filesystem conversion only where the host and repository root are known; `normalizeFsPath` is a host-filesystem helper, not a Git identity converter.
+
+Git inventories use strict UTF-8 decoding with BOM preservation and require complete NUL framing. Unsupported non-UTF-8 names are rejected, never replaced with U+FFFD. Diagnosis affected paths retain their spelling and reject overlong/invalid entries instead of truncating them.
+
+`normalizeSarif` is the URI-specific boundary: it decodes valid percent-encoded relative URI segments and a leading `./`, rejects encoded slash/NUL and malformed UTF-8, and leaves absolute URI identities explicit. Ordinary `normalizeAnalyzerFinding` input is already a raw path and is never URI-decoded. Mapping an absolute SARIF URI into a repository requires an explicit, trusted consumer root. See [SARIF 2.1.0 artifactLocation and URI semantics](https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html).

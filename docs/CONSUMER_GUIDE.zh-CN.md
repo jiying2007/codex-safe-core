@@ -112,3 +112,11 @@ Runtime Contract v3 允许 Review、Commit、Diagnose 与 Review Service 共享�
 `secureReadBuffer(path,options)` 与 `secureReadText` 复用文件描述符、有界读取和前后身份验证。session/snapshot 可启用 `requireSingleLink:true`；用户明确选择的外部附件可按用途配置 owner/写权限要求，但保留描述符和字节上限。
 
 Git 原始相对路径不做反斜杠归一化。统一复用 `quoteGitPath`、`decodeGitQuotedPath`、`parseGitDiffHeaderPaths` 与 `parseGitFileHeaderPath`；不明确的路径或无效 UTF-8 不获得补丁授权，rename/copy 两端都需纳入证据范围。
+
+### 证据全链保留原始 Git 路径（4.18.4）
+
+测试影响候选与关联、语义 manifest、finding、审查规则、诊断结果均接收原始仓库相对 Git 名字，不替换反斜杠、不裁剪首尾空白、不移除 `./`。POSIX 文件名中的 `x\\y.c` 与 `x/y.c` 是不同身份，选择与摘要也必须区分；规则前缀同样精确匹配。仅在已知宿主系统和仓库根目录的文件系统边界做转换；`normalizeFsPath` 处理宿主路径，不处理 Git 身份。
+
+Git 清单从原始字节严格解码 UTF-8，保留 BOM，并要求完整 NUL 分隔；非法 UTF-8 名字明确拒绝，不替换成 U+FFFD。诊断 affectedFiles 保留原名，过长或非法条目拒绝，不通过截断改写身份。
+
+只有 `normalizeSarif` 的相对 URI 边界解码百分号转义并处理开头 `./`，拒绝编码的斜杠、NUL 和非法 UTF-8。绝对 URI 保持明确身份，映射到仓库必须由消费者提供可信根目录；普通 `normalizeAnalyzerFinding` 的路径不做 URI 解码。参见 [SARIF 2.1.0 artifactLocation 与 URI 规范](https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html)。
