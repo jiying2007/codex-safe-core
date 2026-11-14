@@ -18,7 +18,7 @@ function fixture(fileEntries = [{filename: 'docs/guide.md', status: 'modified', 
     pr, before: structuredClone(pr), files,
     context: {
       repository: 'jiying2007/codex-safe-core', prNumber: 9,
-      eventHead: H, trustedBase: B, runId: '42', runAttempt: '1'
+      eventHead: H, trustedBase: B, trustedWorkflowSha: OTHER, runId: '42', runAttempt: '1'
     }
   };
 }
@@ -120,4 +120,34 @@ test('draft, fork and large changes are conservatively withheld from shadow cand
 });
 test('digest is canonical irrespective of object key order', () => {
   assert.equal(digest({a: 1, b: {x: 2, y: 3}}), digest({b: {y: 3, x: 2}, a: 1}));
+});
+
+test('post-CI observer may record a merged PR but never authorize a retroactive merge', () => {
+  const input = fixture();
+  input.pr.state = 'closed';
+  input.pr.merged = true;
+  input.pr.merged_at = '2026-11-13T14:28:54Z';
+  input.before = structuredClone(input.pr);
+  const report = evaluate(input);
+  assert.equal(report.identity.prLifecycle, 'merged');
+  assert.equal(report.identity.trustedWorkflowSha, OTHER);
+  assert.equal(report.autonomy.candidate, false);
+  assert.equal(report.autonomy.autoMerge, false);
+  assert.equal(report.autonomy.mergeAuthorized, false);
+});
+test('closed but not merged, stale merge receipt, and workflow SHA drift fail closed', () => {
+  const closed = fixture();
+  closed.pr.state = 'closed';
+  closed.before.state = 'closed';
+  assert.throws(() => evaluate(closed), /neither open nor consistently merged/);
+  const stale = fixture();
+  stale.pr.state = 'closed';
+  stale.pr.merged = true;
+  stale.pr.merged_at = '2026-11-13T14:28:54Z';
+  stale.before = structuredClone(stale.pr);
+  stale.before.merged_at = '2026-11-13T14:28:55Z';
+  assert.throws(() => evaluate(stale), /neither open nor consistently merged/);
+  const invalid = fixture();
+  invalid.context.trustedWorkflowSha = 'not-a-commit';
+  assert.throws(() => evaluate(invalid), /Trusted workflow checkout must be an exact SHA/);
 });
