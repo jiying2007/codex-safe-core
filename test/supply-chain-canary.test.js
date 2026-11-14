@@ -152,3 +152,37 @@ test('security findings and private governance reads feed the existing CI Gate',
   assert.ok(!release.includes('Require scoped private Family read credential'));
 
 });
+
+test('offline zizmor reuses the existing Security job and scans only high-signal workflow YAML', () => {
+  const security = fs.readFileSync(path.join(workflowDir, 'security.yml'), 'utf8');
+  assert.match(security, /zizmorcore\/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd/);
+  assert.match(security, /inputs: \.github\/workflows/);
+  assert.match(security, /collect: workflows/);
+  assert.match(security, /version: '1\.32\.0'/);
+  assert.match(security, /online-audits: 'false'/);
+  assert.match(security, /min-severity: high/);
+  assert.match(security, /min-confidence: high/);
+  assert.match(security, /advanced-security: 'true'/);
+  assert.match(security, /github\/codeql-action\/analyze/);
+  assert.equal((security.match(/^\s{2}[A-Za-z0-9_-]+:$/gm) || []).filter(x => x.trim() === 'codeql:').length, 1);
+  assert.doesNotMatch(security, /pull_request_target:|contents: write|pull-requests: write/);
+});
+
+
+test('trusted release uses job-scoped publishing authority and no shell-interpolated CI SHA', () => {
+  const release=fs.readFileSync(path.join(workflowDir, '_trusted-release.yml'), 'utf8').replace(/\r\n/g, '\n');
+  const [workflowHeader, admission, publish] = [
+    release.slice(0, release.indexOf('\njobs:')),
+    release.slice(release.indexOf('\n  admission:'), release.indexOf('\n  publish:')),
+    release.slice(release.indexOf('\n  publish:'))
+  ];
+  assert.match(workflowHeader, /permissions:\n  actions: read/);
+  assert.doesNotMatch(workflowHeader, /contents: write|id-token: write|attestations: write/);
+  assert.match(admission, /permissions:\n      actions: read\n      contents: read/);
+  assert.doesNotMatch(admission, /contents: write|id-token: write|attestations: write/);
+  assert.match(publish, /permissions:\n      actions: read\n      contents: write\n      id-token: write\n      attestations: write/);
+  assert.match(publish, /VALIDATED_SHA: \$\{\{ github\.event\.workflow_run\.head_sha \}\}/);
+  assert.match(publish, /validated_sha="\$VALIDATED_SHA"/);
+  assert.match(publish, /\[\[ "\$validated_sha" =~ \^\[0-9a-f\]\{40\}\$ \]\]/);
+  assert.doesNotMatch(publish, /validated_sha=['"]\$\{\{ github\.event\.workflow_run\.head_sha \}\}/);
+});

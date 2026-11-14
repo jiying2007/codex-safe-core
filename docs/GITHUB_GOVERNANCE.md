@@ -64,6 +64,14 @@ node scripts/verify-repository-ruleset.js
 
 This changes existing public native Rulesets only; the private Service remains publisher-protected. The GitHub connector's public-repository read/write API does not currently provide the required Ruleset administration mutation, so **no server-side source binding is claimed until the real Ruleset shows `integration_id=15368` for `CI Gate` and the server audit reports `bound`**. Never replace `CI Gate` with the optional `Codex Safe / Trusted Observation` shadow status; that status is evidence only and deliberately cannot authorize merges.
 
+## High-signal workflow YAML analysis
+
+The existing `Security` reusable workflow uses the pinned `zizmor-action v0.8.1` to inspect `.github/workflows` with `zizmor 1.32.0`. It is **offline** (no token-backed online audits), `regular` persona, and only reports high-severity, high-confidence findings to the existing GitHub code-scanning channel. The scan runs inside the existing CodeQL job: **no new scheduled task, additional model, separate full review service or new CI Gate context**.
+
+This is an **advisory security baseline**, not an authorization or proof that every workflow is secure. CodeQL continues to analyze JavaScript; zizmor concentrates on GitHub Actions workflow semantics such as template injection, credential persistence and permissions. The zizmor action's Advanced Security integration does not intentionally fail the job on discovered findings; review and remediate real findings first, then evaluate whether any individual rule should be independently enforced. A tool installation/upload failure may still fail the Security job.
+
+Keep the action SHA pin and explicit zizmor version fixed. Do not enable online audits with a cross-repository token, bypass existing CI Gate, or add duplicate SARIF upload jobs merely to inflate security activity.
+
 ## CI Gate ownership
 
 `CI Gate` is the single server-required merge context. Normal PR CI should optimize for fast feedback on the canonical runtime and high-value checks. Full supported runtime/OS matrices, provider/HIL tests, migration/rollback qualification and immutable artifact checks belong to main/release qualification unless the change directly affects those boundaries.

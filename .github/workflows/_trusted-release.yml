@@ -7,9 +7,6 @@ on:
 
 permissions:
   actions: read
-  contents: write
-  id-token: write
-  attestations: write
 
 concurrency:
   group: trusted-release-main
@@ -79,6 +76,11 @@ jobs:
     if: ${{ needs.admission.outputs.ready == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: write
+      id-token: write
+      attestations: write
     steps:
       - name: Checkout exact validated main SHA
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -90,10 +92,13 @@ jobs:
         with:
           node-version: '22.22.2'
       - name: Verify validated SHA is still canonical main
+        env:
+          VALIDATED_SHA: ${{ github.event.workflow_run.head_sha }}
         shell: bash
         run: |
           set -euo pipefail
-          validated_sha='${{ github.event.workflow_run.head_sha }}'
+          validated_sha="$VALIDATED_SHA"
+          [[ "$validated_sha" =~ ^[0-9a-f]{40}$ ]] || exit 2
           test "$(git rev-parse HEAD)" = "$validated_sha"
           remote_main=$(git ls-remote origin refs/heads/main | awk '{print $1}')
           test -n "$remote_main"
