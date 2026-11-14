@@ -159,7 +159,7 @@ test('post-CI observation is one read-only workflow without pull_request_target 
     const source = fs.readFileSync(path.join(workflowDir, filename), 'utf8');
     assert.doesNotMatch(
       source,
-      /^\s{0,4}pull_request_target\s*:|^on\s*:\s*\[[^\n]*\bpull_request_target\b|^on\s*:\s*\{[^\n]*\bpull_request_target\b/m,
+      /^\s{0,4}pull_request_target\s*:|^on\s*:\s*\[[^\n]*\bpull_request_target\b|^on\s*:\s*\{[^\n]*\bpull_request_target\b|^on\s*:\s*pull_request_target\b|^\s{2}-\s*pull_request_target(?:\s|$)/m,
       filename + ' must not reintroduce the default-blocked public-repository event'
     );
   }
