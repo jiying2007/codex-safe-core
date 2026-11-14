@@ -2,11 +2,10 @@
 const fs=require('node:fs');
 const os=require('node:os');
 const crypto=require('node:crypto');
+const path=require('node:path');
 const {spawnSync}=require('node:child_process');
 const {performance}=require('node:perf_hooks');
-const {buildReviewEvidenceChunks,buildSemanticContext,splitUnifiedDiff}=require('../context-builder');
-const {estimateRequestTokens,scoreEvidenceRisk,selectChunksWithinByteBudget}=require('../efficiency-planner');
-const {buildImpactEvidenceGraph}=require('../quality-platform');
+const DEFAULT_ROOT=path.resolve(__dirname,'..');
 const SAMPLE_COUNT=7;
 const STRUCTURAL_KEYS=Object.freeze(['evidenceChunks','evidenceInputBytes','contextInputBytes','impactNodes','impactBytes','estimatedTokens','risk','plannedBytes']);
 function largeDiff(targetBytes=4*1024*1024){const blocks=[];let bytes=0,index=0;while(bytes<targetBytes){const body=`diff --git a/src/file-${index}.js b/src/file-${index}.js\n--- a/src/file-${index}.js\n+++ b/src/file-${index}.js\n@@ -1,3 +1,4 @@\n-old ${'x'.repeat(512)}\n+import { helper } from './helper.js';\n+function changed_${index}(){ return helper(); }\n+new ${'y'.repeat(512)}\n context\n`;blocks.push(body);bytes+=Buffer.byteLength(body);index++;}return blocks.join('');}
@@ -16,7 +15,12 @@ function percentile95(values){
   const sorted=[...values].sort((a,b)=>a-b);
   return sorted[Math.ceil(sorted.length*0.95)-1]; // nearest rank; seven samples yield their maximum
 }
-function measure(){
+function measure(runtimeRoot=DEFAULT_ROOT){
+  // Both sides of a pair execute this exact harness and workload. Only the
+  // already verified runtime checkout changes; no baseline benchmark runs.
+  const {buildReviewEvidenceChunks,buildSemanticContext,splitUnifiedDiff}=require(path.join(runtimeRoot,'context-builder.js'));
+  const {estimateRequestTokens,scoreEvidenceRisk,selectChunksWithinByteBudget}=require(path.join(runtimeRoot,'efficiency-planner.js'));
+  const {buildImpactEvidenceGraph}=require(path.join(runtimeRoot,'quality-platform.js'));
   const diff=largeDiff(),before=process.memoryUsage().rss,started=performance.now(),phaseTimingsMs={};
   const phase=(name,run)=>{
     const begin=performance.now(),value=run();
@@ -69,7 +73,7 @@ function withinBroadBudget(snapshot){
     metrics.rssGrowthBytes>=0&&Number.isFinite(metrics.rssGrowthBytes)&&
     metrics.elapsedMs<budgets.elapsedMs&&metrics.rssGrowthBytes<budgets.rssGrowthBytes;
 }
-function buildSnapshot(samples=collectSamples()){const cpus=os.cpus();const metrics=summarizeSamples(samples),out={schemaVersion:3,coreVersion:require('../core-contract.json').coreVersion,coreSha:process.env.GITHUB_SHA||null,node:process.version,platform:process.platform,environment:{arch:process.arch,osRelease:os.release(),cpuModel:cpus[0]?.model||null,logicalCpus:cpus.length},workload:{inputDiffBytes:metrics.evidenceInputBytes,inputSha256:crypto.createHash('sha256').update(largeDiff(),'utf8').digest('hex'),maxEvidenceBytes:512*1024,maxChunks:8,maxImpactBytes:128*1024},sampling:{method:'median-isolated-process',p95Estimator:'nearest-rank (max of seven; diagnostic only)',count:samples.length,elapsedMs:samples.map(s=>s.elapsedMs),rssGrowthBytes:samples.map(s=>s.rssGrowthBytes),samples:samples.map(s=>({elapsedMs:s.elapsedMs,rssGrowthBytes:s.rssGrowthBytes,phaseTimingsMs:s.phaseTimingsMs||{}}))},metrics,budgets:{elapsedMs:5000,rssGrowthBytes:256*1024*1024},recordedAt:new Date().toISOString()};return {...out,broadBudgetPassed:withinBroadBudget(out)};}
-function main(){if(process.argv.includes('--single-sample')){process.stdout.write(`${JSON.stringify(measure())}\n`);return;}const out=buildSnapshot(),file=process.argv[2]||'PERFORMANCE_SNAPSHOT.json';fs.writeFileSync(file,JSON.stringify(out,null,2)+'\n');console.log(JSON.stringify(out.metrics));if(!out.broadBudgetPassed)throw new Error('performance snapshot exceeds broad regression budget (raw snapshot preserved)');}
+function buildSnapshot(samples=collectSamples(),identity={}){const cpus=os.cpus();const metrics=summarizeSamples(samples),out={schemaVersion:3,coreVersion:identity.version??require('../core-contract.json').coreVersion,coreSha:identity.sha??process.env.GITHUB_SHA??null,node:process.version,platform:process.platform,environment:{arch:process.arch,osRelease:os.release(),cpuModel:cpus[0]?.model||null,logicalCpus:cpus.length},workload:{inputDiffBytes:metrics.evidenceInputBytes,inputSha256:crypto.createHash('sha256').update(largeDiff(),'utf8').digest('hex'),maxEvidenceBytes:512*1024,maxChunks:8,maxImpactBytes:128*1024},sampling:{method:'median-isolated-process',p95Estimator:'nearest-rank (max of seven; diagnostic only)',count:samples.length,elapsedMs:samples.map(s=>s.elapsedMs),rssGrowthBytes:samples.map(s=>s.rssGrowthBytes),samples:samples.map(s=>({elapsedMs:s.elapsedMs,rssGrowthBytes:s.rssGrowthBytes,phaseTimingsMs:s.phaseTimingsMs||{}}))},metrics,budgets:{elapsedMs:5000,rssGrowthBytes:256*1024*1024},recordedAt:new Date().toISOString()};return {...out,broadBudgetPassed:withinBroadBudget(out)};}
+function main(){if(process.argv[2]==='--single-sample'){const args=process.argv.slice(3);if(args.length&&!(args.length===2&&args[0]==='--runtime-root'&&path.isAbsolute(args[1])))throw new Error('Expected --runtime-root ABSOLUTE_CHECKOUT');process.stdout.write(`${JSON.stringify(measure(args[1]||DEFAULT_ROOT))}\n`);return;}const out=buildSnapshot(),file=process.argv[2]||'PERFORMANCE_SNAPSHOT.json';fs.writeFileSync(file,JSON.stringify(out,null,2)+'\n');console.log(JSON.stringify(out.metrics));if(!out.broadBudgetPassed)throw new Error('performance snapshot exceeds broad regression budget (raw snapshot preserved)');}
 if(require.main===module)main();
 module.exports={SAMPLE_COUNT,STRUCTURAL_KEYS,largeDiff,median,percentile95,measure,summarizeSamples,collectSamples,withinBroadBudget,buildSnapshot};

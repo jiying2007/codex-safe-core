@@ -2,6 +2,11 @@ name: Performance Trend
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/*performance*'
+      - '.github/workflows/performance-trend.yml'
   schedule:
     - cron: '29 4 * * 1'
 
@@ -12,19 +17,27 @@ permissions:
 
 jobs:
   snapshot:
+    if: github.ref == 'refs/heads/main' && github.repository == 'jiying2007/codex-safe-core'
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: '22.22.2'
+      - id: baseline
+        name: Resolve an immutable released ancestor for same-runner sampling
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/paired-performance-snapshot.js resolve "$RUNNER_TEMP/core-performance-baseline" PERFORMANCE_BASELINE.json
       - name: Run broad performance budget
         run: node --test test/performance-budget.test.js
-      - name: Generate isolated snapshot even after broad-test failure
-        if: ${{ always() }}
-        run: node scripts/write-performance-snapshot.js PERFORMANCE_SNAPSHOT.json
+      - name: Generate paired snapshot even after broad-test failure
+        if: ${{ always() && steps.baseline.outcome == 'success' }}
+        run: node scripts/paired-performance-snapshot.js measure "$RUNNER_TEMP/core-performance-baseline" PERFORMANCE_BASELINE.json PERFORMANCE_SNAPSHOT.json
       # Save bounded raw data before the strict comparison can fail. This is not
       # an immutable release or an admission receipt; it is failure diagnosis.
       - name: Preserve exact-run raw samples before strict comparison
@@ -32,26 +45,13 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: performance-raw-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: PERFORMANCE_SNAPSHOT.json
+          path: |
+            PERFORMANCE_SNAPSHOT.json
+            PERFORMANCE_BASELINE.json
           if-no-files-found: error
           retention-days: 30
-      - name: Compare with previous immutable snapshot
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          core_version="$(node -p "require('./core-contract.json').coreVersion")"
-          short="${GITHUB_SHA:0:12}"
-          current_tag="codex-safe-performance-v${core_version}-${short}"
-          previous_tag="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100" --jq '.[] | select(.tag_name | startswith("codex-safe-performance-v")) | .tag_name' | grep -Fvx "$current_tag" | head -n1 || true)"
-          if [[ -n "$previous_tag" ]]; then
-            mkdir -p previous
-            gh release download "$previous_tag" --pattern 'performance-*.json' --dir previous
-            previous="$(find previous -maxdepth 1 -type f -name 'performance-*.json' -print -quit)"
-            test -n "$previous" || { echo "No performance snapshot asset found in ${previous_tag}." >&2; exit 1; }
-            node scripts/compare-performance-snapshot.js PERFORMANCE_SNAPSHOT.json "$previous"
-          fi
+      - name: Compare baseline and candidate measured in this job
+        run: node scripts/paired-performance-snapshot.js verify PERFORMANCE_SNAPSHOT.json "$GITHUB_SHA"
       - id: evidence
         name: Prepare immutable performance evidence
         env:
@@ -89,10 +89,11 @@ jobs:
             echo "immutable performance evidence already exists: $PERFORMANCE_TAG"
             rm -f "$PERFORMANCE_ASSET"
             gh release download "$PERFORMANCE_TAG" --pattern "$PERFORMANCE_ASSET" --dir .
+            node scripts/paired-performance-snapshot.js verify "$PERFORMANCE_ASSET" "$GITHUB_SHA"
           else
             core_version="$(node -p "require('./core-contract.json').coreVersion")"
             short="${GITHUB_SHA:0:12}"
-            gh release create "$PERFORMANCE_TAG" "$PERFORMANCE_ASSET" --latest=false --target "$GITHUB_SHA" --title "Codex Safe performance ${core_version} ${short}" --notes "Immutable broad performance regression snapshot for one exact Core commit."
+            gh release create "$PERFORMANCE_TAG" "$PERFORMANCE_ASSET" --latest=false --target "$GITHUB_SHA" --title "Codex Safe performance ${core_version} ${short}" --notes "Immutable paired performance evidence: one harness, alternating isolated processes, and the released baseline and candidate on the same runner. Seven-sample maxima are diagnostic only; this is not model quality or token-savings evidence."
           fi
           immutable=false
           for attempt in {1..12}; do
