@@ -7,16 +7,10 @@
     "codex-commit",
     "codex-pr",
     "codex-review-service",
-    "codex-diagnose"
+    "codex-diagnose",
+    "codex-debug"
   ],
-  "repositoryPolicies": {
-    "codex-review-service": {
-      "protection": "publisher",
-      "privateRepository": true,
-      "nativeRulesetRequired": false,
-      "releaseAuthority": "product-release-workflow"
-    }
-  },
+  "repositoryPolicies": {},
   "defaultRepositoryPolicy": {
     "protection": "native",
     "nativeRulesetRequired": true
@@ -46,11 +40,13 @@
     "expectedSource": {
       "integrationId": 15368,
       "appSlug": "github-actions"
-    }
+    },
+    "requireSourceBinding": true
   },
   "maximumBypassActors": 1,
   "allowedBypassModes": [
     "pull_request"
   ],
-  "deleteBranchOnMerge": true
+  "deleteBranchOnMerge": true,
+  "allowAutoMerge": false
 }

@@ -148,7 +148,7 @@ test('security findings and private governance reads feed the existing CI Gate',
   assert.doesNotMatch(scheduledGovernance, /CODEX_SAFE_FAMILY_READ_TOKEN|Require scoped private Family read credential/);
   const release=fs.readFileSync(path.join(workflowDir, 'release.yml'), 'utf8');
   assert.ok(release.includes('GITHUB_TOKEN: ${{ github.token }}'));
-  assert.ok(release.includes('Verify native Rulesets and publisher protection assignments'));
+  assert.ok(release.includes('Verify seven public native Rulesets and check sources'));
   assert.ok(!release.includes('Require scoped private Family read credential'));
 
 });

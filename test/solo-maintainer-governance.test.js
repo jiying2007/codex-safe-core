@@ -7,13 +7,18 @@ const contract=require('../repository-governance-contract.json');
 const {assess,policyFor}=require('../scripts/verify-repository-ruleset');
 const root=path.resolve(__dirname,'..');
 
-test('solo-maintainer governance separates native merge protection from private publisher protection',()=>{
+test('all seven public products have native protection independently of release lifecycle',()=>{
   assert.equal(contract.maintenanceModel,'solo-maintainer');
   assert.equal(contract.pullRequest.minimumApprovals,0);
   assert.equal(contract.pullRequest.requireLastPushApproval,false);
-  assert.equal(policyFor('codex-review-service').protection,'publisher');
+  assert.equal(contract.repositories.length,7);
+  assert.ok(contract.repositories.includes('codex-debug'));
+  assert.equal(contract.requiredStatusChecks.requireSourceBinding,true);
+  assert.equal(contract.allowAutoMerge,false);
+  assert.equal(policyFor('codex-review-service').protection,'native');
+  assert.equal(policyFor('codex-debug').protection,'native');
   assert.equal(policyFor('codex-safe-core').protection,'native');
-  assert.equal(policyFor('codex-review-service').nativeRulesetRequired,false);
+  assert.equal(policyFor('codex-review-service').nativeRulesetRequired,true);
 });
 
 test('native policy accepts PR plus CI Gate without a second human approval',()=>{
@@ -26,7 +31,7 @@ test('native policy accepts PR plus CI Gate without a second human approval',()=
         dismiss_stale_reviews_on_push:false,require_last_push_approval:false,
         require_code_owner_review:false}},
       {type:'required_status_checks',parameters:{strict_required_status_checks_policy:true,
-        required_status_checks:[{context:'CI Gate'}]}}
+        required_status_checks:[{context:'CI Gate',integration_id:15368}]}}
     ]};
   const result=assess(detail,{default_branch:'main',delete_branch_on_merge:true});
   assert.deepEqual(result.reasons,[]);
@@ -44,7 +49,7 @@ test('solo ruleset rejects extra reviewers, last-push and code-owner drift despi
         require_code_owner_review:false
       }},
       {type:'required_status_checks',parameters:{
-        strict_required_status_checks_policy:true,required_status_checks:[{context:'CI Gate'}]
+        strict_required_status_checks_policy:true,required_status_checks:[{context:'CI Gate',integration_id:15368}]
       }}]};
   const repository={default_branch:'main',delete_branch_on_merge:true};
   const pr=detail.rules.find(rule=>rule.type==='pull_request').parameters;
@@ -106,7 +111,7 @@ test('governance apply preserves existing source binding and other PR protection
       {type:'pull_request',parameters:{
         required_approving_review_count:0,require_last_push_approval:false,
         dismiss_stale_reviews_on_push:false,require_code_owner_review:false,
-        require_extra_approval_for_unattributed_changes:true,required_reviewers:[]}},
+        require_extra_approval_for_unattributed_changes:true,required_review_thread_resolution:true,required_reviewers:[]}},
       {type:'required_status_checks',parameters:{
         strict_required_status_checks_policy:true,required_status_checks:[{context:'CI Gate'}]}}
     ]
@@ -119,6 +124,7 @@ test('governance apply preserves existing source binding and other PR protection
   const proposed=desiredRuleset(repo,template,{bindStatusSource:true});
   assert.deepEqual(proposed.rules.find(rule=>rule.type==='required_status_checks').parameters.required_status_checks,[{context:'CI Gate',integration_id:15368}]);
   assert.equal(proposed.rules.find(rule=>rule.type==='pull_request').parameters.require_extra_approval_for_unattributed_changes,true);
+  assert.equal(proposed.rules.find(rule=>rule.type==='pull_request').parameters.required_review_thread_resolution,true);
   assert.equal(assess(proposed,{default_branch:'main',delete_branch_on_merge:true},{requireStatusSource:true}).ok,true);
   const alreadyBound=structuredClone(template);
   alreadyBound.rules.find(rule=>rule.type==='required_status_checks').parameters.required_status_checks[0].integration_id=15368;
@@ -148,4 +154,22 @@ test('only a complete successful GitHub Actions CI Gate at exact main SHA qualif
     assert.throws(()=>validateMainGateCheckRuns(changed,head),phrase);
   }
   assert.throws(()=>validateMainGateCheckRuns(base,'missing'),/SHA/);
+});
+
+test('Service and development Debug are audited against actual public native server state',async()=>{
+  const {auditRepository}=require('../scripts/verify-repository-ruleset');
+  const {desiredRuleset,newRulesetTemplate}=require('../scripts/apply-repository-governance');
+  const repository={default_branch:'main',delete_branch_on_merge:true,allow_auto_merge:false,private:false,allow_squash_merge:true};
+  const detail={id:17,...desiredRuleset(repository,newRulesetTemplate())};
+  assert.deepEqual(detail.bypass_actors,[],'new development protection grants no bypass actor');
+  for(const name of ['codex-review-service','codex-debug']){
+    const reads=[];
+    const readJson=async url=>{reads.push(url);return url.endsWith('/rulesets/17')?detail:url.endsWith('/rulesets')?[{id:17}]:repository;};
+    const report=await auditRepository(name,'',{readJson});
+    assert.equal(report.ok,true);assert.equal(report.protection,'native');assert.equal(reads.length,3);
+    const unbound=structuredClone(detail);delete unbound.rules.at(-1).parameters.required_status_checks[0].integration_id;
+    assert.equal((await auditRepository(name,'',{readJson:async url=>url.endsWith('/rulesets/17')?unbound:url.endsWith('/rulesets')?[{id:17}]:repository})).ok,false);
+    assert.equal((await auditRepository(name,'',{readJson:async url=>url.endsWith('/rulesets')?[]:repository})).ok,false);
+  }
+  assert.equal(assess(detail,{...repository,allow_auto_merge:true}).ok,false);
 });

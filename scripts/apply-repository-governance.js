@@ -3,12 +3,13 @@
 
 const contract = require('../repository-governance-contract.json');
 const registry = require('../family-registry.json');
-const { assess } = require('./verify-repository-ruleset');
+const { assess, policyFor } = require('./verify-repository-ruleset');
 
 const API = 'https://api.github.com';
 const apply = process.argv.includes('--apply');
 const zeroBypass = process.argv.includes('--zero-bypass');
-const bindCiSource = process.argv.includes('--bind-ci-source');
+const bindCiSource = contract.requiredStatusChecks.requireSourceBinding === true || process.argv.includes('--bind-ci-source');
+const createMissing = process.argv.includes('--create-missing');
 const cleanBranches = process.argv.includes('--clean-branches');
 const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '';
 
@@ -26,6 +27,8 @@ function headers() {
 async function api(method, pathname, body, { anonymousRetry = false } = {}) {
   const request = async authenticated => fetch(`${API}${pathname}`, {
     method,
+    redirect: 'error',
+    signal: AbortSignal.timeout(30000),
     headers: {
       accept: 'application/vnd.github+json',
       'content-type': 'application/json',
@@ -145,7 +148,7 @@ function desiredRuleset(repo, detail, { bindStatusSource = bindCiSource } = {}) 
           require_code_owner_review: contract.pullRequest.requireCodeOwnerReview,
           require_last_push_approval: contract.pullRequest.requireLastPushApproval,
           required_approving_review_count: contract.pullRequest.minimumApprovals,
-          required_review_thread_resolution: false
+          required_review_thread_resolution: existingPr.required_review_thread_resolution === true
         }
       },
       {
@@ -159,6 +162,16 @@ function desiredRuleset(repo, detail, { bindStatusSource = bindCiSource } = {}) 
       }
     ]
   };
+}
+
+function newRulesetTemplate() {
+  return { bypass_actors: [], rules: [
+    { type: 'deletion' }, { type: 'non_fast_forward' },
+    { type: 'pull_request', parameters: {} },
+    { type: 'required_status_checks', parameters: {
+      required_status_checks: contract.requiredStatusChecks.contexts.map(context => ({ context }))
+    } }
+  ] };
 }
 
 async function safeRef(owner, repo, branch) {
@@ -193,7 +206,7 @@ async function cleanupMergedBranches(owner, repo) {
         await api('DELETE', `/repos/${owner}/${repo}/git/refs/heads/${branch.split('/').map(encodeURIComponent).join('/')}`);
       } catch (error) {
         if (error.status === 403) {
-          error.message = `${error.message}\nHistorical branch cleanup requires fine-grained PAT Contents: write. Governance settings were already applied before cleanup started.`;
+          error.message = `${error.message}\nHistorical branch cleanup requires existing authorized credentials with Contents: write. Governance settings were already applied before cleanup started.`;
         }
         throw error;
       }
@@ -211,33 +224,35 @@ async function main() {
   // before any optional historical branch deletion is attempted.
   for (const repoName of contract.repositories) {
     const full = `${owner}/${repoName}`;
-    const policy = contract.repositoryPolicies?.[repoName] || contract.defaultRepositoryPolicy || { protection: 'native' };
-    if (policy.protection === 'publisher') {
-      process.stdout.write(`SKIP ${full}: release protection is enforced by the product publisher; native Ruleset is not contract-required.\n`);
-      results.push({ repository: full, protection: 'publisher', rulesetId: null,
-        cleanup: { requested: false, deleted: [], skipped: [] } });
-      continue;
-    }
+    policyFor(repoName); // Reject stale publisher exceptions instead of skipping server reads.
     const repo = await api('GET', `/repos/${full}`, undefined, { anonymousRetry: true });
+    if (repo.private !== false) throw new Error(`${full}: observed visibility does not match public native policy.`);
     const summaries = await api('GET', `/repos/${full}/rulesets`, undefined, { anonymousRetry: true });
-    const summary = summaries.find(item => item?.name === contract.rulesetName);
-    if (!summary?.id) throw new Error(`${full} is missing Ruleset ${contract.rulesetName}.`);
-    const detail = await api('GET', `/repos/${full}/rulesets/${summary.id}`, undefined, { anonymousRetry: true });
+    const matching = summaries.filter(item => item?.name === contract.rulesetName);
+    if (matching.length > 1) throw new Error(`${full}: canonical Ruleset is ambiguous.`);
+    let rulesetId = matching[0]?.id || null;
+    if (!rulesetId && !createMissing) throw new Error(`${full} is missing Ruleset ${contract.rulesetName}; use --create-missing after reviewing the creation plan.`);
+    const detail = rulesetId ? await api('GET', `/repos/${full}/rulesets/${rulesetId}`, undefined, { anonymousRetry: true }) : newRulesetTemplate();
     const verifiedSource = bindCiSource ? await verifyExpectedCheckSource(full) : null;
     const desired = desiredRuleset(repo, detail, { bindStatusSource: bindCiSource });
 
-    process.stdout.write(`${apply ? 'APPLY' : 'DRY-RUN'} ${full}: Ruleset ${summary.id} -> CI Gate; source=${bindCiSource ? 'github-actions#15368 (verified)' : 'preserve-current'}; delete_branch_on_merge=true; bypass=${desired.bypass_actors.map(a => a.bypass_mode).join(',') || 'none'}\n`);
+    process.stdout.write(`${apply ? 'APPLY' : 'DRY-RUN'} ${full}: Ruleset ${rulesetId || 'CREATE'} -> CI Gate; source=${bindCiSource ? 'github-actions#15368 (verified)' : 'preserve-current'}; delete_branch_on_merge=true; allow_auto_merge=false; bypass=${desired.bypass_actors.map(a => a.bypass_mode).join(',') || 'none'}\n`);
 
     if (apply) {
-      await api('PATCH', `/repos/${full}`, { delete_branch_on_merge: true });
-      await api('PUT', `/repos/${full}/rulesets/${summary.id}`, desired);
+      await api('PATCH', `/repos/${full}`, { delete_branch_on_merge: true, allow_auto_merge: false });
+      if (rulesetId) await api('PUT', `/repos/${full}/rulesets/${rulesetId}`, desired);
+      else {
+        const created = await api('POST', `/repos/${full}/rulesets`, desired);
+        if (!Number.isSafeInteger(created?.id) || created.id <= 0) throw new Error(`${full}: created Ruleset identity is missing.`);
+        rulesetId = created.id;
+      }
     }
 
-    const postRepo = apply ? await api('GET', `/repos/${full}`, undefined, { anonymousRetry: true }) : { ...repo, delete_branch_on_merge: true };
-    const postDetail = apply ? await api('GET', `/repos/${full}/rulesets/${summary.id}`, undefined, { anonymousRetry: true }) : { ...desired, id: summary.id };
+    const postRepo = apply ? await api('GET', `/repos/${full}`, undefined, { anonymousRetry: true }) : { ...repo, delete_branch_on_merge: true, allow_auto_merge: false };
+    const postDetail = apply ? await api('GET', `/repos/${full}/rulesets/${rulesetId}`, undefined, { anonymousRetry: true }) : { ...desired, id: rulesetId };
     const verdict = assess(postDetail, postRepo, { requireStatusSource: bindCiSource });
     if (!verdict.ok) throw new Error(`${full} desired governance does not satisfy contract: ${verdict.reasons.join(', ')}`);
-    results.push({ repository: full, rulesetId: summary.id, sourceBinding: verdict.sourceBinding, verifiedSource, cleanup: { requested: cleanBranches, deleted: [], skipped: [] } });
+    results.push({ repository: full, rulesetId, sourceBinding: verdict.sourceBinding, verifiedSource, cleanup: { requested: cleanBranches, deleted: [], skipped: [] } });
   }
 
   // Phase 2 is optional hygiene. It is deliberately separate so a token with
@@ -250,7 +265,7 @@ async function main() {
   }
 
   process.stdout.write(`${JSON.stringify({ schemaVersion: 1, mode: apply ? 'apply' : 'dry-run', bindCiSource, zeroBypass, cleanBranches, results }, null, 2)}\n`);
-  if (!apply) process.stdout.write('Dry-run only. Re-run with --apply after CI Gate exists on every native-protected repository. Publisher-protected private repositories are intentionally skipped. Add --clean-branches only when the token also has Contents: write.\n');
+  if (!apply) process.stdout.write('Dry-run only. Re-run with --apply after CI Gate exists on every native-protected repository. --create-missing creates only the reviewed canonical Ruleset; existing extra rules are never overwritten. Add --clean-branches only when the token also has Contents: write.\n');
   else if (!cleanBranches) process.stdout.write('Governance applied. Historical branch cleanup was not requested; use --apply --clean-branches with Contents: write if desired.\n');
 }
 
@@ -258,4 +273,4 @@ if (require.main === module) main().catch(error => {
   console.error(error.stack || error.message || String(error));
   process.exitCode = 2;
 });
-module.exports = { desiredRuleset, desiredStatusChecks, validateMainGateCheckRuns, verifyExpectedCheckSource };
+module.exports = { desiredRuleset, desiredStatusChecks, newRulesetTemplate, validateMainGateCheckRuns, verifyExpectedCheckSource };

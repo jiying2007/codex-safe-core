@@ -53,7 +53,7 @@ function requiredCheckSourceBinding(parameters = {}) {
 function deleteBranchOnMergeState(repository = {}) {
   return typeof repository?.delete_branch_on_merge === 'boolean' ? repository.delete_branch_on_merge : null;
 }
-function assess(detail, repository = {}, { requireStatusSource = false } = {}) {
+function assess(detail, repository = {}, { requireStatusSource = contract.requiredStatusChecks.requireSourceBinding === true } = {}) {
   const reasons = [];
   if (detail?.name !== contract.rulesetName) reasons.push(`ruleset-name:${detail?.name || 'missing'}`);
   if (detail?.enforcement !== contract.enforcement) reasons.push(`enforcement:${detail?.enforcement || 'missing'}`);
@@ -61,7 +61,10 @@ function assess(detail, repository = {}, { requireStatusSource = false } = {}) {
   if (!branchCovered(detail, contract.defaultBranch, repository)) reasons.push('default-branch-not-covered');
   const rules = Array.isArray(detail?.rules) ? detail.rules : [];
   const byType = new Map(rules.map(rule => [rule.type, rule]));
-  for (const type of contract.requiredRuleTypes) if (!byType.has(type)) reasons.push(`missing-rule:${type}`);
+  for (const type of contract.requiredRuleTypes) {
+    if (!byType.has(type)) reasons.push(`missing-rule:${type}`);
+    if (rules.filter(rule => rule.type === type).length > 1) reasons.push(`duplicate-rule:${type}`);
+  }
   const pr = byType.get('pull_request')?.parameters || {};
   const approvals = pr.required_approving_review_count;
   const expectedApprovals = Number(contract.pullRequest.minimumApprovals);
@@ -106,40 +109,28 @@ function assess(detail, repository = {}, { requireStatusSource = false } = {}) {
   // sees the boolean and remains fail-closed on an explicit false value.
   const deleteBranchOnMerge = deleteBranchOnMergeState(repository);
   if (contract.deleteBranchOnMerge && deleteBranchOnMerge === false) reasons.push('delete-branch-on-merge-disabled');
-  return { ok: reasons.length === 0, reasons, sourceBinding, administrativeMetadata: { deleteBranchOnMerge } };
+  if (contract.allowAutoMerge === false && repository.allow_auto_merge === true) reasons.push('auto-merge-enabled');
+  return { ok: reasons.length === 0, reasons, sourceBinding, administrativeMetadata: { deleteBranchOnMerge, allowAutoMerge: typeof repository.allow_auto_merge === 'boolean' ? repository.allow_auto_merge : null } };
 }
 function policyFor(repo) {
   const explicit = contract.repositoryPolicies?.[repo];
   const fallback = contract.defaultRepositoryPolicy || { protection: 'native', nativeRulesetRequired: true };
   const value = explicit || fallback;
-  if (!['native','publisher'].includes(String(value.protection || '')))
+  if (value.protection !== 'native' || value.nativeRulesetRequired !== true)
     throw new Error(`Unsupported repository protection mode for ${repo}.`);
   return value;
 }
-async function auditRepository(repo, token) {
+async function auditRepository(repo, token, { readJson = json } = {}) {
   const owner = registry.owner;
   const policy = policyFor(repo);
-  if (policy.protection === 'publisher') {
-    if (policy.nativeRulesetRequired !== false || policy.releaseAuthority !== 'product-release-workflow')
-      throw new Error(`Publisher policy for ${repo} is incomplete.`);
-    return {
-      repository: `${owner}/${repo}`,
-      ok: true,
-      protection: 'publisher',
-      nativeRulesetRequired: false,
-      releaseAuthority: policy.releaseAuthority,
-      matchingRulesets: [],
-      rejectedRulesets: [],
-      administrativeMetadata: { deleteBranchOnMerge: null, observable: false }
-    };
-  }
-  const repository = await json(`/repos/${owner}/${repo}`, token);
-  const summaries = await json(`/repos/${owner}/${repo}/rulesets`, token);
+  const repository = await readJson(`/repos/${owner}/${repo}`, token);
+  if (repository.private !== false) throw new Error(`Native public repository policy does not match observed visibility for ${repo}.`);
+  const summaries = await readJson(`/repos/${owner}/${repo}/rulesets`, token);
   const active = [];
   const rejected = [];
   for (const summary of Array.isArray(summaries) ? summaries : []) {
     if (!summary?.id) continue;
-    const detail = await json(`/repos/${owner}/${repo}/rulesets/${summary.id}`, token);
+    const detail = await readJson(`/repos/${owner}/${repo}/rulesets/${summary.id}`, token);
     const result = assess(detail, repository);
     if (result.ok) active.push({ id: detail.id, name: detail.name, sourceBinding: result.sourceBinding });
     else rejected.push({ id: detail.id, name: detail.name, reasons: result.reasons, sourceBinding: result.sourceBinding });
@@ -147,7 +138,7 @@ async function auditRepository(repo, token) {
   const deleteBranchOnMerge = deleteBranchOnMergeState(repository);
   return {
     repository: `${owner}/${repo}`,
-    ok: active.length > 0,
+    ok: active.length === 1,
     protection: 'native',
     nativeRulesetRequired: true,
     matchingRulesets: active,
