@@ -68,6 +68,9 @@ test('source identity rejects dirty or mismatched real checkouts',t=>{
   git('init','-q');git('config','user.name','Performance fixture');git('config','user.email','fixture@example.invalid');git('config','commit.gpgsign','false');
   fs.writeFileSync(path.join(root,'core-contract.json'),JSON.stringify({coreVersion:'4.18.5'}));git('add','.');git('commit','-qm','Fixture');
   const sha=git('rev-parse','HEAD');assert.deepEqual(describeSource(root,sha),{sha,version:'4.18.5'});
+  const alias=root+'-alias';fs.symlinkSync(root,alias,'junction');t.after(()=>fs.rmSync(alias,{recursive:true,force:true}));
+  assert.deepEqual(describeSource(alias,sha),{sha,version:'4.18.5'},'macOS temporary-root aliases and Windows junctions identify the same checkout');
+  fs.mkdirSync(path.join(root,'nested'));assert.throws(()=>describeSource(path.join(root,'nested'),sha),/repository root/);
   assert.throws(()=>describeSource(root,'f'.repeat(40)),/does not match/);
   fs.appendFileSync(path.join(root,'core-contract.json'),'\n');assert.throws(()=>describeSource(root,sha),/tracked changes/);
 });
