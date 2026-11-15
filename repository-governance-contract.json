@@ -13,13 +13,7 @@
   "repositoryPolicies": {
     "codex-review-service": {
       "protection": "native",
-      "nativeRulesetRequired": true,
-      "pullRequest": {
-        "minimumApprovals": 1,
-        "dismissStaleReviewsOnPush": true,
-        "requireCodeOwnerReview": false,
-        "requireLastPushApproval": true
-      }
+      "nativeRulesetRequired": true
     }
   },
   "defaultRepositoryPolicy": {
