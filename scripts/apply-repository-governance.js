@@ -241,31 +241,59 @@ async function cleanupMergedBranches(owner, repo) {
 
 async function main() {
   const owner = registry.owner;
-  const results = [];
+  const results = [], plans = [];
 
-  // Phase 1 is authoritative governance. Complete and verify all repositories
-  // before any optional historical branch deletion is attempted.
+  // Phase 1 has no writes. Validate *all seven* exact-main CI sources and
+  // native policy projections before changing any repository. A missing rule
+  // or an unacknowledged Service review change cannot cause partial updates.
   for (const repoName of contract.repositories) {
     const full = `${owner}/${repoName}`;
-    policyFor(repoName); // Reject stale publisher exceptions instead of skipping server reads.
+    policyFor(repoName);
     const repo = await api('GET', `/repos/${full}`, undefined, { anonymousRetry: true });
     if (repo.private !== false) throw new Error(`${full}: observed visibility does not match public native policy.`);
     const summaries = await api('GET', `/repos/${full}/rulesets`, undefined, { anonymousRetry: true });
     const matching = summaries.filter(item => item?.name === contract.rulesetName);
     if (matching.length > 1) throw new Error(`${full}: canonical Ruleset is ambiguous.`);
-    let rulesetId = matching[0]?.id || null;
+    const rulesetId = matching[0]?.id || null;
     if (!rulesetId && !createMissing) throw new Error(`${full} is missing Ruleset ${contract.rulesetName}; use --create-missing after reviewing the creation plan.`);
     const detail = rulesetId ? await api('GET', `/repos/${full}/rulesets/${rulesetId}`, undefined, { anonymousRetry: true }) : newRulesetTemplate();
     const verifiedSource = bindCiSource ? await verifyExpectedCheckSource(full) : null;
-    const desired = desiredRuleset(repo, detail, { bindStatusSource: bindCiSource, repositoryName: repoName });
-    // Preserve stronger existing protections, then reject undeclared policy drift
-    // before any write to this repository. Binding CI must never lower reviews.
+    const desired = desiredRuleset(repo, detail, { bindStatusSource: bindCiSource, repositoryName: repoName, alignServiceReview: alignServiceSolo });
+    const currentPr = detail.rules.find(rule => rule.type === 'pull_request')?.parameters || {};
+    const nextPr = desired.rules.find(rule => rule.type === 'pull_request').parameters;
+    const reviewChange = {
+      approvals: [currentPr.required_approving_review_count, nextPr.required_approving_review_count],
+      staleReviews: [currentPr.dismiss_stale_reviews_on_push, nextPr.dismiss_stale_reviews_on_push],
+      lastPushApproval: [currentPr.require_last_push_approval, nextPr.require_last_push_approval]
+    };
+    const reducingReviews = reviewChange.approvals[1] < reviewChange.approvals[0] ||
+      (reviewChange.staleReviews[0] === true && reviewChange.staleReviews[1] === false) ||
+      (reviewChange.lastPushApproval[0] === true && reviewChange.lastPushApproval[1] === false);
+    if (reducingReviews && !(repoName === 'codex-review-service' && alignServiceSolo))
+      throw new Error(`${full}: unacknowledged change to existing review protection.`);
     const proposedRepo = { ...repo, delete_branch_on_merge: true, allow_auto_merge: false };
     const proposal = assess(desired, proposedRepo, { requireStatusSource: bindCiSource, repositoryName: repoName });
-    if (!proposal.ok) throw new Error(`${full}: existing protection was preserved but the proposal does not satisfy the declared policy: ${proposal.reasons.join(', ')}`);
+    if (!proposal.ok) {
+      const hint = repoName === 'codex-review-service' && !alignServiceSolo
+        ? ' For an explicit, administrator-reviewed solo transition, add --align-service-solo.'
+        : '';
+      throw new Error(`${full}: proposed protection does not satisfy the declared policy: ${proposal.reasons.join(', ')}.${hint}`);
+    }
+    plans.push({ repoName, full, repo, rulesetId, desired, verifiedSource, reviewChange });
+  }
 
-    process.stdout.write(`${apply ? 'APPLY' : 'DRY-RUN'} ${full}: Ruleset ${rulesetId || 'CREATE'} -> CI Gate; source=${bindCiSource ? 'github-actions#15368 (verified)' : 'preserve-current'}; delete_branch_on_merge=true; allow_auto_merge=false; bypass=${desired.bypass_actors.map(a => a.bypass_mode).join(',') || 'none'}\n`);
+  process.stdout.write(`PREFLIGHT PASS: ${plans.length} native repositories; no server mutations were needed to prepare these proposals.\n`);
+  for (const plan of plans) {
+    const { full, rulesetId, desired, reviewChange } = plan;
+    process.stdout.write(`${apply ? 'APPLY' : 'DRY-RUN'} ${full}: Ruleset ${rulesetId || 'CREATE'} -> CI Gate; source=${bindCiSource ? 'github-actions#15368 (verified)' : 'preserve-current'}; approvals=${reviewChange.approvals.join('->')}; stale=${reviewChange.staleReviews.join('->')}; lastPush=${reviewChange.lastPushApproval.join('->')}; delete_branch_on_merge=true; allow_auto_merge=false; bypass=${desired.bypass_actors.map(a => a.bypass_mode).join(',') || 'none'}\n`);
+  }
 
+  // Phase 2 writes only after the whole plan passed. Network/API failures can
+  // still leave a partial cross-repository migration; retain exact readback
+  // and never report a verified result for an unobserved server update.
+  for (const plan of plans) {
+    const { repoName, full, repo, desired, verifiedSource } = plan;
+    let rulesetId = plan.rulesetId;
     if (apply) {
       await api('PATCH', `/repos/${full}`, { delete_branch_on_merge: true, allow_auto_merge: false });
       if (rulesetId) await api('PUT', `/repos/${full}/rulesets/${rulesetId}`, desired);
@@ -275,12 +303,11 @@ async function main() {
         rulesetId = created.id;
       }
     }
-
     const postRepo = apply ? await api('GET', `/repos/${full}`, undefined, { anonymousRetry: true }) : { ...repo, delete_branch_on_merge: true, allow_auto_merge: false };
     const postDetail = apply ? await api('GET', `/repos/${full}/rulesets/${rulesetId}`, undefined, { anonymousRetry: true }) : { ...desired, id: rulesetId };
     const verdict = assess(postDetail, postRepo, { requireStatusSource: bindCiSource, requireAdministrativeMetadata: apply, repositoryName: repoName });
     if (!verdict.ok) throw new Error(`${full} desired governance does not satisfy contract: ${verdict.reasons.join(', ')}`);
-    results.push({ repository: full, rulesetId, sourceBinding: verdict.sourceBinding, verifiedSource, cleanup: { requested: cleanBranches, deleted: [], skipped: [] } });
+    results.push({ repository: full, rulesetId, sourceBinding: verdict.sourceBinding, verifiedSource, reviewChange: plan.reviewChange, cleanup: { requested: cleanBranches, deleted: [], skipped: [] } });
   }
 
   // Phase 2 is optional hygiene. It is deliberately separate so a token with
@@ -292,7 +319,7 @@ async function main() {
     }
   }
 
-  process.stdout.write(`${JSON.stringify({ schemaVersion: 1, mode: apply ? 'apply' : 'dry-run', bindCiSource, zeroBypass, cleanBranches, results }, null, 2)}\n`);
+  process.stdout.write(`${JSON.stringify({ schemaVersion: 1, mode: apply ? 'apply' : 'dry-run', bindCiSource, alignServiceSolo, zeroBypass, cleanBranches, results }, null, 2)}\n`);
   if (!apply) process.stdout.write('Dry-run only. Re-run with --apply after CI Gate exists on every native-protected repository. --create-missing creates only the reviewed canonical Ruleset; existing extra rules are never overwritten. Add --clean-branches only when the token also has Contents: write.\n');
   else if (!cleanBranches) process.stdout.write('Governance applied. Historical branch cleanup was not requested; use --apply --clean-branches with Contents: write if desired.\n');
 }
