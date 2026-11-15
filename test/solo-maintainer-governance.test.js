@@ -309,7 +309,7 @@ test('legacy gh CLI API adapter uses stored CLI auth without extracting or loggi
     "cp.spawnSync=(binary,args,options)=>{",
     " if(binary!=='gh'||args[0]!=='api'||args[1]!=='--method')throw Error('wrong gh invocation');",
     " if(options.shell!==false||options.env.GH_TOKEN!==undefined||options.env.GITHUB_TOKEN!==undefined||options.env.GH_HOST!=='github.com')throw Error('credential leaked to subprocess');",
-    " const method=args[2],p=args[3],n=p.split('/')[3],service=n==='codex-review-service';",
+    " const method=args[2],p=new URL('https://api.github.com'+args[3]).pathname,n=p.split('/')[3],service=n==='codex-review-service';",
     " if(method!=='GET'){writes++;throw Error('unexpected admin mutation');}reads++;",
     " let data;",
     " if(p.endsWith('/rulesets/17'))data={id:17,name:'Codex Safe main protection',target:'branch',enforcement:'active',",
