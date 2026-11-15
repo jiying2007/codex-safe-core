@@ -3,6 +3,7 @@
 
 const contract = require('../repository-governance-contract.json');
 const registry = require('../family-registry.json');
+const { spawnSync } = require('node:child_process');
 const { assess, policyFor, pullRequestPolicyFor, repositoryNameOf } = require('./verify-repository-ruleset');
 
 const API = 'https://api.github.com';
@@ -11,6 +12,7 @@ const zeroBypass = process.argv.includes('--zero-bypass');
 const bindCiSource = contract.requiredStatusChecks.requireSourceBinding === true || process.argv.includes('--bind-ci-source');
 const createMissing = process.argv.includes('--create-missing');
 const cleanBranches = process.argv.includes('--clean-branches');
+const useGhCli = process.argv.includes('--gh-cli');
 const alignServiceSolo = process.argv.includes('--align-service-solo');
 const acknowledgeServiceReviewChange = process.argv.includes('--acknowledge-service-review-policy-change');
 if (apply && alignServiceSolo && !acknowledgeServiceReviewChange)
@@ -19,7 +21,27 @@ if (acknowledgeServiceReviewChange && !alignServiceSolo)
   throw new Error('Service review-policy acknowledgement requires --align-service-solo.');
 const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '';
 
-if (apply && !token) throw new Error('GH_TOKEN or GITHUB_TOKEN with repository Administration write permission is required for --apply.');
+if (!useGhCli && token && /[\r\n]/.test(token))
+  throw new Error('GH_TOKEN/GITHUB_TOKEN contains line breaks, not a valid token. Unset it; use --gh-cli for existing gh login or provide a valid scoped token.');
+if (apply && !token && !useGhCli)
+  throw new Error('Use --gh-cli with an existing admin-authorized gh login, or supply GH_TOKEN/GITHUB_TOKEN with repository Administration write permission for --apply.');
+function ghApi(method, pathname, body) {
+  const args=['api','--method',method,pathname];
+  if (body !== undefined) args.push('--input','-');
+  // Do not read, log, store or transmit the CLI's credential through Node.
+  // The installed gh supports "gh api" even when "gh auth token" is absent.
+  const env={...process.env,GH_HOST:'github.com',GH_PROMPT_DISABLED:'1',GH_PAGER:''};
+  delete env.GH_TOKEN;delete env.GITHUB_TOKEN;
+  const response=spawnSync('gh',args,{
+    cwd:process.cwd(),env,encoding:'utf8',input:body===undefined?undefined:JSON.stringify(body),
+    timeout:30000,maxBuffer:16*1024*1024,windowsHide:true,shell:false
+  });
+  if (response.error || response.status !== 0)
+    throw new Error(`gh api ${method} ${pathname} failed (exit ${response.status ?? 'unavailable'}). Check gh auth status and repository permissions; no token value was read.`);
+  if (!response.stdout.trim()) return null;
+  try {return JSON.parse(response.stdout);}
+  catch {throw new Error(`gh api ${method} ${pathname} returned invalid JSON.`);}
+}
 
 function headers() {
   return {
@@ -31,6 +53,7 @@ function headers() {
 }
 
 async function api(method, pathname, body, { anonymousRetry = false } = {}) {
+  if (useGhCli) return ghApi(method, pathname, body);
   const request = async authenticated => fetch(`${API}${pathname}`, {
     method,
     redirect: 'error',
@@ -319,7 +342,7 @@ async function main() {
     }
   }
 
-  process.stdout.write(`${JSON.stringify({ schemaVersion: 1, mode: apply ? 'apply' : 'dry-run', bindCiSource, alignServiceSolo, zeroBypass, cleanBranches, results }, null, 2)}\n`);
+  process.stdout.write(`${JSON.stringify({ schemaVersion: 1, mode: apply ? 'apply' : 'dry-run', auth: useGhCli ? 'gh-cli' : token ? 'explicit-token' : 'public', bindCiSource, alignServiceSolo, zeroBypass, cleanBranches, results }, null, 2)}\n`);
   if (!apply) process.stdout.write('Dry-run only. Re-run with --apply after CI Gate exists on every native-protected repository. --create-missing creates only the reviewed canonical Ruleset; existing extra rules are never overwritten. Add --clean-branches only when the token also has Contents: write.\n');
   else if (!cleanBranches) process.stdout.write('Governance applied. Historical branch cleanup was not requested; use --apply --clean-branches with Contents: write if desired.\n');
 }
