@@ -299,3 +299,58 @@ test('a late seventh-repository preflight error cannot partially write the first
   assert.equal(outcome.status,0,outcome.stderr||outcome.stdout);
   assert.match(outcome.stdout,/PREFLIGHT_DENIED_NO_WRITES/);
 });
+
+test('legacy gh CLI API adapter uses stored CLI auth without extracting or logging an invalid token',()=>{
+  const {spawnSync}=require('node:child_process');
+  const fixture=[
+    "'use strict';",
+    "process.argv.push('--gh-cli','--create-missing','--align-service-solo');",
+    "const cp=require('node:child_process');let reads=0,writes=0;const head='a'.repeat(40);",
+    "cp.spawnSync=(binary,args,options)=>{",
+    " if(binary!=='gh'||args[0]!=='api'||args[1]!=='--method')throw Error('wrong gh invocation');",
+    " if(options.shell!==false||options.env.GH_TOKEN!==undefined||options.env.GITHUB_TOKEN!==undefined||options.env.GH_HOST!=='github.com')throw Error('credential leaked to subprocess');",
+    " const method=args[2],p=args[3],n=p.split('/')[3],service=n==='codex-review-service';",
+    " if(method!=='GET'){writes++;throw Error('unexpected admin mutation');}reads++;",
+    " let data;",
+    " if(p.endsWith('/rulesets/17'))data={id:17,name:'Codex Safe main protection',target:'branch',enforcement:'active',",
+    "  conditions:{ref_name:{include:['~DEFAULT_BRANCH'],exclude:[]}},bypass_actors:[],rules:[",
+    "   {type:'deletion'},{type:'non_fast_forward'},",
+    "   {type:'pull_request',parameters:{required_approving_review_count:service?1:0,",
+    "     dismiss_stale_reviews_on_push:service,require_last_push_approval:service,require_code_owner_review:false,",
+    "     required_review_thread_resolution:false,required_reviewers:[],require_extra_approval_for_unattributed_changes:true}},",
+    "   {type:'required_status_checks',parameters:{strict_required_status_checks_policy:true,",
+    "     required_status_checks:[{context:'CI Gate'}]}}]};",
+    " else if(p.endsWith('/rulesets'))data=n==='codex-debug'?[]:[{id:17,name:'Codex Safe main protection'}];",
+    " else if(p.endsWith('/branches/main'))data={commit:{sha:head}};",
+    " else if(p.endsWith('/check-runs'))data={total_count:1,check_runs:[{name:'CI Gate',head_sha:head,",
+    "    app:{id:15368,slug:'github-actions'},status:'completed',conclusion:'success'}]};",
+    " else if(p.split('/').length===4)data={name:n,full_name:'jiying2007/'+n,default_branch:'main',",
+    "    private:false,allow_squash_merge:true,allow_merge_commit:false,allow_rebase_merge:false,",
+    "    delete_branch_on_merge:true,allow_auto_merge:false};",
+    " else throw Error('unhandled gh api fixture: '+p);",
+    " return {status:0,stdout:JSON.stringify(data),stderr:''};",
+    "};",
+    "const {main}=require('./scripts/apply-repository-governance');",
+    "main().then(()=>{if(reads<20||writes){console.error('bad read-only API inventory');process.exitCode=2;}",
+    " else console.log('GH_API_READ_ONLY_PASS');},error=>{console.error(error.stack);process.exitCode=3;});"
+  ].join('\n');
+  const outcome=spawnSync(process.execPath,['-e',fixture],{
+    cwd:root,encoding:'utf8',timeout:15000,
+    env:{...process.env,GH_TOKEN:'unknown command "token" for "gh auth"\nUsage: gh auth <command>',GITHUB_TOKEN:'poisoned-token'}
+  });
+  assert.equal(outcome.status,0,outcome.stderr||outcome.stdout);
+  assert.match(outcome.stdout,/PREFLIGHT PASS: 7 native repositories/);
+  assert.match(outcome.stdout,/GH_API_READ_ONLY_PASS/);
+  assert.match(outcome.stdout,/"auth": "gh-cli"/);
+  assert.doesNotMatch(outcome.stdout,/poisoned-token|unknown command "token"/);
+});
+test('invalid legacy gh token command output fails safely before network calls',()=>{
+  const {spawnSync}=require('node:child_process');
+  const result=spawnSync(process.execPath,['scripts/apply-repository-governance.js','--create-missing','--align-service-solo'],{
+    cwd:root,encoding:'utf8',timeout:3000,
+    env:{...process.env,GH_TOKEN:'unknown command "token" for "gh auth"\nUsage: gh auth <command>',GITHUB_TOKEN:''}
+  });
+  assert.notEqual(result.status,0);
+  assert.match(result.stderr,/contains line breaks/);
+  assert.doesNotMatch(result.stderr,/Headers\.append|Bearer unknown/);
+});
