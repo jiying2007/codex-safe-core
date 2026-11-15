@@ -182,26 +182,59 @@ test('Service and development Debug are audited against actual public native ser
   }
 });
 
-test('Service source binding preserves its existing stronger approval protections',()=>{
+test('Service keeps existing review requirements unless administrator explicitly aligns the solo policy',()=>{
   const {desiredRuleset,newRulesetTemplate}=require('../scripts/apply-repository-governance');
   const repository={name:'codex-review-service',default_branch:'main',delete_branch_on_merge:true,allow_auto_merge:false,allow_squash_merge:true};
   const detail=newRulesetTemplate();
-  const existing={required_approving_review_count:1,dismiss_stale_reviews_on_push:true,require_last_push_approval:true,require_code_owner_review:false,required_review_thread_resolution:true};
+  const existing={
+    required_approving_review_count:1,dismiss_stale_reviews_on_push:true,
+    require_last_push_approval:true,require_code_owner_review:false,
+    required_review_thread_resolution:true,required_reviewers:[],
+    require_extra_approval_for_unattributed_changes:true
+  };
   detail.rules.find(rule=>rule.type==='pull_request').parameters={...existing};
-  const proposed=desiredRuleset(repository,detail);
-  const pr=proposed.rules.find(rule=>rule.type==='pull_request').parameters;
-  for(const [field,value] of Object.entries(existing))assert.equal(pr[field],value,field);
-  assert.equal(assess(proposed,repository).ok,true);
-  for(const [field,value,reason] of [
-    ['required_approving_review_count',0,'insufficient-approvals'],
-    ['dismiss_stale_reviews_on_push',false,'stale-review-dismissal-drift'],
-    ['require_last_push_approval',false,'last-push-approval-drift']
-  ]){
-    const downgraded=structuredClone(proposed);
-    downgraded.rules.find(rule=>rule.type==='pull_request').parameters[field]=value;
-    const result=assess(downgraded,repository);
-    assert.equal(result.ok,false,field);assert.ok(result.reasons.includes(reason));
-  }
+  const unchanged=desiredRuleset(repository,detail,{alignServiceReview:false});
+  const unchangedPr=unchanged.rules.find(rule=>rule.type==='pull_request').parameters;
+  for(const [field,value] of Object.entries(existing))assert.deepEqual(unchangedPr[field],value,field);
+  const blocked=assess(unchanged,repository,{repositoryName:'codex-review-service'});
+  assert.equal(blocked.ok,false,'source-binding alone must not silently change Service approval policy');
+  for(const reason of ['unexpected-solo-approval-requirement','stale-review-dismissal-drift','last-push-approval-drift'])
+    assert.ok(blocked.reasons.includes(reason),reason);
+
+  const aligned=desiredRuleset(repository,detail,{alignServiceReview:true});
+  const pr=aligned.rules.find(rule=>rule.type==='pull_request').parameters;
+  assert.equal(pr.required_approving_review_count,0);
+  assert.equal(pr.dismiss_stale_reviews_on_push,false);
+  assert.equal(pr.require_last_push_approval,false);
+  assert.equal(pr.require_code_owner_review,false);
+  assert.equal(pr.required_review_thread_resolution,true,'retain actual conversation-resolution protection');
+  assert.deepEqual(pr.required_reviewers,[],'never manufacture approving reviewers');
+  assert.equal(pr.require_extra_approval_for_unattributed_changes,true,'Copilot setting is inert at zero required approvals');
+  assert.deepEqual(aligned.rules.find(rule=>rule.type==='required_status_checks').parameters.required_status_checks,
+    [{context:'CI Gate',integration_id:15368}]);
+  assert.equal(assess(aligned,repository,{repositoryName:'codex-review-service'}).ok,true);
+  assert.deepEqual(detail.rules.find(rule=>rule.type==='pull_request').parameters,existing,'original server evidence is never mutated');
+
+  const core={...repository,name:'codex-safe-core'};
+  const preserved=desiredRuleset(core,detail,{alignServiceReview:true});
+  assert.equal(preserved.rules.find(rule=>rule.type==='pull_request').parameters.required_approving_review_count,1,
+    'Service-only opt-in must not downgrade other repository protections');
+  assert.equal(assess(preserved,core,{repositoryName:'codex-safe-core'}).ok,false);
+});
+
+test('an actual Service review-policy write requires a separate affirmative acknowledgement',()=>{
+  const {spawnSync}=require('node:child_process');
+  const script=path.join(root,'scripts','apply-repository-governance.js');
+  const env={...process.env,GH_TOKEN:'fixture-do-not-use',GITHUB_TOKEN:''};
+  const missing=spawnSync(process.execPath,[script,'--apply','--create-missing','--align-service-solo'],
+    {cwd:root,env,encoding:'utf8',timeout:3000});
+  assert.notEqual(missing.status,0);
+  assert.match(missing.stderr,/--acknowledge-service-review-policy-change/);
+  assert.doesNotMatch(missing.stderr,/GitHub API|fetch failed/,'permission guard must fire before any network call');
+  const stray=spawnSync(process.execPath,[script,'--acknowledge-service-review-policy-change'],
+    {cwd:root,env,encoding:'utf8',timeout:3000});
+  assert.notEqual(stray.status,0);
+  assert.match(stray.stderr,/requires --align-service-solo/);
 });
 
 test('undeclared stricter review settings survive preparation and fail policy qualification',()=>{
