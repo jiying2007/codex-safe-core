@@ -328,4 +328,4 @@ if (require.main === module) main().catch(error => {
   console.error(error.stack || error.message || String(error));
   process.exitCode = 2;
 });
-module.exports = { desiredRuleset, desiredStatusChecks, newRulesetTemplate, validateMainGateCheckRuns, verifyExpectedCheckSource };
+module.exports = { main, desiredRuleset, desiredStatusChecks, newRulesetTemplate, validateMainGateCheckRuns, verifyExpectedCheckSource };
