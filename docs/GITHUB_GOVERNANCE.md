@@ -1,10 +1,10 @@
 # GitHub repository governance
 
-Codex Safe uses a **solo-maintainer governance baseline**: ordinary development is protected by deterministic automation, while production publication remains fail-closed. Explicit repository policies retain stricter existing protection. Service requires one approval, stale-review dismissal and last-push approval; this migration does not remove those requirements.
+Codex Safe uses a **solo-maintainer governance baseline**: ordinary development requires a protected PR and deterministic CI, while production publication remains fail-closed. The existing Service server still requires one approval, stale-review dismissal and last-push approval; reaching the declared solo baseline there requires an explicit administrator-acknowledged migration, not a code-side assertion or an owner bypass.
 
 ## Three protection tiers
 
-1. **Development / pull request** — require a pull request and the repository's canonical `CI Gate`. The default policy requires zero approving reviews and no stale-review dismissal or last-push approval. Service's explicit policy preserves its existing one-approval, stale-review and last-push requirements. Each repository is audited against its declared policy; optional independent advice remains welcome.
+1. **Development / pull request** — require a pull request and the repository's canonical `CI Gate`. The declared solo policy requires zero approving reviews and no stale-review dismissal or last-push approval, including Service after its explicit native settings migration. Service's current one-approval server state is reported as drift until that administrator action is independently verified. Optional independent advice remains welcome.
 2. **Merge to main** — native-protected public repositories keep deletion and force-push protection plus strict `CI Gate`. A bounded maintainer bypass may exist only in `pull_request` mode. It is an explicit single-maintainer control, not evidence of an independent review.
 3. **Production release** — exact SHA, immutable release/tag or image digest, release qualification, secrets, migration/backup/rollback and real target-environment checks remain fail-closed. Development evidence cannot substitute for publication evidence.
 
@@ -40,26 +40,28 @@ For every repository whose protection mode is `native`, the default branch must 
 - repository-side `delete_branch_on_merge` enabled when administratively observable;
 - repository-side `allow_auto_merge` disabled; preparation and validation never grant merge authority.
 
-The default solo policy specifies exactly zero required approvals, with no last-push, stale-review or code-owner requirement. Service's repository policy specifies exactly one approval with stale-review dismissal and last-push approval. The verifier rejects drift against each repository's explicit policy. The migration builder preserves higher existing approval counts and enabled review protections; an undeclared stricter state is reported for review and rejected before writing that repository instead of silently lowering it.
+The solo policy specifies exactly zero required approvals, with no last-push, stale-review or code-owner requirement, for all seven repositories. The verifier rejects undeclared stronger or weaker review requirements, including Service's presently stricter server settings. By default the migration builder **preserves** existing review settings and rejects Service's mismatch before any repository write. Only `--align-service-solo` explicitly proposes Service's approval count 1→0, stale dismissal true→false and last-push approval true→false; code-owner and thread-resolution protections, existing bounded PR-only bypass, required CI Gate source and other rules are not weakened. GitHub's additional unattributed Copilot approval setting has no effect when zero approvals are required.
 
 ## Required GitHub Actions status source
 
 The canonical required check is `CI Gate` bound to the GitHub Actions App (`integration_id=15368`). Name-only rules report `sourceBinding.state=unbound` and fail the authoritative audit; a passing check with the same name from another writer cannot establish the required source binding. Source state is always returned for review.
 
-The migration script verifies a successful exact-main `CI Gate` from this app before preparing a binding. Existing extra rules, foreign source bindings and ambiguous canonical rulesets are refused. Existing bounded bypass actors are preserved; a new development Ruleset grants none. Automatic merge stays disabled.
+The migration script verifies a successful exact-main `CI Gate` from this app before preparing a binding. It preflights **all seven** repositories and reports proposed review-policy changes before any write; a late policy mismatch cannot silently modify earlier repositories. Existing extra rules, foreign source bindings and ambiguous canonical rulesets are refused. Existing bounded bypass actors are preserved; a new development Ruleset grants none. Automatic merge stays disabled.
 
-The complete read-only migration plan is:
+The complete **read-only** migration plan for the explicitly aligned solo Service policy is:
 
 ```sh
-node scripts/apply-repository-governance.js --create-missing
+node scripts/apply-repository-governance.js --create-missing --align-service-solo
 ```
 
-An already authorized administrator may apply that plan through an existing trusted execution environment and existing Administration-write authorization:
+An already authorized administrator must separately acknowledge the actual Service review-policy change before server writes:
 
 ```sh
-node scripts/apply-repository-governance.js --apply --create-missing
+node scripts/apply-repository-governance.js --apply --create-missing --align-service-solo --acknowledge-service-review-policy-change
 node scripts/verify-repository-ruleset.js
 ```
+
+Without `--align-service-solo`, the dry-run preserves the current stricter Service settings and correctly refuses the mismatch; it **does not** remove requirements implicitly. An `--apply` with the alignment flag but no separate acknowledgement fails before any network call. The separate acknowledgement is not an excuse to skip active CI or an independently observed post-write readback.
 
 `--bind-ci-source` remains accepted; source binding is now contract-required by default. `--create-missing` is explicit and only creates the canonical rule when it does not exist. Every actual write is followed by a server readback. Dry-run output is a proposal, not evidence that GitHub has been changed. Do not merge the strict contract migration until the seven server configurations satisfy it; this keeps administrative availability separate from unrelated runtime repairs.
 
@@ -83,11 +85,11 @@ The Release workflow remains the place where production requirements become stri
 
 ## Administrator migration
 
-`scripts/apply-repository-governance.js` is dry-run by default. It audits and applies the native policy to all seven public repositories; no product is skipped by a stale publisher label.
+`scripts/apply-repository-governance.js` is dry-run by default. It audits and applies the native policy to all seven public repositories; no product is skipped by a stale publisher label. A full successful read-only preflight precedes any write. GitHub cannot guarantee a cross-repository atomic transaction: if a server write fails partway, preserve the emitted per-repository readbacks, fix the actual permission/network problem and rerun the same idempotent plan rather than assuming rollback or completed governance.
 
 ```bash
-node scripts/apply-repository-governance.js --create-missing
-node scripts/apply-repository-governance.js --apply --create-missing
+node scripts/apply-repository-governance.js --create-missing --align-service-solo
+node scripts/apply-repository-governance.js --apply --create-missing --align-service-solo --acknowledge-service-review-policy-change
 ```
 
 The token used for `--apply` needs repository Administration write permission for the native-protected repositories. Optional historical branch cleanup remains a separate Contents-write operation.
