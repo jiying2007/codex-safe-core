@@ -51,13 +51,16 @@ The migration script verifies a successful exact-main `CI Gate` from this app be
 The complete **read-only** migration plan for the explicitly aligned solo Service policy is:
 
 ```sh
-node scripts/apply-repository-governance.js --create-missing --align-service-solo
+# Reuse an existing GitHub CLI login; works with old gh versions without `gh auth token`.
+env -u GH_TOKEN -u GITHUB_TOKEN node scripts/apply-repository-governance.js --gh-cli --create-missing --align-service-solo
 ```
+
+The public read-only alternative without CLI credentials is `env -u GH_TOKEN -u GITHUB_TOKEN node scripts/apply-repository-governance.js --create-missing --align-service-solo`. The CLI mode uses `gh api` with the locally stored GitHub CLI login; it never requests, prints or persists the token value. Run `gh auth status` / `gh api user` to verify the account, and do not run `GH_TOKEN="$(gh auth token)"` on old CLI builds where this command is unavailable.
 
 An already authorized administrator must separately acknowledge the actual Service review-policy change before server writes:
 
 ```sh
-node scripts/apply-repository-governance.js --apply --create-missing --align-service-solo --acknowledge-service-review-policy-change
+env -u GH_TOKEN -u GITHUB_TOKEN node scripts/apply-repository-governance.js --gh-cli --apply --create-missing --align-service-solo --acknowledge-service-review-policy-change
 node scripts/verify-repository-ruleset.js
 ```
 
@@ -88,8 +91,8 @@ The Release workflow remains the place where production requirements become stri
 `scripts/apply-repository-governance.js` is dry-run by default. It audits and applies the native policy to all seven public repositories; no product is skipped by a stale publisher label. A full successful read-only preflight precedes any write. GitHub cannot guarantee a cross-repository atomic transaction: if a server write fails partway, preserve the emitted per-repository readbacks, fix the actual permission/network problem and rerun the same idempotent plan rather than assuming rollback or completed governance.
 
 ```bash
-node scripts/apply-repository-governance.js --create-missing --align-service-solo
-node scripts/apply-repository-governance.js --apply --create-missing --align-service-solo --acknowledge-service-review-policy-change
+env -u GH_TOKEN -u GITHUB_TOKEN node scripts/apply-repository-governance.js --gh-cli --create-missing --align-service-solo
+env -u GH_TOKEN -u GITHUB_TOKEN node scripts/apply-repository-governance.js --gh-cli --apply --create-missing --align-service-solo --acknowledge-service-review-policy-change
 ```
 
 The token used for `--apply` needs repository Administration write permission for the native-protected repositories. Optional historical branch cleanup remains a separate Contents-write operation.
