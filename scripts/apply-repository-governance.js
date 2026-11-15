@@ -11,6 +11,12 @@ const zeroBypass = process.argv.includes('--zero-bypass');
 const bindCiSource = contract.requiredStatusChecks.requireSourceBinding === true || process.argv.includes('--bind-ci-source');
 const createMissing = process.argv.includes('--create-missing');
 const cleanBranches = process.argv.includes('--clean-branches');
+const alignServiceSolo = process.argv.includes('--align-service-solo');
+const acknowledgeServiceReviewChange = process.argv.includes('--acknowledge-service-review-policy-change');
+if (apply && alignServiceSolo && !acknowledgeServiceReviewChange)
+  throw new Error('Changing Service approval policy requires --acknowledge-service-review-policy-change.');
+if (acknowledgeServiceReviewChange && !alignServiceSolo)
+  throw new Error('Service review-policy acknowledgement requires --align-service-solo.');
 const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '';
 
 if (apply && !token) throw new Error('GH_TOKEN or GITHUB_TOKEN with repository Administration write permission is required for --apply.');
@@ -121,7 +127,7 @@ async function verifyExpectedCheckSource(full) {
   const checks = await api('GET', `/repos/${full}/commits/${sha}/check-runs?per_page=100`, undefined, { anonymousRetry: true });
   return validateMainGateCheckRuns(checks, sha, full);
 }
-function desiredRuleset(repo, detail, { bindStatusSource = bindCiSource, repositoryName = repositoryNameOf(repo) } = {}) {
+function desiredRuleset(repo, detail, { bindStatusSource = bindCiSource, repositoryName = repositoryNameOf(repo), alignServiceReview = alignServiceSolo } = {}) {
   const rules = Array.isArray(detail?.rules) ? detail.rules : [];
   const allowed = new Set(contract.requiredRuleTypes);
   if (rules.some(rule => !allowed.has(rule.type)) || rules.length !== allowed.size ||
@@ -131,6 +137,9 @@ function desiredRuleset(repo, detail, { bindStatusSource = bindCiSource, reposit
   const existingPr = rules.find(rule => rule.type === 'pull_request')?.parameters || {};
   const existingChecks = rules.find(rule => rule.type === 'required_status_checks')?.parameters || {};
   const pullRequestPolicy = pullRequestPolicyFor(repositoryName);
+  // A repo administrator must explicitly select the solo transition. Ordinary
+  // source binding never relaxes an existing review policy.
+  const alignThisService = alignServiceReview === true && repositoryName === 'codex-review-service';
   const existingApprovals = existingPr.required_approving_review_count;
   if (!Number.isSafeInteger(existingApprovals) || existingApprovals < 0)
     throw new Error('Refusing to replace a missing or invalid existing approval requirement.');
@@ -152,10 +161,10 @@ function desiredRuleset(repo, detail, { bindStatusSource = bindCiSource, reposit
         parameters: {
           ...existingPr,
           allowed_merge_methods: mergeMethods(repo),
-          dismiss_stale_reviews_on_push: existingPr.dismiss_stale_reviews_on_push === true || pullRequestPolicy.dismissStaleReviewsOnPush,
+          dismiss_stale_reviews_on_push: alignThisService ? pullRequestPolicy.dismissStaleReviewsOnPush : existingPr.dismiss_stale_reviews_on_push === true || pullRequestPolicy.dismissStaleReviewsOnPush,
           require_code_owner_review: existingPr.require_code_owner_review === true || pullRequestPolicy.requireCodeOwnerReview,
-          require_last_push_approval: existingPr.require_last_push_approval === true || pullRequestPolicy.requireLastPushApproval,
-          required_approving_review_count: Math.max(existingApprovals, pullRequestPolicy.minimumApprovals),
+          require_last_push_approval: alignThisService ? pullRequestPolicy.requireLastPushApproval : existingPr.require_last_push_approval === true || pullRequestPolicy.requireLastPushApproval,
+          required_approving_review_count: alignThisService ? pullRequestPolicy.minimumApprovals : Math.max(existingApprovals, pullRequestPolicy.minimumApprovals),
           required_review_thread_resolution: existingPr.required_review_thread_resolution === true
         }
       },
