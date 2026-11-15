@@ -257,3 +257,45 @@ test('undeclared stricter review settings survive preparation and fail policy qu
     }
   }
 });
+
+test('a late seventh-repository preflight error cannot partially write the first six Rulesets',()=>{
+  const {spawnSync}=require('node:child_process');
+  const fixture=[
+    "'use strict';",
+    "process.argv.push('--apply','--create-missing','--align-service-solo','--acknowledge-service-review-policy-change');",
+    "const {main}=require('./scripts/apply-repository-governance');",
+    "let writes=0;const head='a'.repeat(40);",
+    "globalThis.fetch=async(url,options={})=>{",
+    " const p=new URL(url).pathname,n=p.split('/')[3],service=n==='codex-review-service';",
+    " if(options.method!=='GET'){writes++;throw new Error('UNEXPECTED_SERVER_WRITE');}",
+    " let data;",
+    " if(p.endsWith('/rulesets/17'))data={id:17,name:'Codex Safe main protection',target:'branch',enforcement:'active',",
+    "  conditions:{ref_name:{include:['~DEFAULT_BRANCH'],exclude:[]}},bypass_actors:[],rules:[",
+    "    {type:'deletion'},{type:'non_fast_forward'},",
+    "    {type:'pull_request',parameters:{required_approving_review_count:service?1:0,",
+    "      dismiss_stale_reviews_on_push:service,require_last_push_approval:service,require_code_owner_review:false,",
+    "      required_review_thread_resolution:false,required_reviewers:[],require_extra_approval_for_unattributed_changes:true}},",
+    "    {type:'required_status_checks',parameters:{strict_required_status_checks_policy:true,",
+    "      required_status_checks:[{context:'CI Gate'}]}}]};",
+    " else if(p.endsWith('/rulesets'))data=n==='codex-debug'?[]:[{id:17,name:'Codex Safe main protection'}];",
+    " else if(p.endsWith('/branches/main'))data={commit:{sha:head}};",
+    " else if(p.endsWith('/check-runs'))data={total_count:1,check_runs:[{name:'CI Gate',head_sha:head,",
+    "  app:{id:15368,slug:'github-actions'},status:'completed',conclusion:n==='codex-debug'?'failure':'success'}]};",
+    " else if(p.split('/').length===4)data={name:n,full_name:'jiying2007/'+n,default_branch:'main',",
+    "   private:false,allow_squash_merge:true,allow_merge_commit:false,allow_rebase_merge:false,",
+    "   delete_branch_on_merge:true,allow_auto_merge:false};",
+    " else throw new Error('unhandled fixture URL: '+p);",
+    " return Response.json(data);",
+    "};",
+    "main().then(()=>{console.error('unexpected governance success');process.exitCode=2;},error=>{",
+    " if(!String(error.message).includes('codex-debug')||writes!==0){console.error(error.stack);process.exitCode=3;}",
+    " else console.log('PREFLIGHT_DENIED_NO_WRITES');",
+    "});"
+  ].join('\n');
+  const outcome=spawnSync(process.execPath,['-e',fixture],{
+    cwd:root,encoding:'utf8',timeout:15000,
+    env:{...process.env,GH_TOKEN:'fixture-do-not-use',GITHUB_TOKEN:''}
+  });
+  assert.equal(outcome.status,0,outcome.stderr||outcome.stdout);
+  assert.match(outcome.stdout,/PREFLIGHT_DENIED_NO_WRITES/);
+});
