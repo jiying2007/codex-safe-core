@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.18.7
+
+- Release the already-reviewed bounded Review Evidence Hunk splitter from PR #117: split oversized multi-line hunks at complete Diff-line boundaries while retaining exact old/new positions and no-newline markers.
+- Keep oversized indivisible lines, malformed hunks and chunk-limit omissions fail-closed with explicit coverage gaps; count planned versus actually scheduled evidence units.
+- Preserve Safe Contract v2, Policy Schema v4, Receipt versions and Node 22/24 support. No model calls, altered secrets, or production deployment.
+
 ## 4.18.6
 
 - Repair public immutable Core Release metadata reads after a real transient 403 in the Service Family Guard: use an available restricted read credential first and fall back to bounded anonymous reads when a public sibling is inaccessible to the caller-scoped token.
