@@ -9,7 +9,7 @@ const {execFileSync}=require('node:child_process');
 const core=require('../core-contract.json');
 const registry=require('../family-registry.json');
 const {readSnapshot}=require('../scripts/checkout-family-snapshot');
-const {validateRelease}=require('../scripts/verify-released-core');
+const {validateRelease,fetchRelease,retryDelay}=require('../scripts/verify-released-core');
 const {verify:verifyProductContract}=require('../scripts/verify-consumer-product-contract');
 const {computeCoreDigests}=require('../scripts/core-digests');
 const {bumpPatch}=require('../scripts/repin-consumer');
@@ -53,3 +53,78 @@ test('Family freshness blocks when distribution receipt is missing',()=>{const s
 test('Family freshness suppresses duplicate dispatch while authoritative validation is active',()=>{const state=alignedFamilyState(),decision=evaluateFreshness({...state,manifest:null,validationActive:true});assert.equal(decision.ready,true);assert.equal(decision.dispatch,false);assert.equal(decision.reason,'family-validation-active');});
 test('Family Manifest v5 identity includes exact release, pinned Core, CI and distribution evidence',()=>{const state=alignedFamilyState(),manifest={schemaVersion:core.familyManifestVersion,core:{version:state.core.version,sha:state.core.sha,runtimeDigest:state.core.digests.runtimeDigest,governanceDigest:state.core.digests.governanceDigest,release:structuredClone(state.core.release)},consumers:Object.fromEntries(Object.entries(state.consumers).map(([name,value])=>[name,{sha:value.sha,version:value.version,corePin:structuredClone(value.corePin),release:structuredClone(value.release),distribution:structuredClone(value.distribution),ciReceipt:structuredClone(value.ciReceipt?.receipt||{})}]))};assert.equal(manifestMatches(manifest,state),true);manifest.consumers['codex-review'].release.tagSha='f'.repeat(40);assert.equal(manifestMatches(manifest,state),false);});
 test('Family freshness workflow is same-repository, credential-minimal and CI-lightweight',()=>{const workflow=fs.readFileSync(path.join(__dirname,'..','.github','workflows','family-freshness.yml'),'utf8');assert.match(workflow,/actions:\s*write/);assert.match(workflow,/contents:\s*read/);assert.match(workflow,/family-ci\.yml/);assert.match(workflow,/17,47 \* \* \* \*/);assert.doesNotMatch(workflow,/FAMILY_BOT_TOKEN/);assert.doesNotMatch(workflow,/npm run ci/);});
+
+
+test('Core release metadata reader falls back from scoped sibling token without leaking it',async()=>{
+  const calls=[],secret='sibling-token-do-not-log';
+  const actual={tag_name:'v4.18.5',immutable:true,draft:false,prerelease:false};
+  const response=await fetchRelease('v4.18.5',{
+    token:secret,clock:()=>100,
+    transport:async(tag,opts)=>{calls.push({tag,token:opts.token});return opts.token?
+      {status:403,headers:{},body:''}:{status:200,headers:{},body:JSON.stringify(actual)};}
+  });
+  assert.deepEqual(response,actual);
+  assert.deepEqual(calls,[{tag:'v4.18.5',token:secret},{tag:'v4.18.5',token:''}]);
+});
+test('anonymous Core release 403 and 429 get bounded retries without false admission',async()=>{
+  let calls=0;
+  const pauses=[];
+  const value=await fetchRelease('v4.18.5',{token:'',clock:()=>0,sleep:async ms=>pauses.push(ms),
+    transport:async()=>{calls++;return calls===1?
+      {status:403,headers:{'x-ratelimit-remaining':'0'},body:''}:calls===2?
+      {status:429,headers:{'retry-after':'0.025'},body:''}:
+      {status:200,headers:{},body:JSON.stringify({tag_name:'v4.18.5',immutable:true,draft:false,prerelease:false})};}
+  });
+  assert.equal(calls,3);
+  assert.deepEqual(pauses,[150,25]);
+  assert.equal(value.immutable,true);
+});
+test('Core release metadata reader refuses long, nonfinite or malformed Retry-After without premature retry',async()=>{
+  const fake=(value)=>{let calls=0;return{calls:()=>calls,transport:async()=>{calls++;
+    return{status:429,headers:{'retry-after':value},body:''};}}};
+  for(const header of ['86400','1e308','not-a-valid-date']){
+    const fixture=fake(header);
+    await assert.rejects(()=>fetchRelease('v4.18.5',{token:'',clock:()=>0,sleep:async()=>{},
+      transport:fixture.transport}),/retry-deferred/);
+    assert.equal(fixture.calls(),1);
+  }
+  assert.equal(retryDelay({'retry-after':'1.25'},0,0),1250);
+  assert.equal(retryDelay({'retry-after':'9000'},0,0),null);
+  assert.equal(retryDelay({'retry-after':'Thu, 01 Jan 1970 00:00:01 GMT'},0,0),1000);
+});
+test('Core release metadata reader never upgrades true 404, redirection or corrupted JSON to success',async()=>{
+  for(const [status,body]of [[404,''],[302,''],[200,'{bad']]){
+    await assert.rejects(()=>fetchRelease('v4.18.5',{token:'',clock:()=>0,
+      transport:async()=>({status,headers:{location:'https://attacker.invalid/'},body})}),
+    status===404?/not-found/:status===302?/non-retryable/:/invalid JSON/);
+  }
+  await assert.rejects(()=>fetchRelease('v4.18.5',{token:'',clock:()=>0,
+    transport:async()=>({status:200,headers:{},body:'x'.repeat(262145)})}),/unbounded/);
+});
+test('Core release verifier rejects mutable, prerelease, tag and SHA drift after metadata read',async()=>{
+  const source={tag_name:'v4.18.5',immutable:true,draft:false,prerelease:false};
+  for(const altered of [{immutable:false},{draft:true},{prerelease:true},{tag_name:'v4.18.4'}]){
+    const body=await fetchRelease('v4.18.5',{token:'',clock:()=>0,
+      transport:async()=>({status:200,headers:{},body:JSON.stringify({...source,...altered})})});
+    assert.throws(()=>validateRelease(body,{tag:'v4.18.5',sha:'a'.repeat(40),expectedSha:'a'.repeat(40)}));
+  }
+  assert.throws(()=>validateRelease(source,{tag:'v4.18.5',sha:'a'.repeat(40),expectedSha:'b'.repeat(40)}),/expected/);
+});
+test('Core release metadata reader bounds transport failure and honors pre-aborted signal',async()=>{
+  let calls=0;
+  const delays=[];
+  const value=await fetchRelease('v4.18.5',{token:'',clock:()=>0,sleep:async ms=>delays.push(ms),
+    transport:async()=>{calls++;if(calls===1)throw Object.assign(new Error('connection reset'),{code:'ECONNRESET'});
+      return{status:200,headers:{},body:JSON.stringify({tag_name:'v4.18.5',immutable:true})};}});
+  assert.equal(value.immutable,true);assert.equal(calls,2);assert.deepEqual(delays,[150]);
+  const signal=new AbortController();signal.abort();
+  await assert.rejects(()=>fetchRelease('v4.18.5',{token:'',signal:signal.signal,
+    transport:async()=>{throw Error('transport must never be invoked');}}),{code:'EABORT'});
+});
+test('Core release reader rejects injected credentials with CRLF and refuses deadline exhaustion',async()=>{
+  await assert.rejects(()=>fetchRelease('v4.18.5',{token:'line1\nline2'}),/Invalid Core release read credential/);
+  let now=0;
+  await assert.rejects(()=>fetchRelease('v4.18.5',{
+    token:'',clock:()=>now,totalMs:2,transport:async()=>({status:503,headers:{},body:''}),
+    sleep:async ms=>{now+=ms;}}),/retry-deferred/);
+});
