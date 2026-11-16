@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.18.6
+
+- Repair public immutable Core Release metadata reads after a real transient 403 in the Service Family Guard: use an available restricted read credential first and fall back to bounded anonymous reads when a public sibling is inaccessible to the caller-scoped token.
+- Keep the Git tag/SHA and immutable final-release checks fail-closed. Bound HTTP response bytes, total and per-call deadlines, attempts, cancellation and Retry-After; reject redirects, invalid response bodies, malformed credentials and unavailable evidence.
+- Add deterministic adversarial regressions for scoped 403/404, anonymous 403/429 and bounded retry, long or malformed backoff, broken transport, cancellation, tag/SHA drift and immutable-release requirements. No new model invocation, recurring automation or permissions.
+
 ## 4.18.5
 
 - Open secure local reads with the platform's nonblocking flag before descriptor validation, so a FIFO or a regular path replaced with a FIFO cannot wait indefinitely for a writer.
