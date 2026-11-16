@@ -167,7 +167,7 @@ test('only a complete successful GitHub Actions CI Gate at exact main SHA qualif
 test('Service and development Debug are audited against actual public native server state',async()=>{
   const {auditRepository}=require('../scripts/verify-repository-ruleset');
   const {desiredRuleset,newRulesetTemplate}=require('../scripts/apply-repository-governance');
-  const repository={default_branch:'main',delete_branch_on_merge:true,allow_auto_merge:false,private:false,allow_squash_merge:true};
+  const repository={default_branch:'main',delete_branch_on_merge:true,allow_auto_merge:false,private:false,allow_merge_commit:false,allow_squash_merge:true,allow_rebase_merge:false};
   for(const name of ['codex-review-service','codex-debug']){
     const detail={id:17,...desiredRuleset(repository,newRulesetTemplate(),{repositoryName:name})};
     assert.deepEqual(detail.bypass_actors,[],'new development protection grants no bypass actor');
@@ -184,7 +184,7 @@ test('Service and development Debug are audited against actual public native ser
 
 test('Service keeps existing review requirements unless administrator explicitly aligns the solo policy',()=>{
   const {desiredRuleset,newRulesetTemplate}=require('../scripts/apply-repository-governance');
-  const repository={name:'codex-review-service',default_branch:'main',delete_branch_on_merge:true,allow_auto_merge:false,allow_squash_merge:true};
+  const repository={name:'codex-review-service',default_branch:'main',delete_branch_on_merge:true,allow_auto_merge:false,allow_merge_commit:false,allow_squash_merge:true,allow_rebase_merge:false};
   const detail=newRulesetTemplate();
   const existing={
     required_approving_review_count:1,dismiss_stale_reviews_on_push:true,
@@ -240,7 +240,7 @@ test('an actual Service review-policy write requires a separate affirmative ackn
 test('undeclared stricter review settings survive preparation and fail policy qualification',()=>{
   const {desiredRuleset,newRulesetTemplate}=require('../scripts/apply-repository-governance');
   for(const name of ['codex-review-service','codex-safe-core']){
-    const repository={name,default_branch:'main',delete_branch_on_merge:true,allow_auto_merge:false,allow_squash_merge:true};
+    const repository={name,default_branch:'main',delete_branch_on_merge:true,allow_auto_merge:false,allow_merge_commit:false,allow_squash_merge:true,allow_rebase_merge:false};
     const detail=newRulesetTemplate();
     const existing={required_approving_review_count:2,dismiss_stale_reviews_on_push:true,require_last_push_approval:true,require_code_owner_review:true,required_review_thread_resolution:true};
     detail.rules.find(rule=>rule.type==='pull_request').parameters={...existing};
