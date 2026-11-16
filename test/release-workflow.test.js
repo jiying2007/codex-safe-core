@@ -234,5 +234,9 @@ test('Core publication does not depend on the optional Family upgrade credential
  assert.match(fragment,/secrets\.FAMILY_BOT_TOKEN/);
  assert.match(fragment,/if \[ -z "\$GH_TOKEN" \]; then/);
  assert.match(fragment,/coordinated Family Upgrade is deferred/);
+ assert.match(fragment,/if gh workflow run "Family Upgrade"/);
+ assert.match(fragment,/optional Family Upgrade dispatch FAILED/);
+ assert.match(fragment,/Do not infer Family readiness/);
+ assert.doesNotMatch(fragment,/gh workflow run[^\n]+\n(?!\s*else)/);
  assert.doesNotMatch(fragment,/FAMILY_BOT_TOKEN is required after an immutable Core release/);
 });
