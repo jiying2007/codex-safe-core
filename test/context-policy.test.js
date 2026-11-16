@@ -136,3 +136,16 @@ test('oversized hunk keeps no-newline marker with its changed line and fails clo
  assert.equal(rejected.complete,false);
  assert.ok(rejected.coverageGaps.some(gap=>gap.includes('hunk_exceeds_budget')));
 });
+
+test('lossless oversized hunk splitting recognizes real +++/--- code prefixes',()=>{
+ const many=Array.from({length:180},(_,i)=>'-old'+i+' '+('a'.repeat(26))+'\n+new'+i+' '+('b'.repeat(26)));
+ const diff=['diff --git a/counter.c b/counter.c','--- a/counter.c','+++ b/counter.c',
+   '@@ -1,181 +1,181 @@',...many,'---counter','+++counter'].join('\n');
+ const evidence=core.buildReviewEvidenceChunks({diff,maxBytes:4096,maxChunks:64});
+ assert.equal(evidence.complete,true,JSON.stringify(evidence.coverageGaps));
+ assert.ok(evidence.chunks.length>1);
+ const all=evidence.chunks.map(c=>c.text).join('\n');
+ assert.match(all,/---counter/);
+ assert.match(all,/\+\+\+counter/);
+ assert.equal((all.match(/^@@ /gm)||[]).length,evidence.plannedUnits);
+});
