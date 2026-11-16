@@ -108,12 +108,12 @@ test('failed performance budgets retain raw evidence while marking the snapshot 
 test('Performance Trend always stores raw snapshots before strict comparison and never publishes failed checks',()=>{
  const fs=require('node:fs'),path=require('node:path');
  const source=fs.readFileSync(path.resolve(__dirname,'../.github/workflows/performance-trend.yml'),'utf8');
- const generator=source.indexOf('name: Generate isolated snapshot even after broad-test failure');
+ const generator=source.indexOf('name: Generate paired snapshot even after broad-test failure');
  const artifact=source.indexOf('name: Preserve exact-run raw samples before strict comparison');
- const comparison=source.indexOf('name: Compare with previous immutable snapshot');
+ const comparison=source.indexOf('name: Compare baseline and candidate measured in this job');
  const publication=source.indexOf('name: Persist and verify immutable performance snapshot release');
  assert.ok(generator>0&&artifact>generator&&comparison>artifact&&publication>comparison);
- assert.match(source.slice(generator,artifact),/if: \$\{\{ always\(\) \}\}/);
+ assert.match(source.slice(generator,artifact),/if: \$\{\{ always\(\) && steps\.baseline\.outcome == 'success' \}\}/);
  assert.match(source.slice(artifact,comparison),/if: \$\{\{ always\(\) \}\}/);
  assert.match(source.slice(artifact,comparison),/if-no-files-found: error/);
  assert.doesNotMatch(source.slice(comparison,publication),/continue-on-error|if: \$\{\{ always\(\) \}\}/);
@@ -171,3 +171,6 @@ test('mismatched or missing environments are incomparable without a fabricated p
  assert.equal(matched.reason,'regression');assert.ok(matched.result.regressions.some(item=>item.key==='latencyMs'));
  assert.equal(compareRawSnapshots({...a,metrics:{elapsedMs:6000,rssGrowthBytes:100}},b).reason,'broad_budget');
 });
+
+// Keep paired-run regressions inside the canonical performance test entry.
+require('./paired-performance.test');
