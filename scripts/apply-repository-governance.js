@@ -3,16 +3,45 @@
 
 const contract = require('../repository-governance-contract.json');
 const registry = require('../family-registry.json');
-const { assess } = require('./verify-repository-ruleset');
+const { spawnSync } = require('node:child_process');
+const { assess, policyFor, pullRequestPolicyFor, repositoryNameOf } = require('./verify-repository-ruleset');
 
 const API = 'https://api.github.com';
 const apply = process.argv.includes('--apply');
 const zeroBypass = process.argv.includes('--zero-bypass');
-const bindCiSource = process.argv.includes('--bind-ci-source');
+const bindCiSource = contract.requiredStatusChecks.requireSourceBinding === true || process.argv.includes('--bind-ci-source');
+const createMissing = process.argv.includes('--create-missing');
 const cleanBranches = process.argv.includes('--clean-branches');
+const useGhCli = process.argv.includes('--gh-cli');
+const alignServiceSolo = process.argv.includes('--align-service-solo');
+const acknowledgeServiceReviewChange = process.argv.includes('--acknowledge-service-review-policy-change');
+if (apply && alignServiceSolo && !acknowledgeServiceReviewChange)
+  throw new Error('Changing Service approval policy requires --acknowledge-service-review-policy-change.');
+if (acknowledgeServiceReviewChange && !alignServiceSolo)
+  throw new Error('Service review-policy acknowledgement requires --align-service-solo.');
 const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '';
 
-if (apply && !token) throw new Error('GH_TOKEN or GITHUB_TOKEN with repository Administration write permission is required for --apply.');
+if (!useGhCli && token && /[\r\n]/.test(token))
+  throw new Error('GH_TOKEN/GITHUB_TOKEN contains line breaks, not a valid token. Unset it; use --gh-cli for existing gh login or provide a valid scoped token.');
+if (apply && !token && !useGhCli)
+  throw new Error('Use --gh-cli with an existing admin-authorized gh login, or supply GH_TOKEN/GITHUB_TOKEN with repository Administration write permission for --apply.');
+function ghApi(method, pathname, body) {
+  const args=['api','--method',method,pathname];
+  if (body !== undefined) args.push('--input','-');
+  // Do not read, log, store or transmit the CLI's credential through Node.
+  // The installed gh supports "gh api" even when "gh auth token" is absent.
+  const env={...process.env,GH_HOST:'github.com',GH_PROMPT_DISABLED:'1',GH_PAGER:''};
+  delete env.GH_TOKEN;delete env.GITHUB_TOKEN;
+  const response=spawnSync('gh',args,{
+    cwd:process.cwd(),env,encoding:'utf8',input:body===undefined?undefined:JSON.stringify(body),
+    timeout:30000,maxBuffer:16*1024*1024,windowsHide:true,shell:false
+  });
+  if (response.error || response.status !== 0)
+    throw new Error(`gh api ${method} ${pathname} failed (exit ${response.status ?? 'unavailable'}). Check gh auth status and repository permissions; no token value was read.`);
+  if (!response.stdout.trim()) return null;
+  try {return JSON.parse(response.stdout);}
+  catch {throw new Error(`gh api ${method} ${pathname} returned invalid JSON.`);}
+}
 
 function headers() {
   return {
@@ -24,8 +53,11 @@ function headers() {
 }
 
 async function api(method, pathname, body, { anonymousRetry = false } = {}) {
+  if (useGhCli) return ghApi(method, pathname, body);
   const request = async authenticated => fetch(`${API}${pathname}`, {
     method,
+    redirect: 'error',
+    signal: AbortSignal.timeout(30000),
     headers: {
       accept: 'application/vnd.github+json',
       'content-type': 'application/json',
@@ -59,13 +91,37 @@ async function pages(pathname, options) {
   return out;
 }
 
-function mergeMethods(repo) {
-  const methods = [];
-  if (repo.allow_merge_commit) methods.push('merge');
-  if (repo.allow_squash_merge) methods.push('squash');
-  if (repo.allow_rebase_merge) methods.push('rebase');
-  if (!methods.length) throw new Error(`${repo.full_name} has no enabled merge method.`);
-  return methods;
+function mergeMethods(repo, existingPr = {}) {
+  const full = repo.full_name || repo.name || 'repository';
+  const settings = [
+    ['allow_merge_commit', 'merge'],
+    ['allow_squash_merge', 'squash'],
+    ['allow_rebase_merge', 'rebase']
+  ];
+  const known = settings.filter(([flag]) => typeof repo[flag] === 'boolean');
+  const prior = existingPr.allowed_merge_methods;
+  if (prior !== undefined) {
+    if (!Array.isArray(prior) || !prior.length ||
+        new Set(prior).size !== prior.length ||
+        prior.some(method => !settings.some(([, name]) => name === method))) {
+      throw new Error(`${full}: existing Ruleset allowed_merge_methods is missing, invalid or ambiguous; refusing a silent change.`);
+    }
+    // Preserve the existing native Ruleset restriction exactly, even if
+    // GitHub's caller-scoped repository metadata hides the merge flags.
+    // Any known contradictory disabled setting is a real server mismatch.
+    for (const [flag, method] of known) {
+      if (repo[flag] === false && prior.includes(method))
+        throw new Error(`${full}: existing Ruleset allows ${method} but repository reports ${flag}=false.`);
+    }
+    return [...prior];
+  }
+  if (known.length !== settings.length) {
+    const missing = settings.filter(([flag]) => typeof repo[flag] !== 'boolean').map(([flag]) => flag);
+    throw new Error(`${full}: merge settings are unobservable (${missing.join(', ')}). Existing Ruleset has no allowed_merge_methods to preserve; use --gh-cli with an authorized GitHub login. Refusing to guess merge permissions.`);
+  }
+  const enabled = settings.filter(([flag]) => repo[flag] === true).map(([, method]) => method);
+  if (!enabled.length) throw new Error(`${full}: GitHub explicitly reports all merge methods disabled.`);
+  return enabled;
 }
 
 function desiredBypass(detail) {
@@ -106,7 +162,7 @@ function validateMainGateCheckRuns(checks, sha, full = 'repository') {
   const matches = checks.check_runs.filter(check => check?.name === 'CI Gate');
   if (matches.length !== 1 || matches[0].head_sha !== sha ||
       matches[0].app?.id !== source.integrationId || matches[0].app?.slug !== source.appSlug ||
-      matches[0].conclusion !== 'success') {
+      matches[0].status !== 'completed' || matches[0].conclusion !== 'success') {
     throw new Error(`${full}: CI Gate is not a successful, exact-main GitHub Actions check-run from the declared source.`);
   }
   return { headSha: sha, integrationId: source.integrationId, appSlug: source.appSlug };
@@ -118,7 +174,7 @@ async function verifyExpectedCheckSource(full) {
   const checks = await api('GET', `/repos/${full}/commits/${sha}/check-runs?per_page=100`, undefined, { anonymousRetry: true });
   return validateMainGateCheckRuns(checks, sha, full);
 }
-function desiredRuleset(repo, detail, { bindStatusSource = bindCiSource } = {}) {
+function desiredRuleset(repo, detail, { bindStatusSource = bindCiSource, repositoryName = repositoryNameOf(repo), alignServiceReview = alignServiceSolo } = {}) {
   const rules = Array.isArray(detail?.rules) ? detail.rules : [];
   const allowed = new Set(contract.requiredRuleTypes);
   if (rules.some(rule => !allowed.has(rule.type)) || rules.length !== allowed.size ||
@@ -127,6 +183,17 @@ function desiredRuleset(repo, detail, { bindStatusSource = bindCiSource } = {}) 
   }
   const existingPr = rules.find(rule => rule.type === 'pull_request')?.parameters || {};
   const existingChecks = rules.find(rule => rule.type === 'required_status_checks')?.parameters || {};
+  const pullRequestPolicy = pullRequestPolicyFor(repositoryName);
+  // A repo administrator must explicitly select the solo transition. Ordinary
+  // source binding never relaxes an existing review policy.
+  const alignThisService = alignServiceReview === true && repositoryName === 'codex-review-service';
+  const existingApprovals = existingPr.required_approving_review_count;
+  if (!Number.isSafeInteger(existingApprovals) || existingApprovals < 0)
+    throw new Error('Refusing to replace a missing or invalid existing approval requirement.');
+  for (const field of ['dismiss_stale_reviews_on_push', 'require_code_owner_review', 'require_last_push_approval', 'required_review_thread_resolution']) {
+    if (typeof existingPr[field] !== 'boolean')
+      throw new Error(`Refusing to replace a missing or invalid existing pull request requirement: ${field}.`);
+  }
   return {
     name: contract.rulesetName,
     target: 'branch',
@@ -140,12 +207,12 @@ function desiredRuleset(repo, detail, { bindStatusSource = bindCiSource } = {}) 
         type: 'pull_request',
         parameters: {
           ...existingPr,
-          allowed_merge_methods: mergeMethods(repo),
-          dismiss_stale_reviews_on_push: contract.pullRequest.dismissStaleReviewsOnPush,
-          require_code_owner_review: contract.pullRequest.requireCodeOwnerReview,
-          require_last_push_approval: contract.pullRequest.requireLastPushApproval,
-          required_approving_review_count: contract.pullRequest.minimumApprovals,
-          required_review_thread_resolution: false
+          allowed_merge_methods: mergeMethods(repo, existingPr),
+          dismiss_stale_reviews_on_push: alignThisService ? pullRequestPolicy.dismissStaleReviewsOnPush : existingPr.dismiss_stale_reviews_on_push === true || pullRequestPolicy.dismissStaleReviewsOnPush,
+          require_code_owner_review: existingPr.require_code_owner_review === true || pullRequestPolicy.requireCodeOwnerReview,
+          require_last_push_approval: alignThisService ? pullRequestPolicy.requireLastPushApproval : existingPr.require_last_push_approval === true || pullRequestPolicy.requireLastPushApproval,
+          required_approving_review_count: alignThisService ? pullRequestPolicy.minimumApprovals : Math.max(existingApprovals, pullRequestPolicy.minimumApprovals),
+          required_review_thread_resolution: existingPr.required_review_thread_resolution === true
         }
       },
       {
@@ -159,6 +226,22 @@ function desiredRuleset(repo, detail, { bindStatusSource = bindCiSource } = {}) 
       }
     ]
   };
+}
+
+function newRulesetTemplate() {
+  return { bypass_actors: [], rules: [
+    { type: 'deletion' }, { type: 'non_fast_forward' },
+    { type: 'pull_request', parameters: {
+      required_approving_review_count: contract.pullRequest.minimumApprovals,
+      dismiss_stale_reviews_on_push: contract.pullRequest.dismissStaleReviewsOnPush,
+      require_code_owner_review: contract.pullRequest.requireCodeOwnerReview,
+      require_last_push_approval: contract.pullRequest.requireLastPushApproval,
+      required_review_thread_resolution: false
+    } },
+    { type: 'required_status_checks', parameters: {
+      required_status_checks: contract.requiredStatusChecks.contexts.map(context => ({ context }))
+    } }
+  ] };
 }
 
 async function safeRef(owner, repo, branch) {
@@ -193,7 +276,7 @@ async function cleanupMergedBranches(owner, repo) {
         await api('DELETE', `/repos/${owner}/${repo}/git/refs/heads/${branch.split('/').map(encodeURIComponent).join('/')}`);
       } catch (error) {
         if (error.status === 403) {
-          error.message = `${error.message}\nHistorical branch cleanup requires fine-grained PAT Contents: write. Governance settings were already applied before cleanup started.`;
+          error.message = `${error.message}\nHistorical branch cleanup requires existing authorized credentials with Contents: write. Governance settings were already applied before cleanup started.`;
         }
         throw error;
       }
@@ -205,39 +288,73 @@ async function cleanupMergedBranches(owner, repo) {
 
 async function main() {
   const owner = registry.owner;
-  const results = [];
+  const results = [], plans = [];
 
-  // Phase 1 is authoritative governance. Complete and verify all repositories
-  // before any optional historical branch deletion is attempted.
+  // Phase 1 has no writes. Validate *all seven* exact-main CI sources and
+  // native policy projections before changing any repository. A missing rule
+  // or an unacknowledged Service review change cannot cause partial updates.
   for (const repoName of contract.repositories) {
     const full = `${owner}/${repoName}`;
-    const policy = contract.repositoryPolicies?.[repoName] || contract.defaultRepositoryPolicy || { protection: 'native' };
-    if (policy.protection === 'publisher') {
-      process.stdout.write(`SKIP ${full}: release protection is enforced by the product publisher; native Ruleset is not contract-required.\n`);
-      results.push({ repository: full, protection: 'publisher', rulesetId: null,
-        cleanup: { requested: false, deleted: [], skipped: [] } });
-      continue;
-    }
+    policyFor(repoName);
     const repo = await api('GET', `/repos/${full}`, undefined, { anonymousRetry: true });
+    if (repo.private !== false) throw new Error(`${full}: observed visibility does not match public native policy.`);
     const summaries = await api('GET', `/repos/${full}/rulesets`, undefined, { anonymousRetry: true });
-    const summary = summaries.find(item => item?.name === contract.rulesetName);
-    if (!summary?.id) throw new Error(`${full} is missing Ruleset ${contract.rulesetName}.`);
-    const detail = await api('GET', `/repos/${full}/rulesets/${summary.id}`, undefined, { anonymousRetry: true });
+    const matching = summaries.filter(item => item?.name === contract.rulesetName);
+    if (matching.length > 1) throw new Error(`${full}: canonical Ruleset is ambiguous.`);
+    const rulesetId = matching[0]?.id || null;
+    if (!rulesetId && !createMissing) throw new Error(`${full} is missing Ruleset ${contract.rulesetName}; use --create-missing after reviewing the creation plan.`);
+    const detail = rulesetId ? await api('GET', `/repos/${full}/rulesets/${rulesetId}`, undefined, { anonymousRetry: true }) : newRulesetTemplate();
     const verifiedSource = bindCiSource ? await verifyExpectedCheckSource(full) : null;
-    const desired = desiredRuleset(repo, detail, { bindStatusSource: bindCiSource });
-
-    process.stdout.write(`${apply ? 'APPLY' : 'DRY-RUN'} ${full}: Ruleset ${summary.id} -> CI Gate; source=${bindCiSource ? 'github-actions#15368 (verified)' : 'preserve-current'}; delete_branch_on_merge=true; bypass=${desired.bypass_actors.map(a => a.bypass_mode).join(',') || 'none'}\n`);
-
-    if (apply) {
-      await api('PATCH', `/repos/${full}`, { delete_branch_on_merge: true });
-      await api('PUT', `/repos/${full}/rulesets/${summary.id}`, desired);
+    const desired = desiredRuleset(repo, detail, { bindStatusSource: bindCiSource, repositoryName: repoName, alignServiceReview: alignServiceSolo });
+    const currentPr = detail.rules.find(rule => rule.type === 'pull_request')?.parameters || {};
+    const nextPr = desired.rules.find(rule => rule.type === 'pull_request').parameters;
+    const reviewChange = {
+      approvals: [currentPr.required_approving_review_count, nextPr.required_approving_review_count],
+      staleReviews: [currentPr.dismiss_stale_reviews_on_push, nextPr.dismiss_stale_reviews_on_push],
+      lastPushApproval: [currentPr.require_last_push_approval, nextPr.require_last_push_approval]
+    };
+    const reducingReviews = reviewChange.approvals[1] < reviewChange.approvals[0] ||
+      (reviewChange.staleReviews[0] === true && reviewChange.staleReviews[1] === false) ||
+      (reviewChange.lastPushApproval[0] === true && reviewChange.lastPushApproval[1] === false);
+    if (reducingReviews && !(repoName === 'codex-review-service' && alignServiceSolo))
+      throw new Error(`${full}: unacknowledged change to existing review protection.`);
+    const proposedRepo = { ...repo, delete_branch_on_merge: true, allow_auto_merge: false };
+    const proposal = assess(desired, proposedRepo, { requireStatusSource: bindCiSource, repositoryName: repoName });
+    if (!proposal.ok) {
+      const hint = repoName === 'codex-review-service' && !alignServiceSolo
+        ? ' For an explicit, administrator-reviewed solo transition, add --align-service-solo.'
+        : '';
+      throw new Error(`${full}: proposed protection does not satisfy the declared policy: ${proposal.reasons.join(', ')}.${hint}`);
     }
+    plans.push({ repoName, full, repo, rulesetId, desired, verifiedSource, reviewChange });
+  }
 
-    const postRepo = apply ? await api('GET', `/repos/${full}`, undefined, { anonymousRetry: true }) : { ...repo, delete_branch_on_merge: true };
-    const postDetail = apply ? await api('GET', `/repos/${full}/rulesets/${summary.id}`, undefined, { anonymousRetry: true }) : { ...desired, id: summary.id };
-    const verdict = assess(postDetail, postRepo, { requireStatusSource: bindCiSource });
+  process.stdout.write(`PREFLIGHT PASS: ${plans.length} native repositories; no server mutations were needed to prepare these proposals.\n`);
+  for (const plan of plans) {
+    const { full, rulesetId, desired, reviewChange } = plan;
+    process.stdout.write(`${apply ? 'APPLY' : 'DRY-RUN'} ${full}: Ruleset ${rulesetId || 'CREATE'} -> CI Gate; source=${bindCiSource ? 'github-actions#15368 (verified)' : 'preserve-current'}; approvals=${reviewChange.approvals.join('->')}; stale=${reviewChange.staleReviews.join('->')}; lastPush=${reviewChange.lastPushApproval.join('->')}; delete_branch_on_merge=true; allow_auto_merge=false; bypass=${desired.bypass_actors.map(a => a.bypass_mode).join(',') || 'none'}\n`);
+  }
+
+  // Phase 2 writes only after the whole plan passed. Network/API failures can
+  // still leave a partial cross-repository migration; retain exact readback
+  // and never report a verified result for an unobserved server update.
+  for (const plan of plans) {
+    const { repoName, full, repo, desired, verifiedSource } = plan;
+    let rulesetId = plan.rulesetId;
+    if (apply) {
+      await api('PATCH', `/repos/${full}`, { delete_branch_on_merge: true, allow_auto_merge: false });
+      if (rulesetId) await api('PUT', `/repos/${full}/rulesets/${rulesetId}`, desired);
+      else {
+        const created = await api('POST', `/repos/${full}/rulesets`, desired);
+        if (!Number.isSafeInteger(created?.id) || created.id <= 0) throw new Error(`${full}: created Ruleset identity is missing.`);
+        rulesetId = created.id;
+      }
+    }
+    const postRepo = apply ? await api('GET', `/repos/${full}`, undefined, { anonymousRetry: true }) : { ...repo, delete_branch_on_merge: true, allow_auto_merge: false };
+    const postDetail = apply ? await api('GET', `/repos/${full}/rulesets/${rulesetId}`, undefined, { anonymousRetry: true }) : { ...desired, id: rulesetId };
+    const verdict = assess(postDetail, postRepo, { requireStatusSource: bindCiSource, requireAdministrativeMetadata: apply, repositoryName: repoName });
     if (!verdict.ok) throw new Error(`${full} desired governance does not satisfy contract: ${verdict.reasons.join(', ')}`);
-    results.push({ repository: full, rulesetId: summary.id, sourceBinding: verdict.sourceBinding, verifiedSource, cleanup: { requested: cleanBranches, deleted: [], skipped: [] } });
+    results.push({ repository: full, rulesetId, sourceBinding: verdict.sourceBinding, verifiedSource, reviewChange: plan.reviewChange, cleanup: { requested: cleanBranches, deleted: [], skipped: [] } });
   }
 
   // Phase 2 is optional hygiene. It is deliberately separate so a token with
@@ -249,8 +366,8 @@ async function main() {
     }
   }
 
-  process.stdout.write(`${JSON.stringify({ schemaVersion: 1, mode: apply ? 'apply' : 'dry-run', bindCiSource, zeroBypass, cleanBranches, results }, null, 2)}\n`);
-  if (!apply) process.stdout.write('Dry-run only. Re-run with --apply after CI Gate exists on every native-protected repository. Publisher-protected private repositories are intentionally skipped. Add --clean-branches only when the token also has Contents: write.\n');
+  process.stdout.write(`${JSON.stringify({ schemaVersion: 1, mode: apply ? 'apply' : 'dry-run', auth: useGhCli ? 'gh-cli' : token ? 'explicit-token' : 'public', bindCiSource, alignServiceSolo, zeroBypass, cleanBranches, results }, null, 2)}\n`);
+  if (!apply) process.stdout.write('Dry-run only. Re-run with --apply after CI Gate exists on every native-protected repository. --create-missing creates only the reviewed canonical Ruleset; existing extra rules are never overwritten. Add --clean-branches only when the token also has Contents: write.\n');
   else if (!cleanBranches) process.stdout.write('Governance applied. Historical branch cleanup was not requested; use --apply --clean-branches with Contents: write if desired.\n');
 }
 
@@ -258,4 +375,4 @@ if (require.main === module) main().catch(error => {
   console.error(error.stack || error.message || String(error));
   process.exitCode = 2;
 });
-module.exports = { desiredRuleset, desiredStatusChecks, validateMainGateCheckRuns, verifyExpectedCheckSource };
+module.exports = { main, desiredRuleset, desiredStatusChecks, newRulesetTemplate, validateMainGateCheckRuns, verifyExpectedCheckSource };

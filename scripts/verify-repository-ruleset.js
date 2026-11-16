@@ -53,36 +53,52 @@ function requiredCheckSourceBinding(parameters = {}) {
 function deleteBranchOnMergeState(repository = {}) {
   return typeof repository?.delete_branch_on_merge === 'boolean' ? repository.delete_branch_on_merge : null;
 }
-function assess(detail, repository = {}, { requireStatusSource = false } = {}) {
+function repositoryNameOf(repository = {}) {
+  return String(repository.name || String(repository.full_name || '').split('/').pop() || '');
+}
+function pullRequestPolicyFor(repo) {
+  const value = { ...contract.pullRequest, ...policyFor(repo).pullRequest };
+  if (!Number.isSafeInteger(value.minimumApprovals) || value.minimumApprovals < contract.pullRequest.minimumApprovals)
+    throw new Error(`Invalid or weaker pull request approval policy for ${repo}.`);
+  for (const field of ['dismissStaleReviewsOnPush', 'requireCodeOwnerReview', 'requireLastPushApproval']) {
+    if (typeof value[field] !== 'boolean' || (contract.pullRequest[field] && !value[field]))
+      throw new Error(`Invalid or weaker pull request policy ${field} for ${repo}.`);
+  }
+  return value;
+}
+function assess(detail, repository = {}, { requireStatusSource = contract.requiredStatusChecks.requireSourceBinding === true, requireAdministrativeMetadata = false, repositoryName = repositoryNameOf(repository) } = {}) {
   const reasons = [];
+  const pullRequestPolicy = pullRequestPolicyFor(repositoryName);
   if (detail?.name !== contract.rulesetName) reasons.push(`ruleset-name:${detail?.name || 'missing'}`);
   if (detail?.enforcement !== contract.enforcement) reasons.push(`enforcement:${detail?.enforcement || 'missing'}`);
   if (repository.default_branch !== contract.defaultBranch) reasons.push('default-branch-not-canonical');
   if (!branchCovered(detail, contract.defaultBranch, repository)) reasons.push('default-branch-not-covered');
   const rules = Array.isArray(detail?.rules) ? detail.rules : [];
   const byType = new Map(rules.map(rule => [rule.type, rule]));
-  for (const type of contract.requiredRuleTypes) if (!byType.has(type)) reasons.push(`missing-rule:${type}`);
+  for (const type of contract.requiredRuleTypes) {
+    if (!byType.has(type)) reasons.push(`missing-rule:${type}`);
+    if (rules.filter(rule => rule.type === type).length > 1) reasons.push(`duplicate-rule:${type}`);
+  }
   const pr = byType.get('pull_request')?.parameters || {};
   const approvals = pr.required_approving_review_count;
-  const expectedApprovals = Number(contract.pullRequest.minimumApprovals);
+  const expectedApprovals = pullRequestPolicy.minimumApprovals;
   if (!Number.isSafeInteger(approvals) || approvals < 0) reasons.push('approvals-missing-or-invalid');
   else if (approvals < expectedApprovals) reasons.push('insufficient-approvals');
-  // A zero-approval solo contract is a precise policy: extra required human
-  // approval or last-pusher approval silently blocks a sole maintainer even
-  // when the required CI Gate succeeds. Do not merely check a minimum.
+  // The default solo policy and explicit stronger repository policies are exact.
+  // Do not erase Service's existing review requirements or silently accept drift.
   if (contract.maintenanceModel === 'solo-maintainer') {
     if (Number.isSafeInteger(approvals) && approvals > expectedApprovals) reasons.push('unexpected-solo-approval-requirement');
     for (const [field, desired, reason] of [
-      ['dismiss_stale_reviews_on_push', contract.pullRequest.dismissStaleReviewsOnPush, 'stale-review-dismissal-drift'],
-      ['require_last_push_approval', contract.pullRequest.requireLastPushApproval, 'last-push-approval-drift'],
-      ['require_code_owner_review', contract.pullRequest.requireCodeOwnerReview, 'code-owner-review-drift']
+      ['dismiss_stale_reviews_on_push', pullRequestPolicy.dismissStaleReviewsOnPush, 'stale-review-dismissal-drift'],
+      ['require_last_push_approval', pullRequestPolicy.requireLastPushApproval, 'last-push-approval-drift'],
+      ['require_code_owner_review', pullRequestPolicy.requireCodeOwnerReview, 'code-owner-review-drift']
     ]) {
       if (typeof pr[field] !== 'boolean' || pr[field] !== desired) reasons.push(reason);
     }
   } else {
-    if (contract.pullRequest.dismissStaleReviewsOnPush && pr.dismiss_stale_reviews_on_push !== true) reasons.push('stale-review-dismissal-disabled');
-    if (contract.pullRequest.requireLastPushApproval && pr.require_last_push_approval !== true) reasons.push('last-push-approval-disabled');
-    if (contract.pullRequest.requireCodeOwnerReview && pr.require_code_owner_review !== true) reasons.push('code-owner-review-disabled');
+    if (pullRequestPolicy.dismissStaleReviewsOnPush && pr.dismiss_stale_reviews_on_push !== true) reasons.push('stale-review-dismissal-disabled');
+    if (pullRequestPolicy.requireLastPushApproval && pr.require_last_push_approval !== true) reasons.push('last-push-approval-disabled');
+    if (pullRequestPolicy.requireCodeOwnerReview && pr.require_code_owner_review !== true) reasons.push('code-owner-review-disabled');
   }
   const checks = byType.get('required_status_checks')?.parameters || {};
   const actualContexts = normalizedContexts(checks);
@@ -105,56 +121,49 @@ function assess(detail, repository = {}, { requireStatusSource = false } = {}) {
   // absent field means "not observable", not false. An administrator/local audit
   // sees the boolean and remains fail-closed on an explicit false value.
   const deleteBranchOnMerge = deleteBranchOnMergeState(repository);
+  const allowAutoMerge = typeof repository.allow_auto_merge === 'boolean' ? repository.allow_auto_merge : null;
   if (contract.deleteBranchOnMerge && deleteBranchOnMerge === false) reasons.push('delete-branch-on-merge-disabled');
-  return { ok: reasons.length === 0, reasons, sourceBinding, administrativeMetadata: { deleteBranchOnMerge } };
+  if (contract.allowAutoMerge === false && allowAutoMerge === true) reasons.push('auto-merge-enabled');
+  if (requireAdministrativeMetadata && deleteBranchOnMerge === null) reasons.push('delete-branch-on-merge-unobservable');
+  if (requireAdministrativeMetadata && allowAutoMerge === null) reasons.push('auto-merge-unobservable');
+  return { ok: reasons.length === 0, reasons, sourceBinding, pullRequestPolicy, administrativeMetadata: { deleteBranchOnMerge, allowAutoMerge } };
 }
 function policyFor(repo) {
   const explicit = contract.repositoryPolicies?.[repo];
   const fallback = contract.defaultRepositoryPolicy || { protection: 'native', nativeRulesetRequired: true };
   const value = explicit || fallback;
-  if (!['native','publisher'].includes(String(value.protection || '')))
+  if (value.protection !== 'native' || value.nativeRulesetRequired !== true)
     throw new Error(`Unsupported repository protection mode for ${repo}.`);
   return value;
 }
-async function auditRepository(repo, token) {
+async function auditRepository(repo, token, { readJson = json } = {}) {
   const owner = registry.owner;
   const policy = policyFor(repo);
-  if (policy.protection === 'publisher') {
-    if (policy.nativeRulesetRequired !== false || policy.releaseAuthority !== 'product-release-workflow')
-      throw new Error(`Publisher policy for ${repo} is incomplete.`);
-    return {
-      repository: `${owner}/${repo}`,
-      ok: true,
-      protection: 'publisher',
-      nativeRulesetRequired: false,
-      releaseAuthority: policy.releaseAuthority,
-      matchingRulesets: [],
-      rejectedRulesets: [],
-      administrativeMetadata: { deleteBranchOnMerge: null, observable: false }
-    };
-  }
-  const repository = await json(`/repos/${owner}/${repo}`, token);
-  const summaries = await json(`/repos/${owner}/${repo}/rulesets`, token);
+  const repository = await readJson(`/repos/${owner}/${repo}`, token);
+  if (repository.private !== false) throw new Error(`Native public repository policy does not match observed visibility for ${repo}.`);
+  const summaries = await readJson(`/repos/${owner}/${repo}/rulesets`, token);
   const active = [];
   const rejected = [];
   for (const summary of Array.isArray(summaries) ? summaries : []) {
     if (!summary?.id) continue;
-    const detail = await json(`/repos/${owner}/${repo}/rulesets/${summary.id}`, token);
-    const result = assess(detail, repository);
+    const detail = await readJson(`/repos/${owner}/${repo}/rulesets/${summary.id}`, token);
+    const result = assess(detail, repository, { repositoryName: repo });
     if (result.ok) active.push({ id: detail.id, name: detail.name, sourceBinding: result.sourceBinding });
     else rejected.push({ id: detail.id, name: detail.name, reasons: result.reasons, sourceBinding: result.sourceBinding });
   }
   const deleteBranchOnMerge = deleteBranchOnMergeState(repository);
   return {
     repository: `${owner}/${repo}`,
-    ok: active.length > 0,
+    ok: active.length === 1,
     protection: 'native',
     nativeRulesetRequired: true,
+    pullRequestPolicy: pullRequestPolicyFor(repo),
     matchingRulesets: active,
     rejectedRulesets: rejected,
     administrativeMetadata: {
       deleteBranchOnMerge,
-      observable: deleteBranchOnMerge !== null
+      allowAutoMerge: typeof repository.allow_auto_merge === 'boolean' ? repository.allow_auto_merge : null,
+      observable: deleteBranchOnMerge !== null && typeof repository.allow_auto_merge === 'boolean'
     }
   };
 }
@@ -175,4 +184,4 @@ async function main() {
   }
 }
 if (require.main === module) main().catch(error => { console.error(error.message || String(error)); process.exitCode = 2; });
-module.exports = { assess, auditRepository, branchCovered, normalizedContexts, requiredCheckSourceBinding, deleteBranchOnMergeState, json, policyFor };
+module.exports = { assess, auditRepository, branchCovered, normalizedContexts, requiredCheckSourceBinding, deleteBranchOnMergeState, json, policyFor, pullRequestPolicyFor, repositoryNameOf };

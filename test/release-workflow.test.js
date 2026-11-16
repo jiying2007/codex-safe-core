@@ -22,7 +22,7 @@ test('validation workflow is read-only and covers both LTS runtimes plus reprodu
 });
 
 test('release validation audits native rules and publisher assignments without private Family visibility',()=>{
-  assert.match(release,/Verify native Rulesets and publisher protection assignments/);
+  assert.match(release,/Verify seven public native Rulesets and check sources/);
   assert.match(release,/GITHUB_TOKEN: \$\{\{ github\.token \}\}/);
   assert.doesNotMatch(release,/Require scoped private Family read credential/);
   assert.doesNotMatch(release,/Missing CODEX_SAFE_FAMILY_READ_TOKEN/);
