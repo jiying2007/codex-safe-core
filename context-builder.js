@@ -135,7 +135,73 @@ function allocateSourceBlocks(blocks,maxBytes){
 }
 function buildSemanticContext({files=[],diff='',commits=[],maxBytes=512*1024}={}){const budget=clampBudget(maxBytes),diffBlocks=splitUnifiedDiff(diff),paths=files.length?files:diffBlocks.map(block=>block.path).filter(path=>!path.startsWith('<')),normalizedFiles=Array.from(new Set(paths)).map(file=>({path:file,kind:classifyPath(file)})),source=normalizedFiles.filter(file=>file.kind==='source'),generated=normalizedFiles.filter(file=>file.kind==='generated'),binary=normalizedFiles.filter(file=>file.kind==='binary');const header=[`Changed files: ${normalizedFiles.length}`,source.length?`Source files (${source.length}):\n${source.map(file=>`- ${file.path}`).join('\n')}`:'',generated.length?`Generated/lock files (${generated.length}, metadata only):\n${generated.map(file=>`- ${file.path}`).join('\n')}`:'',binary.length?`Binary files (${binary.length}, metadata only):\n${binary.map(file=>`- ${file.path}`).join('\n')}`:'',commits.length?`Commits (${Math.min(commits.length,50)} shown):\n${commits.slice(0,50).map(value=>`- ${value}`).join('\n')}`:''].filter(Boolean).join('\n\n'),sourceBlocks=diffBlocks.filter(block=>block.kind==='source'),separator='\n\n--- SOURCE DIFFS ---\n',reserved=byteLength(header+separator),remaining=Math.max(0,budget-reserved),bounded=allocateSourceBlocks(sourceBlocks,remaining),suffix=bounded.truncatedFiles.length?`\n\n[semantic budget truncated source files: ${bounded.truncatedFiles.join(', ')}]`:'';const baseText=`${header}${separator}${bounded.text}`,fullText=byteLength(baseText+suffix)<=budget?baseText+suffix:baseText,overflow=byteLength(fullText)>budget;return Object.freeze({text:trimUtf8(fullText,budget),truncated:bounded.truncated||overflow,budgetBytes:budget,inputDiffBytes:byteLength(diff),sourceFiles:source.map(file=>file.path),generatedFiles:generated.map(file=>file.path),binaryFiles:binary.map(file=>file.path),includedSourceFiles:overflow?[]:bounded.included,truncatedSourceFiles:overflow?[...new Set(sourceBlocks.map(block=>block.path))]:bounded.truncatedFiles});}
 
-function splitReviewBlock(block,maxBytes){if(byteLength(block.text)<=maxBytes)return{units:[{path:block.path,kind:block.kind,text:block.text,bytes:byteLength(block.text)}],gaps:[]};const matches=[...block.text.matchAll(/^@@ /gm)];if(!matches.length)return{units:[],gaps:[`${block.path}:block_exceeds_budget`]};const header=block.text.slice(0,matches[0].index),units=[],gaps=[];for(let i=0;i<matches.length;i+=1){const hunk=block.text.slice(matches[i].index,matches[i+1]?.index??block.text.length),text=`${header}${hunk}`,bytes=byteLength(text);if(bytes>maxBytes)gaps.push(`${block.path}:hunk_exceeds_budget`);else units.push({path:block.path,kind:block.kind,text,bytes});}return{units,gaps};}
-function buildReviewEvidenceChunks({diff='',maxBytes=512*1024,maxChunks=8,includeKinds=['source']}={}){const budget=clampBudget(maxBytes),chunkLimit=Math.max(1,Math.min(64,Math.floor(Number(maxChunks)||8))),allowed=new Set(includeKinds),blocks=splitUnifiedDiff(diff),units=[],coverageGaps=[],excluded=[];for(const block of blocks){if(!allowed.has(block.kind)){excluded.push({path:block.path,kind:block.kind});continue;}const split=splitReviewBlock(block,budget);units.push(...split.units);coverageGaps.push(...split.gaps);}const chunks=[];let current=[],bytes=0;const flush=()=>{if(!current.length)return;chunks.push(Object.freeze({index:chunks.length,paths:Object.freeze([...new Set(current.map(unit=>unit.path))]),text:current.map(unit=>unit.text).join('\n'),bytes}));current=[];bytes=0;};for(const unit of units){if(current.length&&bytes+unit.bytes+1>budget)flush();if(chunks.length>=chunkLimit){coverageGaps.push(`${unit.path}:chunk_limit`);continue;}bytes+=unit.bytes+(current.length?1:0);current.push(unit);}if(current.length){if(chunks.length<chunkLimit)flush();else for(const unit of current)coverageGaps.push(`${unit.path}:chunk_limit`);}return Object.freeze({chunks:Object.freeze(chunks),complete:coverageGaps.length===0,coverageGaps:Object.freeze([...new Set(coverageGaps)]),excluded:Object.freeze(excluded),budgetBytes:budget,maxChunks:chunkLimit,inputDiffBytes:byteLength(diff)});}
+// Split oversized hunks on complete diff-line boundaries, without truncating
+// changed lines or losing their original old/new line coordinates.
+function splitOversizedReviewHunk(block,header,hunk,maxBytes){
+ const firstLineEnd=hunk.indexOf('\n'),label=block.path+':hunk_exceeds_budget';
+ if(firstLineEnd<0)return{units:[],gaps:[label]};
+ const parsed=/^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@(.*)$/.exec(hunk.slice(0,firstLineEnd));
+ if(!parsed)return{units:[],gaps:[block.path+':invalid_hunk_header']};
+ const oldStart=Number(parsed[1]),newStart=Number(parsed[3]);
+ if(!Number.isSafeInteger(oldStart)||!Number.isSafeInteger(newStart))
+   return{units:[],gaps:[block.path+':invalid_hunk_header']};
+ const lines=hunk.slice(firstLineEnd+1).split('\n');
+ if(lines.at(-1)==='')lines.pop();
+ const groups=[];
+ for(const line of lines){
+   if(line.startsWith('\\')){
+     if(!groups.length)return{units:[],gaps:[block.path+':orphan_no_newline_marker']};
+     groups.at(-1).lines.push(line);
+   }else if(line.startsWith('+')&&!line.startsWith('+++')){
+     groups.push({lines:[line],old:0,new:1});
+   }else if(line.startsWith('-')&&!line.startsWith('---')){
+     groups.push({lines:[line],old:1,new:0});
+   }else if(line.startsWith(' ')){
+     groups.push({lines:[line],old:1,new:1});
+   }else return{units:[],gaps:[block.path+':invalid_hunk_line']};
+ }
+ if(!groups.length)return{units:[],gaps:[block.path+':empty_hunk']};
+ let oldCursor=oldStart,newCursor=newStart,pending=[];
+ const units=[],gaps=[];
+ const encode=items=>{
+   const oldCount=items.reduce((n,item)=>n+item.old,0);
+   const newCount=items.reduce((n,item)=>n+item.new,0);
+   const body=items.flatMap(item=>item.lines).join('\n');
+   return header+'@@ -'+oldCursor+','+oldCount+' +'+newCursor+','+newCount+' @@'+parsed[5]+'\n'+body+'\n';
+ };
+ const advance=items=>{for(const item of items){oldCursor+=item.old;newCursor+=item.new;}};
+ const flush=()=>{
+   if(!pending.length)return;
+   const text=encode(pending);
+   units.push({path:block.path,kind:block.kind,text,bytes:byteLength(text)});
+   advance(pending);pending=[];
+ };
+ for(const group of groups){
+   if(pending.length&&byteLength(encode([...pending,group]))>maxBytes)flush();
+   if(byteLength(encode([group]))>maxBytes){
+     gaps.push(label+':old'+oldCursor+':new'+newCursor);
+     advance([group]);continue;
+   }
+   pending.push(group);
+ }
+ flush();
+ return{units,gaps};
+}
+function splitReviewBlock(block,maxBytes){
+ if(byteLength(block.text)<=maxBytes)
+   return{units:[{path:block.path,kind:block.kind,text:block.text,bytes:byteLength(block.text)}],gaps:[]};
+ const matches=[...block.text.matchAll(/^@@ /gm)];
+ if(!matches.length)return{units:[],gaps:[block.path+':block_exceeds_budget']};
+ const header=block.text.slice(0,matches[0].index),units=[],gaps=[];
+ for(let i=0;i<matches.length;i++){
+   const hunk=block.text.slice(matches[i].index,matches[i+1]?.index??block.text.length);
+   const text=header+hunk,bytes=byteLength(text);
+   if(bytes<=maxBytes){units.push({path:block.path,kind:block.kind,text,bytes});continue;}
+   const split=splitOversizedReviewHunk(block,header,hunk,maxBytes);
+   units.push(...split.units);gaps.push(...split.gaps);
+ }
+ return{units,gaps};
+}
+function buildReviewEvidenceChunks({diff='',maxBytes=512*1024,maxChunks=8,includeKinds=['source']}={}){const budget=clampBudget(maxBytes),chunkLimit=Math.max(1,Math.min(64,Math.floor(Number(maxChunks)||8))),allowed=new Set(includeKinds),blocks=splitUnifiedDiff(diff),units=[],coverageGaps=[],excluded=[];for(const block of blocks){if(!allowed.has(block.kind)){excluded.push({path:block.path,kind:block.kind});continue;}const split=splitReviewBlock(block,budget);units.push(...split.units);coverageGaps.push(...split.gaps);}const chunks=[];let current=[],bytes=0;const flush=()=>{if(!current.length)return;chunks.push(Object.freeze({index:chunks.length,paths:Object.freeze([...new Set(current.map(unit=>unit.path))]),text:current.map(unit=>unit.text).join('\n'),bytes,unitCount:current.length}));current=[];bytes=0;};for(const unit of units){if(current.length&&bytes+unit.bytes+1>budget)flush();if(chunks.length>=chunkLimit){coverageGaps.push(`${unit.path}:chunk_limit`);continue;}bytes+=unit.bytes+(current.length?1:0);current.push(unit);}if(current.length){if(chunks.length<chunkLimit)flush();else for(const unit of current)coverageGaps.push(`${unit.path}:chunk_limit`);}return Object.freeze({chunks:Object.freeze(chunks),complete:coverageGaps.length===0,coverageGaps:Object.freeze([...new Set(coverageGaps)]),excluded:Object.freeze(excluded),budgetBytes:budget,maxChunks:chunkLimit,inputDiffBytes:byteLength(diff),plannedUnits:units.length,scheduledUnits:chunks.reduce((n,chunk)=>n+chunk.unitCount,0)});}
 
 module.exports={quoteGitPath,decodeGitQuotedPath,parseGitDiffHeaderPaths,parseGitFileHeaderPath,classifyPath,clampBudget,splitUnifiedDiff,boundSourceBlock,allocateSourceBlocks,buildSemanticContext,splitReviewBlock,buildReviewEvidenceChunks};
