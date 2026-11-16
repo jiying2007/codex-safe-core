@@ -91,13 +91,37 @@ async function pages(pathname, options) {
   return out;
 }
 
-function mergeMethods(repo) {
-  const methods = [];
-  if (repo.allow_merge_commit) methods.push('merge');
-  if (repo.allow_squash_merge) methods.push('squash');
-  if (repo.allow_rebase_merge) methods.push('rebase');
-  if (!methods.length) throw new Error(`${repo.full_name} has no enabled merge method.`);
-  return methods;
+function mergeMethods(repo, existingPr = {}) {
+  const full = repo.full_name || repo.name || 'repository';
+  const settings = [
+    ['allow_merge_commit', 'merge'],
+    ['allow_squash_merge', 'squash'],
+    ['allow_rebase_merge', 'rebase']
+  ];
+  const known = settings.filter(([flag]) => typeof repo[flag] === 'boolean');
+  const prior = existingPr.allowed_merge_methods;
+  if (prior !== undefined) {
+    if (!Array.isArray(prior) || !prior.length ||
+        new Set(prior).size !== prior.length ||
+        prior.some(method => !settings.some(([, name]) => name === method))) {
+      throw new Error(`${full}: existing Ruleset allowed_merge_methods is missing, invalid or ambiguous; refusing a silent change.`);
+    }
+    // Preserve the existing native Ruleset restriction exactly, even if
+    // GitHub's caller-scoped repository metadata hides the merge flags.
+    // Any known contradictory disabled setting is a real server mismatch.
+    for (const [flag, method] of known) {
+      if (repo[flag] === false && prior.includes(method))
+        throw new Error(`${full}: existing Ruleset allows ${method} but repository reports ${flag}=false.`);
+    }
+    return [...prior];
+  }
+  if (known.length !== settings.length) {
+    const missing = settings.filter(([flag]) => typeof repo[flag] !== 'boolean').map(([flag]) => flag);
+    throw new Error(`${full}: merge settings are unobservable (${missing.join(', ')}). Existing Ruleset has no allowed_merge_methods to preserve; use --gh-cli with an authorized GitHub login. Refusing to guess merge permissions.`);
+  }
+  const enabled = settings.filter(([flag]) => repo[flag] === true).map(([, method]) => method);
+  if (!enabled.length) throw new Error(`${full}: GitHub explicitly reports all merge methods disabled.`);
+  return enabled;
 }
 
 function desiredBypass(detail) {
@@ -183,7 +207,7 @@ function desiredRuleset(repo, detail, { bindStatusSource = bindCiSource, reposit
         type: 'pull_request',
         parameters: {
           ...existingPr,
-          allowed_merge_methods: mergeMethods(repo),
+          allowed_merge_methods: mergeMethods(repo, existingPr),
           dismiss_stale_reviews_on_push: alignThisService ? pullRequestPolicy.dismissStaleReviewsOnPush : existingPr.dismiss_stale_reviews_on_push === true || pullRequestPolicy.dismissStaleReviewsOnPush,
           require_code_owner_review: existingPr.require_code_owner_review === true || pullRequestPolicy.requireCodeOwnerReview,
           require_last_push_approval: alignThisService ? pullRequestPolicy.requireLastPushApproval : existingPr.require_last_push_approval === true || pullRequestPolicy.requireLastPushApproval,
