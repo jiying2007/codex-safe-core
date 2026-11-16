@@ -152,9 +152,9 @@ function splitOversizedReviewHunk(block,header,hunk,maxBytes){
    if(line.startsWith('\\')){
      if(!groups.length)return{units:[],gaps:[block.path+':orphan_no_newline_marker']};
      groups.at(-1).lines.push(line);
-   }else if(line.startsWith('+')&&!line.startsWith('+++')){
+   }else if(line.startsWith('+')){
      groups.push({lines:[line],old:0,new:1});
-   }else if(line.startsWith('-')&&!line.startsWith('---')){
+   }else if(line.startsWith('-')){
      groups.push({lines:[line],old:1,new:0});
    }else if(line.startsWith(' ')){
      groups.push({lines:[line],old:1,new:1});
