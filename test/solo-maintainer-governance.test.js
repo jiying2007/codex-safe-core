@@ -354,3 +354,49 @@ test('invalid legacy gh token command output fails safely before network calls',
   assert.match(result.stderr,/contains line breaks/);
   assert.doesNotMatch(result.stderr,/Headers\.append|Bearer unknown/);
 });
+
+test('governance preserves exact Ruleset merge methods when public repo metadata hides settings',()=>{
+  const {desiredRuleset,newRulesetTemplate}=require('../scripts/apply-repository-governance');
+  const repo={name:'codex-safe-core',full_name:'jiying2007/codex-safe-core',
+    default_branch:'main',private:false,allow_auto_merge:false,delete_branch_on_merge:true,
+    allow_squash_merge:true};
+  const native=newRulesetTemplate();
+  const pr=native.rules.find(rule=>rule.type==='pull_request').parameters;
+  pr.allowed_merge_methods=['squash'];
+  const plan=desiredRuleset(repo,native,{repositoryName:repo.name});
+  assert.deepEqual(plan.rules.find(rule=>rule.type==='pull_request').parameters.allowed_merge_methods,
+    ['squash'],'do not expand native merge permissions to methods whose flags are unknown');
+  assert.deepEqual(pr.allowed_merge_methods,['squash'],'never modify fetched server evidence');
+
+  // Authenticated metadata can show more enabled methods; the pre-existing
+  // native restriction must still be preserved rather than broadened.
+  const complete={...repo,allow_merge_commit:true,allow_rebase_merge:true};
+  assert.deepEqual(desiredRuleset(complete,native,{repositoryName:repo.name})
+    .rules.find(rule=>rule.type==='pull_request').parameters.allowed_merge_methods,['squash']);
+
+  const contradictory={...repo,allow_squash_merge:false};
+  assert.throws(()=>desiredRuleset(contradictory,native,{repositoryName:repo.name}),
+    /repository reports allow_squash_merge=false/);
+
+  const duplicated=structuredClone(native);
+  duplicated.rules.find(rule=>rule.type==='pull_request').parameters.allowed_merge_methods=['squash','squash'];
+  assert.throws(()=>desiredRuleset(repo,duplicated,{repositoryName:repo.name}),/invalid or ambiguous/);
+  const foreign=structuredClone(native);
+  foreign.rules.find(rule=>rule.type==='pull_request').parameters.allowed_merge_methods=['fast-forward'];
+  assert.throws(()=>desiredRuleset(repo,foreign,{repositoryName:repo.name}),/invalid or ambiguous/);
+});
+
+test('new Debug Ruleset requires observed merge-method settings instead of silently assuming none or all',()=>{
+  const {desiredRuleset,newRulesetTemplate}=require('../scripts/apply-repository-governance');
+  const hidden={name:'codex-debug',full_name:'jiying2007/codex-debug',default_branch:'main',
+    private:false,allow_auto_merge:false,delete_branch_on_merge:false};
+  assert.throws(()=>desiredRuleset(hidden,newRulesetTemplate(),{repositoryName:hidden.name}),
+    error=>/unobservable/.test(error.message)&&/--gh-cli/.test(error.message));
+  const allDisabled={...hidden,allow_merge_commit:false,allow_squash_merge:false,allow_rebase_merge:false};
+  assert.throws(()=>desiredRuleset(allDisabled,newRulesetTemplate(),{repositoryName:hidden.name}),
+    /explicitly reports all merge methods disabled/);
+  const authenticated={...hidden,allow_merge_commit:true,allow_squash_merge:true,allow_rebase_merge:false};
+  const plan=desiredRuleset(authenticated,newRulesetTemplate(),{repositoryName:hidden.name});
+  assert.deepEqual(plan.rules.find(rule=>rule.type==='pull_request').parameters.allowed_merge_methods,
+    ['merge','squash']);
+});
