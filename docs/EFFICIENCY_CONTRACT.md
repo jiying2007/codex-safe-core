@@ -1,6 +1,6 @@
 # Family Efficiency Contract
 
-Codex Safe Core v4.18.6 centralizes generic model-cost and execution-efficiency primitives for all Family consumers.
+Codex Safe Core v4.18.7 centralizes generic model-cost and execution-efficiency primitives for all Family consumers.
 
 The contract is intentionally product-neutral:
 
