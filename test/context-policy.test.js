@@ -86,3 +86,66 @@ test('byte allocations never exceed limits even with thousands of tiny source ch
   for(const file of blocks.slice(value.included.length))assert.ok(value.truncatedFiles.includes(file.path));
  }
 });
+
+
+test('oversized review hunks are losslessly split with accurate changed-line coordinates',()=>{
+ const pairs=Array.from({length:240},(_,i)=>'-old'+i+'-'+('x'.repeat(32))+'\n+new'+i+'-'+('y'.repeat(32)));
+ const diff=['diff --git a/src/huge.c b/src/huge.c','--- a/src/huge.c','+++ b/src/huge.c',
+   '@@ -1,240 +1,240 @@ fn',...pairs].join('\n');
+ const evidence=core.buildReviewEvidenceChunks({diff,maxBytes:4096,maxChunks:64});
+ assert.equal(evidence.complete,true,JSON.stringify(evidence.coverageGaps));
+ assert.ok(evidence.chunks.length>1);
+ assert.ok(evidence.plannedUnits>1);
+ assert.equal(evidence.scheduledUnits,evidence.plannedUnits);
+ assert.ok(evidence.chunks.every(chunk=>Buffer.byteLength(chunk.text,'utf8')===chunk.bytes&&chunk.bytes<=4096));
+ let removed=0,added=0,oldCursor=1,newCursor=1;
+ for(const chunk of evidence.chunks){
+   for(const block of core.splitUnifiedDiff(chunk.text)){
+     let oldLine=0,newLine=0,previousOld=0,previousNew=0;
+     for(const line of block.text.split('\n')){
+       const h=/^@@ -(\d+),(\d+) \+(\d+),(\d+) @@/.exec(line);
+       if(h){
+         oldLine=Number(h[1]);newLine=Number(h[3]);previousOld=0;previousNew=0;
+         assert.equal(oldLine,oldCursor);assert.equal(newLine,newCursor);
+       }else if(line.startsWith('-')&&!line.startsWith('---')){
+         assert.equal(line.startsWith('-old'+removed+'-'),true);
+         oldLine++;oldCursor++;removed++;previousOld++;
+       }else if(line.startsWith('+')&&!line.startsWith('+++')){
+         assert.equal(line.startsWith('+new'+added+'-'),true);
+         newLine++;newCursor++;added++;previousNew++;
+       }else if(line.startsWith(' ')){oldLine++;newLine++;oldCursor++;newCursor++;}
+     }
+     assert.ok(previousOld>0||previousNew>0);
+   }
+ }
+ assert.equal(removed,240);assert.equal(added,240);
+});
+
+test('oversized hunk keeps no-newline marker with its changed line and fails closed for giant line',()=>{
+ const pairs=Array.from({length:240},(_,i)=>'-old'+i+'-'+('x'.repeat(20))+'\n+new'+i+'-'+('y'.repeat(20)));
+ const diff=['diff --git a/src/a.c b/src/a.c','--- a/src/a.c','+++ b/src/a.c',
+   '@@ -1,241 +1,241 @@',...pairs,'-old-last','+new-last','\\ No newline at end of file'].join('\n');
+ const result=core.buildReviewEvidenceChunks({diff,maxBytes:4096,maxChunks:64});
+ assert.equal(result.complete,true,JSON.stringify(result.coverageGaps));
+ const matched=result.chunks.filter(c=>c.text.includes('No newline at end of file'));
+ assert.equal(matched.length,1);
+ assert.match(matched[0].text,/\+new-last\n\\ No newline at end of file/);
+ const huge=['diff --git a/huge.c b/huge.c','--- a/huge.c','+++ b/huge.c',
+   '@@ -0,0 +1 @@','+'+'z'.repeat(5000)].join('\n');
+ const rejected=core.buildReviewEvidenceChunks({diff:huge,maxBytes:4096,maxChunks:64});
+ assert.equal(rejected.complete,false);
+ assert.ok(rejected.coverageGaps.some(gap=>gap.includes('hunk_exceeds_budget')));
+});
+
+test('lossless oversized hunk splitting recognizes real +++/--- code prefixes',()=>{
+ const many=Array.from({length:180},(_,i)=>'-old'+i+' '+('a'.repeat(26))+'\n+new'+i+' '+('b'.repeat(26)));
+ const diff=['diff --git a/counter.c b/counter.c','--- a/counter.c','+++ b/counter.c',
+   '@@ -1,181 +1,181 @@',...many,'---counter','+++counter'].join('\n');
+ const evidence=core.buildReviewEvidenceChunks({diff,maxBytes:4096,maxChunks:64});
+ assert.equal(evidence.complete,true,JSON.stringify(evidence.coverageGaps));
+ assert.ok(evidence.chunks.length>1);
+ const all=evidence.chunks.map(c=>c.text).join('\n');
+ assert.match(all,/---counter/);
+ assert.match(all,/\+\+\+counter/);
+ assert.equal((all.match(/^@@ /gm)||[]).length,evidence.plannedUnits);
+});
