@@ -55,7 +55,7 @@ The complete **read-only** migration plan for the explicitly aligned solo Servic
 env -u GH_TOKEN -u GITHUB_TOKEN node scripts/apply-repository-governance.js --gh-cli --create-missing --align-service-solo
 ```
 
-The public read-only alternative without CLI credentials is `env -u GH_TOKEN -u GITHUB_TOKEN node scripts/apply-repository-governance.js --create-missing --align-service-solo`. The CLI mode uses `gh api` with the locally stored GitHub CLI login; it never requests, prints or persists the token value. Run `gh auth status` / `gh api user` to verify the account, and do not run `GH_TOKEN="$(gh auth token)"` on old CLI builds where this command is unavailable.
+The CLI mode uses `gh api` with the locally stored GitHub CLI login; it never requests, prints or persists the token value. Run `gh auth status` / `gh api user` to verify the account, and do not run `GH_TOKEN="$(gh auth token)"` on old CLI builds where this command is unavailable. **Anonymous public reads may omit `allow_merge_commit`, `allow_squash_merge` and `allow_rebase_merge`: missing fields are not evidence that all merge strategies are disabled.** For the six repositories with an existing native Ruleset, the dry-run preserves its exact nonempty `allowed_merge_methods` rather than widening permissions. For Debug, which has no native Ruleset to inherit, all three repository merge-setting fields must be observable; otherwise the script rejects the plan and explicitly requires `--gh-cli` (or sufficiently scoped authenticated metadata). Never guess or inject merge permissions merely to make a dry-run pass.
 
 An already authorized administrator must separately acknowledge the actual Service review-policy change before server writes:
 
