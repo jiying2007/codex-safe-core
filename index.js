@@ -13,6 +13,8 @@ module.exports = Object.freeze({
   ...require('./git-repository'),
   ...require('./context-builder'),
   ...require('./review-optimization'),
+  ...require('./review-evidence-v2'),
+  ...require('./review-benchmark-adapter'),
   ...require('./efficiency-planner'),
   ...require('./token-calibration-store'),
   ...require('./model-routing'),
