@@ -51,6 +51,25 @@ function parseChangedLines(diff,{maxDiffBytes=MAX_DIFF}={}){
  }
  return Object.freeze({lines,complete:valid,reasons:valid?[]:['invalid_diff_path_or_line']});
 }
+function lexicalCallPresent(line,name){
+ // Exact ASCII identifier boundaries without compiling untrusted symbol names
+ // into a regex. This is a candidate call, never target resolution.
+ let from=0;
+ while(from<line.length){
+   const at=line.indexOf(name,from);
+   if(at<0)return false;
+   const before=at?line[at-1]:'';
+   const end=at+name.length,after=line[end]||'';
+   if((!before||!/[A-Za-z0-9_$]/.test(before))&&
+      (!after||!/[A-Za-z0-9_$]/.test(after))){
+     let next=end;
+     while(next<line.length&&(line[next]===' '||line[next]==='\t'))next++;
+     if(line[next]==='(')return true;
+   }
+   from=at+1;
+ }
+ return false;
+}
 function buildFunctionImpactEvidence({diff='',candidates=[],maxSymbols=32,maxEdges=64,maxBytes=24*1024}={}){
  const symbolLimit=boundedInt(maxSymbols,32,256),edgeLimit=boundedInt(maxEdges,64,512);
  const outputLimit=boundedInt(maxBytes,24*1024,256*1024);
@@ -91,8 +110,7 @@ function buildFunctionImpactEvidence({diff='',candidates=[],maxSymbols=32,maxEdg
        // Identity = same function spelling, not resolved import or receiver.
        // Exclude obvious comments and natural-language lines.
        if(/^\s*(?:\/\/|#|\*|\/\*)/.test(row))continue;
-       const matcher=new RegExp('(?:^|[^A-Za-z0-9_$])'+seed.name.replace(/[$]/g,'\\$&')+'\\s*\\(');
-       if(!matcher.test(row))continue;
+       if(!lexicalCallPresent(row,seed.name))continue;
        const key=JSON.stringify([file.path,i+1,seed.identity]);
        if(seen.has(key))continue;
        seen.add(key);
