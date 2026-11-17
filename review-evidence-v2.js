@@ -34,22 +34,53 @@ function parseChangedLines(diff,{maxDiffBytes=MAX_DIFF}={}){
  if(typeof diff!=='string')throw new TypeError('Diff must be text');
  const max=boundedInt(maxDiffBytes,MAX_DIFF,MAX_DIFF);
  if(Buffer.byteLength(diff,'utf8')>max)return Object.freeze({lines:[],complete:false,reasons:['diff_byte_limit']});
- const lines=[];let valid=true;
+ const lines=[],reasons=new Set();
  for(const block of splitUnifiedDiff(diff)){
-   if(!validPath(block.path)){valid=false;continue;}
-   let oldLine=0,newLine=0,inHunk=false;
-   for(const text of block.text.split(/\r?\n/)){
-     const h=/^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@(.*)$/.exec(text);
-     if(h){oldLine=Number(h[1]);newLine=Number(h[2]);inHunk=true;continue;}
+   if(!validPath(block.path)){reasons.add('invalid_diff_path_or_line');continue;}
+   let oldLine=0,newLine=0,remainingOld=0,remainingNew=0;
+   let inHunk=false,hasHunk=false,oldEnd=-1,newEnd=-1,bodyLine=false;
+   const rows=block.text.split(/\r?\n/);
+   for(let i=0;i<rows.length;i++){
+     const value=rows[i];
+     const h=/^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@(?:.*)$/.exec(value);
+     if(h){
+       if(inHunk&&(remainingOld!==0||remainingNew!==0))reasons.add('invalid_hunk_counts');
+       const oldStart=Number(h[1]),newStart=Number(h[3]);
+       const oldCount=h[2]===undefined?1:Number(h[2]);
+       const newCount=h[4]===undefined?1:Number(h[4]);
+       if(![oldStart,newStart,oldCount,newCount,oldStart+oldCount,newStart+newCount].every(Number.isSafeInteger)||
+          (oldStart===0&&oldCount!==0)||(newStart===0&&newCount!==0)){
+         reasons.add('invalid_hunk_header');inHunk=false;continue;
+       }
+       if(hasHunk&&(oldStart<oldEnd||newStart<newEnd))reasons.add('invalid_hunk_order');
+       oldLine=oldStart;newLine=newStart;remainingOld=oldCount;remainingNew=newCount;
+       oldEnd=oldStart+oldCount;newEnd=newStart+newCount;
+       inHunk=true;hasHunk=true;bodyLine=false;continue;
+     }
+     if(value.startsWith('@@')){reasons.add('invalid_hunk_header');inHunk=false;continue;}
      if(!inHunk)continue;
-     if(text.startsWith('+')){lines.push({path:block.path,side:'new',line:newLine,text:text.slice(1)});newLine++;}
-     else if(text.startsWith('-')){lines.push({path:block.path,side:'old',line:oldLine,text:text.slice(1)});oldLine++;}
-     else if(text.startsWith(' ')){oldLine++;newLine++;}
-     else if(text.startsWith('\\'))continue;
-     else if(text)valid=false;
+     if(value===''&&i===rows.length-1)continue; // one terminal LF is not a hunk row
+     if(value.startsWith('+')){
+       lines.push({path:block.path,side:'new',line:newLine,text:value.slice(1)});
+       newLine++;remainingNew--;bodyLine=true;
+     }else if(value.startsWith('-')){
+       lines.push({path:block.path,side:'old',line:oldLine,text:value.slice(1)});
+       oldLine++;remainingOld--;bodyLine=true;
+     }else if(value.startsWith(' ')){
+       oldLine++;newLine++;remainingOld--;remainingNew--;bodyLine=true;
+     }else if(value==='\\ No newline at end of file'&&bodyLine){
+       bodyLine=false;continue;
+     }else{
+       reasons.add('invalid_diff_path_or_line');
+     }
+     if(remainingOld<0||remainingNew<0)reasons.add('invalid_hunk_counts');
    }
+   if(inHunk&&(remainingOld!==0||remainingNew!==0))reasons.add('invalid_hunk_counts');
  }
- return Object.freeze({lines,complete:valid,reasons:valid?[]:['invalid_diff_path_or_line']});
+ // A partial/contradictory hunk must never produce a verified Finding anchor.
+ // Invalidate every row, including rows in otherwise well-formed sibling files.
+ const reasonList=[...reasons];
+ return Object.freeze({lines:reasonList.length?[]:lines,complete:reasonList.length===0,reasons:reasonList});
 }
 function lexicalCallPresent(line,name){
  // Exact ASCII identifier boundaries without compiling untrusted symbol names
