@@ -6,6 +6,7 @@ const {splitUnifiedDiff}=require('./context-builder');
 const hash=value=>crypto.createHash('sha256').update(String(value)).digest('hex');
 const MAX_DIFF=2*1024*1024,MAX_SOURCE=96*1024,MAX_FILES=64;
 const namePattern=/^[A-Za-z_$][A-Za-z0-9_$]*$/;
+const CODE_SOURCE_PATH=/\.(?:c|cc|cpp|cxx|h|hpp|hxx|js|jsx|mjs|cjs|ts|tsx|py|rs|go|java|kt|cs)$/i;
 const forbidden=new Set(['if','while','for','switch','catch','return','throw','sizeof','new','delete','else','do','case','function','def']);
 function boundedInt(value,defaultValue,max){
  if(value===undefined)return defaultValue;
@@ -125,6 +126,7 @@ function buildFunctionImpactEvidence({diff='',candidates=[],maxSymbols=32,maxEdg
  const edges=[],seen=new Set();let inputBytes=0;
  for(const file of candidates.slice(0,MAX_FILES)){
    if(!validPath(file?.path)){reasons.push('candidate_path_invalid');continue;}
+   if(!CODE_SOURCE_PATH.test(file.path))continue; // prose is not a source-code callsite
    if(typeof file.content!=='string'){reasons.push('candidate_text_missing');continue;}
    const size=Buffer.byteLength(file.content,'utf8');
    if(size>MAX_SOURCE){reasons.push('candidate_file_oversized');continue;}
