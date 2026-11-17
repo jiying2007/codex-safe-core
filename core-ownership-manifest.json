@@ -76,7 +76,11 @@
     "review-file-specific-rule-emphasis",
     "review-plan-preview",
     "review-claim-conservative-audit",
-    "review-quality-comparison"
+    "review-quality-comparison",
+    "review-function-level-impact-evidence",
+    "review-deterministic-risk-evidence",
+    "review-exact-finding-evidence-verification",
+    "review-external-benchmark-ingestion"
   ],
   "consumerForbiddenImplementations": [
     "SAFE_CODEX_CONFIG_OVERRIDES",
@@ -137,7 +141,11 @@
     "planSemanticReviewGroups",
     "resolveFileReviewRules",
     "buildReviewPlanPreview",
-    "auditReviewClaims"
+    "auditReviewClaims",
+    "buildFunctionImpactEvidence",
+    "buildReviewRiskEvidence",
+    "verifyFindingEvidence",
+    "normalizeExternalReviewCorpus"
   ],
   "productOwned": [
     "commit-domain",
