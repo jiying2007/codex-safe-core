@@ -12,6 +12,7 @@ module.exports = Object.freeze({
   ...require('./codex-cli'),
   ...require('./git-repository'),
   ...require('./context-builder'),
+  ...require('./review-optimization'),
   ...require('./efficiency-planner'),
   ...require('./token-calibration-store'),
   ...require('./model-routing'),

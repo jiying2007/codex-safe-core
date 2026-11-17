@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.18.8
+
+- Add bounded, deterministic semantic review-file grouping: linked implementation/header/test and direct import/include references are grouped without a model call; all files remain scheduled even when group limits force splits.
+- Add narrowly scoped, built-in per-file engineering rules, including MCU ISR/DMA, boot/OTA, FOC/motor, Linux driver, API/config/CI and test coverage. Repository source text never becomes a trusted instruction.
+- Add zero-model Review Plan Preview with explicit exclusions, planned/unplanned paths, group membership and coverage gap accounting; conservative claim conflict audit does not silently remove actual findings.
+- Add strict offline external-corpus comparison of same-provider/model/budget precision, recall, duplicate rate, invalid anchors, Token and latency. Do not equate recorded scores to fresh model execution.
+- Inspired by the independently implemented design patterns of Alibaba OpenCodeReview (Apache-2.0). No upstream code copied and no external Go runtime dependency. All Safe Contract v2, Policy v4, Receipt v5, runtime and publisher gates remain unchanged.
+
 ## 4.18.7
 
 - Release the already-reviewed bounded Review Evidence Hunk splitter from PR #117: split oversized multi-line hunks at complete Diff-line boundaries while retaining exact old/new positions and no-newline markers.

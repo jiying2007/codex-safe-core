@@ -71,7 +71,12 @@
     "family-scm-ui-contract-validation",
     "user-visible-time-formatting",
     "diagnostic-text-sanitization",
-    "git-path-identity"
+    "git-path-identity",
+    "review-related-file-group-planning",
+    "review-file-specific-rule-emphasis",
+    "review-plan-preview",
+    "review-claim-conservative-audit",
+    "review-quality-comparison"
   ],
   "consumerForbiddenImplementations": [
     "SAFE_CODEX_CONFIG_OVERRIDES",
@@ -128,7 +133,11 @@
     "secureReadBuffer",
     "parseGitDiffHeaderPaths",
     "decodeGitQuotedPath",
-    "quoteGitPath"
+    "quoteGitPath",
+    "planSemanticReviewGroups",
+    "resolveFileReviewRules",
+    "buildReviewPlanPreview",
+    "auditReviewClaims"
   ],
   "productOwned": [
     "commit-domain",
