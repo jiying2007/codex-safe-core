@@ -6,7 +6,7 @@ Independent implementation of bounded, source-anchored review evidence patterns 
 
 `buildFunctionImpactEvidence({diff,candidates,maxSymbols,maxEdges,maxBytes})` uses exact changed-line declarations from the canonical Diff plus explicit immutable-head text candidates to enumerate *candidate* call sites, with source path/line, optional enclosing function, candidate target identity, bounded byte budget and explicit reasons for missing/oversized/truncated source.
 
-**Important:** this is a conservative lexical subset, **not a compiler-resolved or AST-proven call graph**. Return fields include `verifiedResolution:false`, `confidence`, `complete` and `reasons`. A missing changed declaration yields no guessed symbol; multi-target call ambiguity is not silently resolved.
+**Important:** this is a conservative lexical subset, **not a compiler-resolved or AST-proven call graph**. Return fields include `verifiedResolution:false`, `confidence`, `complete` and `reasons`. A missing changed declaration yields no guessed symbol; multi-target call ambiguity is not silently resolved. Candidate call sites are code-source paths only: Markdown and other prose files do not establish executable callers.
 
 ## 2. Deterministic risk evidence
 
