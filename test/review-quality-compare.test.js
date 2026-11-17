@@ -19,6 +19,7 @@ test('offline precision/recall/time/token comparison uses one exact model and co
  const result=compareQualityRuns(corpus,{...identity,results:baseResults},{...identity,results:candidateResults});
  assert.equal(result.schemaVersion,1);
  assert.equal(result.freshModelExecution,false);
+ assert.equal(result.corpusDigest,digest);
  assert.equal(result.delta.recall,1);
  assert.equal(result.candidate.precision,1);
  assert.equal(result.candidate.criticalRecall,1);
