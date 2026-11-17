@@ -107,3 +107,62 @@ test('bound checks reject unsafe bounds and preserve partial-evidence failure st
  assert.equal(oversized.complete,false);
  assert.ok(oversized.reasons.includes('diff_byte_limit'));
 });
+
+
+test('inconsistent hunk counts and order invalidate every Finding anchor, not only the bad row',()=>{
+ const header='diff --git a/src/count.c b/src/count.c\n--- a/src/count.c\n+++ b/src/count.c\n';
+ const good='@@ -1 +1 @@\n-old\n+new';
+ const malformed=[
+   good+'\n+injected',
+   '@@ -1,2 +1,2 @@\n-old\n+new',
+   good+'\n@@ -1 +1 @@\n-old2\n+new2',
+   '@@ -9007199254740995 +1 @@\n-old\n+new',
+   '@@ -nope +1 @@\n-old\n+new',
+   '@@ -1 +1 @@\n\\ No newline at end of file\n-old\n+new'
+ ];
+ for(const fragment of malformed){
+   const diffText=header+fragment;
+   const parsed=parseChangedLines(diffText);
+   assert.equal(parsed.complete,false,fragment);
+   assert.equal(parsed.lines.length,0,fragment);
+   const proof=verifyFindingEvidence({diff:diffText,findings:[
+     {file:'src/count.c',side:'new',line:1,category:'security'}]});
+   assert.equal(proof.verifiedAnchorCount,0,fragment);
+   assert.equal(proof.results[0].status,'insufficient_evidence',fragment);
+   assert.equal(proof.automaticallyRemoved,0);
+ }
+ const mixed=header+good+'\n'+
+   'diff --git a/src/other.c b/src/other.c\n--- a/src/other.c\n+++ b/src/other.c\n'+
+   '@@ -2 +2 @@\n-old2\n+new2\n+excess';
+ const mixedProof=verifyFindingEvidence({diff:mixed,findings:[
+   {file:'src/count.c',side:'new',line:1}]});
+ assert.equal(mixedProof.complete,false);
+ assert.equal(mixedProof.verifiedAnchorCount,0);
+});
+
+test('valid separated, insertion, deletion and no-newline hunks retain exact old/new provenance',()=>{
+ const diffText=[
+  'diff --git a/src/good.c b/src/good.c',
+  '--- a/src/good.c','+++ b/src/good.c',
+  '@@ -1 +1 @@','-old','+new',
+  '@@ -5 +5 @@','-old-five','+new-five',
+  'diff --git a/src/added.c b/src/added.c',
+  '--- /dev/null','+++ b/src/added.c',
+  '@@ -0,0 +1,2 @@','+line one','+line two',
+  'diff --git a/src/deleted.c b/src/deleted.c',
+  '--- a/src/deleted.c','+++ /dev/null',
+  '@@ -3,2 +2,0 @@','-deleted 3','-deleted 4',
+  '\\ No newline at end of file'
+ ].join('\n');
+ const parsed=parseChangedLines(diffText);
+ assert.equal(parsed.complete,true,parsed.reasons.join(','));
+ assert.equal(parsed.lines.length,8);
+ const proof=verifyFindingEvidence({diff:diffText,findings:[
+  {file:'src/good.c',side:'new',line:1},
+  {file:'src/good.c',side:'new',line:5},
+  {file:'src/added.c',side:'new',line:2},
+  {file:'src/deleted.c',side:'old',line:4}
+ ]});
+ assert.equal(proof.verifiedAnchorCount,4);
+ assert.equal(proof.complete,true);
+});

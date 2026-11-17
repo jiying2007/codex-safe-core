@@ -47,7 +47,7 @@ function compareQualityRuns(corpus,baseline,candidate){
  const before=stats(baseline.results),after=stats(candidate.results);
  return Object.freeze({schemaVersion:1,kind:'offline-evidence-comparison',
    freshModelExecution:false,model:baseline.model,provider:baseline.provider,
-   budgetClass:baseline.budgetClass,corpusDigest,baseline:before,candidate:after,
+   budgetClass:baseline.budgetClass,corpusDigest:datasetDigest,baseline:before,candidate:after,
    delta:{recall:after.recall-before.recall,precision:after.precision-before.precision,
      criticalRecall:after.criticalRecall-before.criticalRecall,
      falsePositivePerReview:after.falsePositivePerReview-before.falsePositivePerReview,

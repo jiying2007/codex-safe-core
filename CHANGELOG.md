@@ -1,5 +1,12 @@
 # Changelog
 
+## 4.18.10
+
+- Fail closed on malformed, truncated, contradictory and overlapping unified Hunk ranges: a malformed Diff cannot verify any Finding anchor, including in other files.
+- Restore six omitted direct test suites to the default CI entrypoint, including Evidence V2, Review Benchmarks, grouping/rules, embedded fixtures and paired performance; add a 66-suite inventory regression guard and de-duplicate syntax validation.
+- Fix two bugs exposed by the restored tests: documentation text was misclassified as a lexical call candidate, and offline quality comparison returned an undefined corpus digest.
+- Preserve existing API, model-call count, release provenance and independent real-world benchmark admission.
+
 ## 4.18.9
 
 - Add bounded, source-anchored function-level *lexical candidate* impact evidence (not a compiler-resolved call graph) and deterministic changed-line risk review hints for MCU ISR, OTA/Flash, C copy, CI and TLS paths.

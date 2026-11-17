@@ -1,4 +1,4 @@
-# Review Evidence V2 — Core 4.18.9
+# Review Evidence V2 — Core 4.18.10
 
 Independent implementation of bounded, source-anchored review evidence patterns derived from comparing Kodus Graph, PR-Agent, Sashiko, ReviewBench and AACR-Bench. No third-party code, extra runtime or model calls are imported.
 
@@ -6,7 +6,7 @@ Independent implementation of bounded, source-anchored review evidence patterns 
 
 `buildFunctionImpactEvidence({diff,candidates,maxSymbols,maxEdges,maxBytes})` uses exact changed-line declarations from the canonical Diff plus explicit immutable-head text candidates to enumerate *candidate* call sites, with source path/line, optional enclosing function, candidate target identity, bounded byte budget and explicit reasons for missing/oversized/truncated source.
 
-**Important:** this is a conservative lexical subset, **not a compiler-resolved or AST-proven call graph**. Return fields include `verifiedResolution:false`, `confidence`, `complete` and `reasons`. A missing changed declaration yields no guessed symbol; multi-target call ambiguity is not silently resolved.
+**Important:** this is a conservative lexical subset, **not a compiler-resolved or AST-proven call graph**. Return fields include `verifiedResolution:false`, `confidence`, `complete` and `reasons`. A missing changed declaration yields no guessed symbol; multi-target call ambiguity is not silently resolved. Candidate call sites are code-source paths only: Markdown and other prose files do not establish executable callers.
 
 ## 2. Deterministic risk evidence
 
@@ -14,7 +14,9 @@ Independent implementation of bounded, source-anchored review evidence patterns 
 
 ## 3. Real Finding evidence verification
 
-`verifyFindingEvidence({diff,findings,maxFindings})` checks each Finding's exact file, old/new side and changed-line interval against the actual immutable Diff. If an optional expected line text or digest is provided, it can detect direct evidence mismatch. Result states are `anchor_verified`, `insufficient_evidence`, `evidence_conflict`, always carrying `semanticDefectVerified:false` unless independently proven by an existing trusted semantic verifier. All high-risk findings survive; `automaticallyRemoved:0`. Missing line, context or unsupported range remains explicit instead of being silently corrected.
+`verifyFindingEvidence({diff,findings,maxFindings})` checks each Finding's exact file, old/new side and changed-line interval against the actual immutable Diff. If an optional expected line text or digest is provided, it can detect direct evidence mismatch. Malformed, contradictory, overlapping or truncated unified Hunk line counts invalidate the *entire* Diff's anchor index; no partial row is verified. The parser still does not verify source SHA, which must be bound by the consumer.
+
+Result states are `anchor_verified`, `insufficient_evidence`, `evidence_conflict`, always carrying `semanticDefectVerified:false` unless independently proven by an existing trusted semantic verifier. All high-risk findings survive; `automaticallyRemoved:0`. Missing line, context or unsupported range remains explicit instead of being silently corrected.
 
 An anchor match is **not proof of semantic correctness**. Neither a positive regex nor a model claim authorizes a merge decision by itself. Provider source identity, completeness and immutable SHA remain the responsibility of the consumer.
 
