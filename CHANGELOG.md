@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.18.9
+
+- Add bounded, source-anchored function-level *lexical candidate* impact evidence (not a compiler-resolved call graph) and deterministic changed-line risk review hints for MCU ISR, OTA/Flash, C copy, CI and TLS paths.
+- Add exact old/new changed-line Finding Evidence V2 verifier. Anchor conflicts, unsupported ranges and incomplete evidence are recorded; a semantic bug is never auto-confirmed or auto-deleted.
+- Add offline ReviewBench golden and human-approved AACR ReviewInstance benchmark adapters; reject unlabeled PRs as fabricated clean negatives, bind every imported case to full source revisions, and keep actual model outcome measurement separate.
+- Add reproducible eight-case embedded structural fixtures including clean controls; keep Quality baseline and prior Source/Receipt contracts unchanged.
+- Zero Codex/Work model calls and no additional agent, analyzer execution privilege, source-cache persistence or production service changes.
+
 ## 4.18.8
 
 - Add bounded, deterministic semantic review-file grouping: linked implementation/header/test and direct import/include references are grouped without a model call; all files remain scheduled even when group limits force splits.
