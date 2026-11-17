@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "kind": "embedded-deterministic-structural-fixtures",
+  "freshModelExecution": false,
+  "disclaimer": "Synthetic static parser fixtures, not measured model findings, benchmark recall, or severity-certified bugs.",
+  "cases": [
+    {
+      "id": "isr-blocking-hint",
+      "domain": "mcu-isr",
+      "diff": "diff --git a/mcu/irq.c b/mcu/irq.c\n--- a/mcu/irq.c\n+++ b/mcu/irq.c\n@@ -5 +5 @@\n-return;\n+mutex_lock(&lock);",
+      "expectedRisk": [
+        "irq-blocking"
+      ],
+      "expectedChangedFunction": null
+    },
+    {
+      "id": "ota-erase-hint",
+      "domain": "ota",
+      "diff": "diff --git a/firmware/ota.c b/firmware/ota.c\n--- a/firmware/ota.c\n+++ b/firmware/ota.c\n@@ -10 +10 @@\n-set_flag();\n+flash_erase(0);",
+      "expectedRisk": [
+        "ota-flash-write"
+      ],
+      "expectedChangedFunction": null
+    },
+    {
+      "id": "c-strcpy-hint",
+      "domain": "embedded-memory",
+      "diff": "diff --git a/drivers/uart.c b/drivers/uart.c\n--- a/drivers/uart.c\n+++ b/drivers/uart.c\n@@ -2 +2 @@\n-copy_safe();\n+strcpy(dst, src);",
+      "expectedRisk": [
+        "unsafe-copy"
+      ],
+      "expectedChangedFunction": null
+    },
+    {
+      "id": "ci-untrusted-trigger",
+      "domain": "supply-chain",
+      "diff": "diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml\n--- a/.github/workflows/ci.yml\n+++ b/.github/workflows/ci.yml\n@@ -1 +1 @@\n-pull_request:\n+pull_request_target:",
+      "expectedRisk": [
+        "unsafe-ci-trigger"
+      ],
+      "expectedChangedFunction": null
+    },
+    {
+      "id": "motor-function-lexical",
+      "domain": "motor-FOC",
+      "diff": "diff --git a/src/motor.c b/src/motor.c\n--- a/src/motor.c\n+++ b/src/motor.c\n@@ -1 +1 @@\n-int motor_set_speed(int rpm) { return rpm; }\n+int motor_set_speed(int rpm) { return rpm * 2; }",
+      "candidates": [
+        {
+          "path": "src/controller.c",
+          "content": "void control(void) {\n  motor_set_speed(200);\n}\n"
+        }
+      ],
+      "expectedRisk": [],
+      "expectedChangedFunction": "motor_set_speed"
+    },
+    {
+      "id": "clean-atomic-comment",
+      "domain": "negative-control",
+      "diff": "diff --git a/docs/notes.md b/docs/notes.md\n--- a/docs/notes.md\n+++ b/docs/notes.md\n@@ -1 +1 @@\n-Old docs\n+Documentation for mutex_lock in IRQ context (not a code change).",
+      "expectedRisk": [],
+      "expectedChangedFunction": null
+    },
+    {
+      "id": "clean-no-unsafe-copy",
+      "domain": "negative-control",
+      "diff": "diff --git a/src/safe.c b/src/safe.c\n--- a/src/safe.c\n+++ b/src/safe.c\n@@ -1 +1 @@\n-old\n+snprintf(buf, sizeof(buf), \"%s\", value);",
+      "expectedRisk": [],
+      "expectedChangedFunction": null
+    },
+    {
+      "id": "unavailable-head-source",
+      "domain": "partial-evidence",
+      "diff": "diff --git a/src/motor.c b/src/motor.c\n--- a/src/motor.c\n+++ b/src/motor.c\n@@ -1 +1 @@\n-int motor_run(int rpm);\n+int motor_run(int rpm) { return rpm; }",
+      "candidates": [
+        {
+          "path": "src/caller.c",
+          "content": null
+        }
+      ],
+      "expectedRisk": [],
+      "expectedChangedFunction": "motor_run",
+      "expectedIncomplete": true
+    }
+  ]
+}
