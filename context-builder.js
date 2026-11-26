@@ -133,7 +133,66 @@ function allocateSourceBlocks(blocks,maxBytes){
   if(byteLength(text)>budget)throw new Error('Semantic source allocation exceeded its byte budget.');
   return{text,truncated:truncatedFiles.length>0,included:chosen.map(block=>block.path),truncatedFiles};
 }
-function buildSemanticContext({files=[],diff='',commits=[],maxBytes=512*1024}={}){const budget=clampBudget(maxBytes),diffBlocks=splitUnifiedDiff(diff),paths=files.length?files:diffBlocks.map(block=>block.path).filter(path=>!path.startsWith('<')),normalizedFiles=Array.from(new Set(paths)).map(file=>({path:file,kind:classifyPath(file)})),source=normalizedFiles.filter(file=>file.kind==='source'),generated=normalizedFiles.filter(file=>file.kind==='generated'),binary=normalizedFiles.filter(file=>file.kind==='binary');const header=[`Changed files: ${normalizedFiles.length}`,source.length?`Source files (${source.length}):\n${source.map(file=>`- ${file.path}`).join('\n')}`:'',generated.length?`Generated/lock files (${generated.length}, metadata only):\n${generated.map(file=>`- ${file.path}`).join('\n')}`:'',binary.length?`Binary files (${binary.length}, metadata only):\n${binary.map(file=>`- ${file.path}`).join('\n')}`:'',commits.length?`Commits (${Math.min(commits.length,50)} shown):\n${commits.slice(0,50).map(value=>`- ${value}`).join('\n')}`:''].filter(Boolean).join('\n\n'),sourceBlocks=diffBlocks.filter(block=>block.kind==='source'),separator='\n\n--- SOURCE DIFFS ---\n',reserved=byteLength(header+separator),remaining=Math.max(0,budget-reserved),bounded=allocateSourceBlocks(sourceBlocks,remaining),suffix=bounded.truncatedFiles.length?`\n\n[semantic budget truncated source files: ${bounded.truncatedFiles.join(', ')}]`:'';const baseText=`${header}${separator}${bounded.text}`,fullText=byteLength(baseText+suffix)<=budget?baseText+suffix:baseText,overflow=byteLength(fullText)>budget;return Object.freeze({text:trimUtf8(fullText,budget),truncated:bounded.truncated||overflow,budgetBytes:budget,inputDiffBytes:byteLength(diff),sourceFiles:source.map(file=>file.path),generatedFiles:generated.map(file=>file.path),binaryFiles:binary.map(file=>file.path),includedSourceFiles:overflow?[]:bounded.included,truncatedSourceFiles:overflow?[...new Set(sourceBlocks.map(block=>block.path))]:bounded.truncatedFiles});}
+function boundedInventorySection(label, values, budget) {
+ const heading=`${label} (${values.length}):`;
+ let text=heading,omitted=0;
+ for(const value of values){
+  const line='\\n- '+String(value);
+  const marker=`\\n- ... ${omitted+1} more omitted`;
+  if(byteLength(text+line+marker)>budget){omitted++;continue;}
+  text+=line;
+ }
+ if(omitted){
+  const marker=`\\n- ... ${omitted} more omitted`;
+  while(byteLength(text+marker)>budget&&text.length>heading.length)text=text.slice(0,text.lastIndexOf('\\n'));
+  if(byteLength(text+marker)<=budget)text+=marker;
+ }
+ return {text,omitted};
+}
+function buildSemanticContext({files=[],diff='',commits=[],maxBytes=512*1024}={}) {
+ const budget=clampBudget(maxBytes),diffBlocks=splitUnifiedDiff(diff);
+ const paths=files.length?files:diffBlocks.map(block=>block.path).filter(path=>!path.startsWith('<'));
+ const normalizedFiles=Array.from(new Set(paths)).map(file=>({path:file,kind:classifyPath(file)}));
+ const source=normalizedFiles.filter(file=>file.kind==='source');
+ const generated=normalizedFiles.filter(file=>file.kind==='generated');
+ const binary=normalizedFiles.filter(file=>file.kind==='binary');
+ const metadataBudget=Math.min(16*1024,Math.max(256,Math.floor(budget*0.2)));
+ const fixed=`Changed files: ${normalizedFiles.length}`;
+ let remaining=Math.max(0,metadataBudget-byteLength(fixed+'\\n'));
+ const sections=[fixed];
+ for(const [label,values] of [['Source files',source.map(file=>file.path)],['Generated/lock files, metadata only',generated.map(file=>file.path)],['Binary files, metadata only',binary.map(file=>file.path)]]){
+  if(!values.length)continue;
+  const section=boundedInventorySection(label,values,remaining);
+  sections.push(section.text);
+  remaining=Math.max(0,remaining-byteLength(section.text+'\\n\\n'));
+ }
+ if(commits.length&&remaining>0)sections.push(boundedInventorySection('Commits',commits.slice(0,50),remaining).text);
+ const header=sections.join('\\n\\n');
+ const sourceBlocks=diffBlocks.filter(block=>block.kind==='source');
+ const separator='\\n\\n--- SOURCE DIFFS ---\\n';
+ const reserved=byteLength(header+separator),remainingSource=Math.max(0,budget-reserved);
+ const bounded=allocateSourceBlocks(sourceBlocks,remainingSource);
+ const suffix=bounded.truncatedFiles.length?`\\n\\n[semantic budget omitted or truncated ${bounded.truncatedFiles.length} source file(s)]`:'';
+ const baseText=`${header}${separator}${bounded.text}`;
+ const fullText=byteLength(baseText+suffix)<=budget?baseText+suffix:baseText;
+ const inventoryBytes=normalizedFiles.reduce((n,file)=>n+byteLength(file.path)+3,0);
+ const metadataTruncated=inventoryBytes>metadataBudget;
+ const overflow=byteLength(fullText)>budget;
+ return Object.freeze({
+  text:trimUtf8(fullText,budget),
+  truncated:bounded.truncated||overflow||metadataTruncated,
+  budgetBytes:budget,
+  inputDiffBytes:byteLength(diff),
+  sourceFiles:source.map(file=>file.path),
+  generatedFiles:generated.map(file=>file.path),
+  binaryFiles:binary.map(file=>file.path),
+  includedSourceFiles:overflow?[]:bounded.included,
+  truncatedSourceFiles:overflow?[...new Set(sourceBlocks.map(block=>block.path))]:bounded.truncatedFiles,
+  metadataBudgetBytes:metadataBudget,
+  metadataBytes:byteLength(header),
+  metadataTruncated
+ });
+}
 
 // Split oversized hunks on complete diff-line boundaries, without truncating
 // changed lines or losing their original old/new line coordinates.
