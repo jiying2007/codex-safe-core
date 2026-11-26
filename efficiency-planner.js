@@ -379,6 +379,7 @@ module.exports = {
   estimateTextTokens,
   estimateRequestTokens,
   assertWithinTokenBudget,
+  planRequestContextBudget,
   observedBytesPerInputToken,
   calibrateBytesPerToken,
   TokenEstimatorCalibration,
