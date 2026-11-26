@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Add a product-neutral request-context budget planner that reserves fixed prompt, output and safety capacity before allocating semantic context; final serialized requests retain the independent hard token gate.
+
 ## 4.18.10
 
 - Fail closed on malformed, truncated, contradictory and overlapping unified Hunk ranges: a malformed Diff cannot verify any Finding anchor, including in other files.

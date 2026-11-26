@@ -7,6 +7,7 @@ The contract is intentionally product-neutral:
 - normalize actual/cached/cache-write/output/reasoning Codex usage from JSONL;
 - incrementally consume Codex JSONL while independently bounding total transcript bytes and retained diagnostic output;
 - estimate request tokens conservatively before execution and keep preflight budgets fail closed;
+- allocate semantic-context bytes only after accounting for the complete fixed prompt, output reservation and safety reserve; the final serialized request is independently checked and can never rely on context-budget arithmetic alone;
 - calibrate bytes/token per provider+model from actual input-token usage using a bounded EWMA that activates only after a minimum sample count;
 - persist only numeric provider/model calibration when configured, with per-model observation TTL, bounded no-follow reads, owner/permission checks, write locking, merge-on-write and atomic mode-0600 replacement;
 - retain a safety discount and hard lower/upper bounds so calibration cannot turn a conservative budget into an optimistic one;
