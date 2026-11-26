@@ -1,8 +1,10 @@
 # Changelog
 
-## Unreleased
+## 4.18.11
 
 - Add a product-neutral request-context budget planner that reserves fixed prompt, output and safety capacity before allocating semantic context; final serialized requests retain the independent hard token gate.
+- Bound file-inventory metadata within a deterministic share of the semantic context budget so large staged path lists cannot starve source evidence.
+- Add regression coverage for complete-request budget boundaries, UTF-8 accounting, large binary inventories and uppercase binary extensions.
 
 ## 4.18.10
 
