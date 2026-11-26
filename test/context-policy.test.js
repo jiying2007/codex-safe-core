@@ -149,3 +149,22 @@ test('lossless oversized hunk splitting recognizes real +++/--- code prefixes',(
  assert.match(all,/\+\+\+counter/);
  assert.equal((all.match(/^@@ /gm)||[]).length,evidence.plannedUnits);
 });
+
+test('semantic context bounds huge binary and source path inventories without starving changed source evidence',()=>{
+ const files=[...Array.from({length:900},(_,i)=>'artifacts/'+String(i).padStart(4,'0')+'.BIN'),'src/critical.c'];
+ const diff=['diff --git a/src/critical.c b/src/critical.c','--- a/src/critical.c','+++ b/src/critical.c','@@ -1 +1 @@','-old','+critical_fix'].join('\\n');
+ const result=core.buildSemanticContext({files,diff,maxBytes:4096});
+ assert.ok(Buffer.byteLength(result.text,'utf8')<=4096);
+ assert.equal(result.metadataBudgetBytes,819);
+ assert.equal(result.metadataTruncated,true);
+ assert.ok(result.binaryFiles.length===900);
+ assert.ok(result.text.includes('+critical_fix'));
+ assert.ok(result.truncated);
+});
+test('uppercase binary extensions remain metadata-only in semantic context',()=>{
+ const files=['firmware/IMAGE.BIN'];
+ const diff=['diff --git a/firmware/IMAGE.BIN b/firmware/IMAGE.BIN','Binary files a/firmware/IMAGE.BIN and b/firmware/IMAGE.BIN differ'].join('\\n');
+ const result=core.buildSemanticContext({files,diff,maxBytes:4096});
+ assert.deepEqual(result.binaryFiles,files);
+ assert.doesNotMatch(result.text,/Binary files .*\\n.*\\+payload/);
+});
