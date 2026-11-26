@@ -86,6 +86,58 @@ function assertWithinTokenBudget(input, { maxTokens = 0, estimatedOutputTokens =
   return estimate;
 }
 
+/**
+ * Allocate the semantic-context byte budget from the complete structured-request
+ * token budget. Prefix/suffix are the exact non-context request sections (for
+ * example prompt and framing); output and reserve tokens are never available
+ * to context. The final request must still pass assertWithinTokenBudget.
+ */
+function planRequestContextBudget({
+  prefix = '',
+  suffix = '',
+  maxTokens = 0,
+  estimatedOutputTokens = 1024,
+  reserveTokens = 512,
+  bytesPerToken = 2,
+  maxContextBytes = 8 * 1024 * 1024
+} = {}) {
+  if (typeof prefix !== 'string' || typeof suffix !== 'string') {
+    throw new TypeError('Request budget prefix and suffix must be strings.');
+  }
+  const limit = Math.floor(Number(maxTokens));
+  const output = Math.ceil(Number(estimatedOutputTokens));
+  const reserve = Math.ceil(Number(reserveTokens));
+  const ratio = clamp(Number(bytesPerToken) || 2, 0.5, 16);
+  const cap = Math.max(0, Math.floor(Number(maxContextBytes) || 0));
+  if (!Number.isFinite(limit) || limit <= 0 || !Number.isFinite(output) || output < 0 ||
+      !Number.isFinite(reserve) || reserve < 0) {
+    throw new RangeError('Request token budget, output reservation and safety reserve must be finite non-negative values.');
+  }
+  const fixedBytes = byteLength(prefix) + byteLength(suffix);
+  const fixedTokens = estimateTextTokens(prefix + suffix, ratio);
+  const availableTokens = limit - fixedTokens - output - reserve;
+  const availableBytes = Math.max(0, Math.floor(availableTokens * ratio));
+  const contextBytes = Math.min(cap, availableBytes);
+  const result = {
+    maxTokens: limit,
+    bytesPerToken: ratio,
+    fixedBytes,
+    fixedTokens,
+    estimatedOutputTokens: output,
+    reserveTokens: reserve,
+    availableTokens,
+    contextBytes,
+    contextFits: availableTokens > 0 && contextBytes > 0
+  };
+  if (!result.contextFits) {
+    const error = new Error('Structured request has no remaining token budget for semantic context.');
+    error.code = 'ETOKENBUDGET';
+    error.budgetPlan = Object.freeze(result);
+    throw error;
+  }
+  return Object.freeze(result);
+}
+
 function observedBytesPerInputToken(bytes, usage = {}) {
   const tokens = Number(usage.inputTokens ?? usage.input_tokens ?? 0);
   const size = Math.max(0, Number(bytes) || 0);
