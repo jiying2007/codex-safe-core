@@ -7,6 +7,7 @@ Codex Safe Core v4.18.10 为整个产品族统一提供通用的模型成本与�
 - 从 Codex JSONL 统一解析 actual/cached/cache-write/output/reasoning Token usage；
 - 增量消费 Codex JSONL，并独立限制 transcript 总字节数与 retained diagnostic output；
 - 执行前保守估算请求 Token，preflight budget 保持 fail closed；
+- 先从完整固定 Prompt、输出预留和安全余量中扣除预算，再分配 Semantic Context 字节；最终序列化请求仍须独立通过硬 Token 门禁，不能仅依赖上下文预算计算；
 - 根据真实 input-token usage 为 provider+model 维护有界 EWMA bytes/token 校准，达到最小样本数后才启用；
 - 可选持久化只保存 provider/model 与数值校准，TTL 按每个模型真实 observation 计算，并使用 no-follow read、owner/permission 检查、写锁、merge-on-write 与 atomic mode-0600 replacement；
 - 校准始终保留安全折扣和硬上下界，不能把保守预算变成乐观预算；
