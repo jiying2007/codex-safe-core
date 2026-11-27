@@ -234,9 +234,46 @@ test('Core publication does not depend on the optional Family upgrade credential
  assert.match(fragment,/secrets\.FAMILY_BOT_TOKEN/);
  assert.match(fragment,/if \[ -z "\$GH_TOKEN" \]; then/);
  assert.match(fragment,/coordinated Family Upgrade is deferred/);
- assert.match(fragment,/if gh workflow run "Family Upgrade"/);
+ assert.match(fragment,/spawnSync\('gh',\['workflow','run','family-upgrade\.yml'/);
  assert.match(fragment,/optional Family Upgrade dispatch FAILED/);
  assert.match(fragment,/Do not infer Family readiness/);
- assert.match(fragment,/else\r?\n\s*echo "::warning::Optional Family Upgrade dispatch/);
+ assert.match(fragment,/console\.warn\('::warning::Optional Family Upgrade dispatch/);
  assert.doesNotMatch(fragment,/FAMILY_BOT_TOKEN is required after an immutable Core release/);
+});
+
+test('optional Family dispatch bounds execution, exposes numeric failures and never logs raw errors',()=>{
+ const vm=require('node:vm');
+ const section=trusted.slice(trusted.indexOf('      - name: Dispatch coordinated active-consumer upgrade when authorized')).replace(/\r\n/g,'\n');
+ const match=section.match(/          node - <<'NODE'\n([\s\S]*?)          NODE/);
+ assert.ok(match);
+ const script=match[1].split('\n').map(line=>line.startsWith('          ')?line.slice(10):line).join('\n');
+ const secret='synthetic-private-diagnostic';
+ function run(result,{throws=false,summaryFails=false}={}){
+  const warnings=[],summaries=[],calls=[];
+  const processFixture={env:{GITHUB_REPOSITORY:'jiying2007/codex-safe-core',CORE_SHA:'a'.repeat(40),CORE_VERSION:'1.2.3',GH_TOKEN:secret,GITHUB_STEP_SUMMARY:'fixture-summary'},exitCode:0};
+  const context={process:processFixture,console:{warn:value=>warnings.push(String(value))},require:name=>{
+   if(name==='node:fs')return{appendFileSync:(file,value)=>{assert.equal(file,'fixture-summary');if(summaryFails)throw Error(secret);summaries.push(String(value));}};
+   assert.equal(name,'node:child_process');
+   return{spawnSync:(command,args,options)=>{calls.push({command,args:Array.from(args),options});if(throws)throw Error(secret);return result;}};
+  }};
+  assert.doesNotThrow(()=>vm.runInNewContext(script,context,{timeout:1000}));
+  assert.equal(processFixture.exitCode,0);
+  assert.equal(calls.length,1);assert.equal(calls[0].command,'gh');
+  assert.deepEqual(calls[0].args,['workflow','run','family-upgrade.yml','--repo','jiying2007/codex-safe-core','--ref','main','-f','core_sha='+'a'.repeat(40),'-f','core_version=1.2.3']);
+  assert.equal(calls[0].options.timeout,30000);assert.equal(calls[0].options.maxBuffer,8192);
+  assert.deepEqual(Array.from(calls[0].options.stdio),['ignore','ignore','pipe']);assert.notEqual(calls[0].options.shell,true);
+  assert.equal([...warnings,...summaries].join('\n').includes(secret),false);
+  return{warnings,summaries,text:[...warnings,...summaries].join('\n')};
+ }
+ const accepted=run({status:0,stderr:''});
+ assert.equal(accepted.warnings.length,0);assert.match(accepted.text,/Family Upgrade dispatched for Core 1\.2\.3/);
+ const denied=run({status:1,stderr:secret+' (HTTP 403)\n::error::'+secret});
+ assert.match(denied.text,/exit=1, http=403, category=command-rejected/);
+ assert.match(denied.text,/optional Family Upgrade dispatch FAILED/);assert.match(denied.text,/Do not infer Family readiness/);
+ assert.doesNotMatch(denied.text,/::error::/);
+ assert.match(run({status:null,error:{code:'ETIMEDOUT',message:secret},stderr:''}).text,/category=timeout/);
+ assert.match(run({status:null,error:{code:'ENOBUFS',message:secret},stderr:secret}).text,/category=output-limit/);
+ assert.match(run(null,{throws:true}).text,/category=process-error/);
+ assert.match(run({status:1,stderr:'x'.repeat(8192)+'HTTP 403'}).text,/http=unknown/);
+ assert.match(run({status:0,stderr:''},{summaryFails:true}).text,/summary could not be written/);
 });

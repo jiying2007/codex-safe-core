@@ -134,7 +134,7 @@ function planReusableWorkflowPins(root,sha){
   const supported=declaresFamilyReadSecret(targetFamilyGuard(root,sha));
   return names.filter(value=>/\.ya?ml$/i.test(value)).sort().map(name=>{
     const file=path.join(dir,name),previous=readRepositoryFile(file);
-    const pinned=previous.text.replace(/(jiying2007\/codex-safe-core\/\.github\/workflows\/(?:family-release-guard|distribution-receipt)\.yml@)[0-9a-f]{40}/g,`$1${sha}`).replace(/(expected_core_sha:\s*)[0-9a-f]{40}/g,`$1${sha}`);
+    const pinned=previous.text.replace(/(jiying2007\/codex-safe-core\/\.github\/workflows\/(?:family-release-guard|distribution-receipt|consumer-release-integrity)\.yml@)[0-9a-f]{40}/g,`$1${sha}`).replace(/(expected_core_sha:\s*)[0-9a-f]{40}/g,`$1${sha}`);
     return{file,previous,text:syncFamilyReadSecret(pinned,sha,supported)};
   });
 }
