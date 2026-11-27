@@ -1,6 +1,6 @@
 # Family 效率契约
 
-Codex Safe Core v4.18.12 为整个产品族统一提供通用的模型成本与执行效率原语。
+Codex Safe Core v4.18.13 为整个产品族统一提供通用的模型成本与执行效率原语。
 
 该契约保持产品无关：
 
@@ -22,6 +22,8 @@ Codex Safe Core v4.18.12 为整个产品族统一提供通用的模型成本与�
 - Shadow Candidate 永远不改变 Production Verdict；
 - 即使候选更便宜，只要样本量不足或质量回归超出批准门禁，就禁止晋升；
 - Structured Codex 执行统一返回 request estimate、实际 usage 与 duration。
+
+`buildSemanticContext()` 和 `buildReviewEvidenceChunks()` 以 Git 的二进制元数据识别文件，不要求文件具有已知二进制扩展名。调用方移除原始二进制块后，可同时传入暂存 `files` 清单和 `binaryPaths`；这些标记只会排除内容，不能新增路径或把元数据提升为源码证据。
 
 `TokenEstimatorCalibration` 默认仍为 2 UTF-8 bytes/token。持久化状态只包含 provider/model identity、数值比例/样本数和 `lastObservedAtMs`，绝不保存 Prompt、源码、Finding、Judgment 或 Credential。其他模型写 Store 不会给陈旧 calibration 条目续命。
 

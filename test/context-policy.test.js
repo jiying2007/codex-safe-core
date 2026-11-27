@@ -152,7 +152,7 @@ test('lossless oversized hunk splitting recognizes real +++/--- code prefixes',(
 
 test('semantic context bounds huge binary and source path inventories without starving changed source evidence',()=>{
  const files=[...Array.from({length:900},(_,i)=>'artifacts/'+String(i).padStart(4,'0')+'.BIN'),'src/critical.c'];
- const diff=['diff --git a/src/critical.c b/src/critical.c','--- a/src/critical.c','+++ b/src/critical.c','@@ -1 +1 @@','-old','+critical_fix'].join('\\n');
+ const diff=['diff --git a/src/critical.c b/src/critical.c','--- a/src/critical.c','+++ b/src/critical.c','@@ -1 +1 @@','-old','+critical_fix'].join('\n');
  const result=core.buildSemanticContext({files,diff,maxBytes:4096});
  assert.ok(Buffer.byteLength(result.text,'utf8')<=4096);
  assert.equal(result.metadataBudgetBytes,819);
@@ -163,7 +163,7 @@ test('semantic context bounds huge binary and source path inventories without st
 });
 test('uppercase binary extensions remain metadata-only in semantic context',()=>{
  const files=['firmware/IMAGE.BIN'];
- const diff=['diff --git a/firmware/IMAGE.BIN b/firmware/IMAGE.BIN','Binary files a/firmware/IMAGE.BIN and b/firmware/IMAGE.BIN differ'].join('\\n');
+ const diff=['diff --git a/firmware/IMAGE.BIN b/firmware/IMAGE.BIN','Binary files a/firmware/IMAGE.BIN and b/firmware/IMAGE.BIN differ'].join('\n');
  const result=core.buildSemanticContext({files,diff,maxBytes:4096});
  assert.deepEqual(result.binaryFiles,files);
  assert.doesNotMatch(result.text,/Binary files .*\\n.*\\+payload/);
@@ -185,4 +185,58 @@ test('semantic inventory and source sections use actual newlines, never escaped 
  assert.ok(result.text.includes('--- SOURCE DIFFS ---\n'));
  assert.ok(result.text.includes('+new'));
  assert.equal(result.text.includes(String.raw`\n`),false);
+});
+
+test('Git binary metadata excludes unknown-extension payloads from semantic and review contexts',()=>{
+ const files=['firmware/update.dat','firmware/image','src/main.c'];
+ const diff=[
+  'diff --git a/firmware/update.dat b/firmware/update.dat',
+  'index 1111111..2222222 100644',
+  'GIT binary patch',
+  'literal 1000000',
+  'BINARY_SENTINEL_'.repeat(100000),
+  'diff --git a/firmware/image b/firmware/image',
+  'Binary files a/firmware/image and b/firmware/image differ',
+  'diff --git a/src/main.c b/src/main.c',
+  '--- a/src/main.c','+++ b/src/main.c','@@ -1 +1 @@',
+  '-old','+source_fix'
+ ].join('\n');
+ assert.deepEqual(core.splitUnifiedDiff(diff).map(block=>block.kind),['binary','binary','source']);
+ const context=core.buildSemanticContext({files,diff,maxBytes:4096});
+ assert.deepEqual(context.binaryFiles,files.slice(0,2));
+ assert.deepEqual(context.sourceFiles,['src/main.c']);
+ assert.deepEqual(context.includedSourceFiles,['src/main.c']);
+ assert.doesNotMatch(context.text,/BINARY_SENTINEL_|GIT binary patch|literal 1000000/);
+ assert.match(context.text,/\+source_fix/);
+ assert.ok(Buffer.byteLength(context.text,'utf8')<=4096);
+ const review=core.buildReviewEvidenceChunks({diff,maxBytes:4096});
+ assert.equal(review.complete,true);
+ assert.deepEqual(review.excluded,files.slice(0,2).map(path=>({path,kind:'binary'})));
+ assert.doesNotMatch(review.chunks.map(chunk=>chunk.text).join('\n'),/BINARY_SENTINEL_/);
+});
+
+test('binary inventory hints are metadata-only and cannot introduce files or source payloads',()=>{
+ const diff=['diff --git a/data b/data','--- a/data','+++ b/data',
+  '@@ -1 +1 @@','-old','+DO_NOT_SEND'].join('\n');
+ const context=core.buildSemanticContext({
+  files:['data','package-lock.json','firmware/image.bin'],
+  binaryPaths:['data','package-lock.json','not-staged'],
+  diff,maxBytes:4096
+ });
+ assert.deepEqual(context.sourceFiles,[]);
+ assert.deepEqual(context.binaryFiles,['data','package-lock.json','firmware/image.bin']);
+ assert.deepEqual(context.includedSourceFiles,[]);
+ assert.doesNotMatch(context.text,/DO_NOT_SEND|not-staged/);
+});
+
+test('binary marker text inside source hunks cannot suppress source evidence',()=>{
+ const diff=['diff --git a/docs/example.txt b/docs/example.txt',
+  '--- a/docs/example.txt','+++ b/docs/example.txt','@@ -1,2 +1,2 @@',
+  '-GIT binary patch','+GIT binary patch',
+  '-Binary files a/data and b/data differ','+Binary files a/data and b/data differ'].join('\n');
+ assert.equal(core.splitUnifiedDiff(diff)[0].kind,'source');
+ const context=core.buildSemanticContext({diff,maxBytes:4096});
+ assert.deepEqual(context.sourceFiles,['docs/example.txt']);
+ assert.deepEqual(context.binaryFiles,[]);
+ assert.match(context.text,/\+GIT binary patch/);
 });

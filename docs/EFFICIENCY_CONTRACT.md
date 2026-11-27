@@ -1,6 +1,6 @@
 # Family Efficiency Contract
 
-Codex Safe Core v4.18.12 centralizes generic model-cost and execution-efficiency primitives for all Family consumers.
+Codex Safe Core v4.18.13 centralizes generic model-cost and execution-efficiency primitives for all Family consumers.
 
 The contract is intentionally product-neutral:
 
@@ -22,6 +22,8 @@ The contract is intentionally product-neutral:
 - compare shadow candidate findings and usage without changing the production verdict;
 - reject promotion when minimum sample counts or quality constraints are not met, even when the candidate is cheaper;
 - report request estimates, actual usage and duration from structured Codex execution.
+
+`buildSemanticContext()` and `buildReviewEvidenceChunks()` honor Git binary metadata even when a file has no known binary extension. A caller that strips raw binary blocks can pass `binaryPaths` alongside its staged `files` inventory; these hints only exclude content and cannot add paths or promote metadata to source evidence.
 
 `TokenEstimatorCalibration` defaults to two UTF-8 bytes/token. Its persistent state contains only provider/model identity, numeric ratios/sample counts and `lastObservedAtMs`; it never retains prompts, source text, findings, judgments or credentials. Unrelated model writes cannot renew a stale calibration entry.
 

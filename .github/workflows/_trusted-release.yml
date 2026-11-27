@@ -319,9 +319,23 @@ jobs:
           # The immutable Core release has already passed its own attestation
           # and asset verification. A separate Family dispatch credential is
           # optional; its failure must be visible, not rewrite release truth.
-          if gh workflow run "Family Upgrade" --repo "$GITHUB_REPOSITORY" --ref main -f core_sha="$CORE_SHA" -f core_version="$CORE_VERSION" >/dev/null 2>&1; then
-            echo "Family Upgrade dispatched for Core ${CORE_VERSION} at ${CORE_SHA}." >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "::warning::Optional Family Upgrade dispatch was not accepted; verify the scoped FAMILY_BOT_TOKEN. Core release files and provenance were already validated."
-            echo "Core release complete; optional Family Upgrade dispatch FAILED and must be retried separately. Do not infer Family readiness." >> "$GITHUB_STEP_SUMMARY"
-          fi
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const {spawnSync}=require('node:child_process');
+          let result;
+          try {
+            result=spawnSync('gh',['workflow','run','family-upgrade.yml','--repo',process.env.GITHUB_REPOSITORY,'--ref','main','-f','core_sha='+process.env.CORE_SHA,'-f','core_version='+process.env.CORE_VERSION],{encoding:'utf8',timeout:30000,maxBuffer:8192,stdio:['ignore','ignore','pipe']});
+          } catch {
+            result={status:null,error:{code:'DISPATCH_ERROR'}};
+          }
+          const accepted=result.status===0&&!result.error;
+          const exit=Number.isInteger(result.status)&&result.status>=0&&result.status<=255?String(result.status):'unknown';
+          const match=String(result.stderr||'').slice(0,8192).match(/\bHTTP\s+([1-5]\d\d)\b/);
+          const http=match?match[1]:'unknown';
+          const category=result.error?.code==='ETIMEDOUT'?'timeout':result.error?.code==='ENOBUFS'?'output-limit':result.error?'process-error':'command-rejected';
+          const diagnostics='exit='+exit+', http='+http+', category='+category;
+          const summary=accepted?'Family Upgrade dispatched for Core '+process.env.CORE_VERSION+' at '+process.env.CORE_SHA+'.':'Core release complete; optional Family Upgrade dispatch FAILED and must be retried separately. Do not infer Family readiness. '+diagnostics+'.';
+          if(!accepted)console.warn('::warning::Optional Family Upgrade dispatch was not accepted ('+diagnostics+'). Core release files and provenance were already validated.');
+          try {fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,summary+'\n');}
+          catch {console.warn('::warning::Optional Family Upgrade dispatch summary could not be written.');}
+          NODE

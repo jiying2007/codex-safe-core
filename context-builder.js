@@ -94,12 +94,16 @@ function splitUnifiedDiff(diff){
  const blocks=[];
  for(let i=0;i<starts.length;i++){
    const block=text.slice(starts[i],starts[i+1]??text.length),header=block.split('\n',1)[0],paths=parseGitDiffHeaderPaths(header);
+   const metadata=block.split(/^@@ /m,1)[0];
    let file=paths?.new||'<unknown>';
    try{
-     const metadata=block.split(/^@@ /m,1)[0],plus=metadata.match(/^\+\+\+ (.*)$/m);
+     const plus=metadata.match(/^\+\+\+ (.*)$/m);
      if(plus){const name=parseGitFileHeaderPath(plus[0],'+++ ');file=name==='/dev/null'?(paths?.old||'<deleted>'):name;}
    }catch{file='<unknown>';}
-   blocks.push({path:file,text:block,kind:classifyPath(file)});
+   // Git's binary metadata is authoritative even without a known extension.
+   // Scan only metadata so text in a source hunk cannot change its classification.
+   const binary=/^(?:GIT binary patch|Binary files .+ and .+ differ)$/m.test(metadata);
+   blocks.push({path:file,text:block,kind:binary?'binary':classifyPath(file)});
  }
  return blocks;
 }
@@ -149,10 +153,14 @@ function boundedInventorySection(label, values, budget) {
  }
  return {text,omitted};
 }
-function buildSemanticContext({files=[],diff='',commits=[],maxBytes=512*1024}={}) {
+function buildSemanticContext({files=[],diff='',binaryPaths=[],commits=[],maxBytes=512*1024}={}) {
  const budget=clampBudget(maxBytes),diffBlocks=splitUnifiedDiff(diff);
  const paths=files.length?files:diffBlocks.map(block=>block.path).filter(path=>!path.startsWith('<'));
- const normalizedFiles=Array.from(new Set(paths)).map(file=>({path:file,kind:classifyPath(file)}));
+ // binaryPaths lets a caller retain metadata after removing raw binary blocks.
+ // It can only demote listed files to metadata, never promote them to source.
+ const binaries=new Set(binaryPaths);
+ for(const block of diffBlocks)if(block.kind==='binary')binaries.add(block.path);
+ const normalizedFiles=Array.from(new Set(paths)).map(file=>({path:file,kind:binaries.has(file)?'binary':classifyPath(file)}));
  const source=normalizedFiles.filter(file=>file.kind==='source');
  const generated=normalizedFiles.filter(file=>file.kind==='generated');
  const binary=normalizedFiles.filter(file=>file.kind==='binary');
@@ -168,7 +176,7 @@ function buildSemanticContext({files=[],diff='',commits=[],maxBytes=512*1024}={}
  }
  if(commits.length&&remaining>0)sections.push(boundedInventorySection('Commits',commits.slice(0,50),remaining).text);
  const header=sections.join('\n\n');
- const sourceBlocks=diffBlocks.filter(block=>block.kind==='source');
+ const sourceBlocks=diffBlocks.filter(block=>block.kind==='source'&&!binaries.has(block.path));
  const separator='\n\n--- SOURCE DIFFS ---\n';
  const reserved=byteLength(header+separator),remainingSource=Math.max(0,budget-reserved);
  const bounded=allocateSourceBlocks(sourceBlocks,remainingSource);

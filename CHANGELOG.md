@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.18.13
+
+- Repin every current Core reusable workflow, including release-integrity verification, and verify repeat repins are byte-identical.
+- Dispatch Family Upgrade by its stable workflow file and report only bounded numeric failure diagnostics; optional dispatch failures never rewrite immutable Core release status.
+- Honor Git binary metadata independently of filename extensions; keep binary content out of semantic source context and review chunks while retaining bounded path metadata.
+- Allow consumers to preserve binary path classification after stripping raw binary blocks, without promoting any metadata-only content to source evidence.
+- Cover unknown extensions, extensionless binaries, binary inventory hints and source-hunk marker text; correct two legacy fixtures to use real Git line separators.
+
 ## 4.18.12
 
 - Fix bounded semantic-context inventory formatting to emit actual line separators instead of literal backslash-n sequences; add regression coverage for readable source and binary metadata sections.

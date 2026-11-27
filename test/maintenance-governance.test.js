@@ -121,7 +121,7 @@ test('two-phase coordinated upgrade validates all runtime-changing PRs before me
   assert.doesNotMatch(workflow,/gh workflow run "Family Compatibility"/);
 });
 
-test('trusted immutable Core release optionally dispatches coordinated Family Upgrade',()=>{const trusted=fs.readFileSync(path.join(root,'.github','workflows','_trusted-release.yml'),'utf8');assert.match(trusted,/Dispatch coordinated active-consumer upgrade when authorized/);assert.match(trusted,/gh workflow run "Family Upgrade"/);assert.match(trusted,/FAMILY_BOT_TOKEN/);assert.match(trusted,/coordinated Family Upgrade is deferred/);assert.doesNotMatch(trusted,/refusing to publish an uncoordinated Core release/);});
+test('trusted immutable Core release optionally dispatches coordinated Family Upgrade',()=>{const trusted=fs.readFileSync(path.join(root,'.github','workflows','_trusted-release.yml'),'utf8');assert.match(trusted,/Dispatch coordinated active-consumer upgrade when authorized/);assert.match(trusted,/spawnSync\('gh',\['workflow','run','family-upgrade\.yml'/);assert.match(trusted,/FAMILY_BOT_TOKEN/);assert.match(trusted,/coordinated Family Upgrade is deferred/);assert.doesNotMatch(trusted,/refusing to publish an uncoordinated Core release/);});
 
 test('repin synchronizes current Change verifier constants across Core patches',()=>{const oldSha='a'.repeat(40),sha='b'.repeat(40),text=`const core='${oldSha}';if(contract.safeCoreVersion!=='4.12.3'||contract.safeCoreCommit!==core)fail('family Core pin must remain exact');`,out=syncVerifierText(text,{sha,version:'4.12.4'});assert.match(out,new RegExp(`const core='${sha}'`));assert.match(out,/contract\.safeCoreVersion!=='4\.12\.4'/);assert.doesNotMatch(out,/4\.12\.3/);});
 test('repin synchronizes derived Core assertions, runtime digest and reusable workflow pins',t=>{
@@ -132,8 +132,11 @@ test('repin synchronizes derived Core assertions, runtime digest and reusable wo
   assert.equal((out.match(new RegExp(sha,'g'))||[]).length,2);assert.match(out,new RegExp(runtime));
   fs.writeFileSync(file,`uses: jiying2007/codex-safe-core/.github/workflows/family-release-guard.yml@${old}\nwith:\n  expected_core_sha: ${old}\nreceipt: jiying2007/codex-safe-core/.github/workflows/distribution-receipt.yml@${old}\nintegrity: jiying2007/codex-safe-core/.github/workflows/consumer-release-integrity.yml@${old}\n`);
   syncReusableWorkflowPins(dir,sha);
-  const value=fs.readFileSync(file,'utf8');assert.equal((value.match(new RegExp(sha,'g'))||[]).length,3);
-  assert.match(value,new RegExp(`consumer-release-integrity\\.yml@${old}`));
+  const value=fs.readFileSync(file,'utf8');assert.equal((value.match(new RegExp(sha,'g'))||[]).length,4);
+  assert.match(value,new RegExp(`consumer-release-integrity\\.yml@${sha}`));
+  assert.doesNotMatch(value,new RegExp(`consumer-release-integrity\\.yml@${old}`));
+  syncReusableWorkflowPins(dir,sha);
+  assert.equal(fs.readFileSync(file,'utf8'),value);
 });
 test('repin synchronizes current docs without rewriting unrelated historical versions',()=>{const oldSha='a'.repeat(40),newSha='b'.repeat(40),text=`Codex Safe Core v4.12.3 current ${oldSha}; migration from Core 4.9.0 stays historical.`,out=syncCurrentIdentityText(text,{oldSha,newSha,oldVersion:'4.12.3',newVersion:'4.12.4'});assert.match(out,/Codex Safe Core v4\.12\.4/);assert.match(out,new RegExp(newSha));assert.match(out,/Core 4\.9\.0 stays historical/);for(const required of ['docs/DEPLOYMENT.md','docs/DEPLOYMENT.zh-CN.md','OPERATIONS.md','docs/GETTING_STARTED.md'])assert.ok(CURRENT_STATE_DOCS.includes(required),`missing current-state repin path: ${required}`);assert.equal(CURRENT_STATE_DOCS.includes('docs/OPERATIONS.md'),false);});
 test('repin updates bilingual exact-commit slash-version identity without touching unrelated history',()=>{
