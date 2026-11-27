@@ -184,5 +184,5 @@ test('semantic inventory and source sections use actual newlines, never escaped 
  assert.ok(result.text.includes('Binary files, metadata only (1):\n- firmware/IMAGE.BIN'));
  assert.ok(result.text.includes('--- SOURCE DIFFS ---\n'));
  assert.ok(result.text.includes('+new'));
- assert.equal(result.text.includes('\\\\n'),false);
+ assert.equal(result.text.includes(String.raw`\n`),false);
 });
