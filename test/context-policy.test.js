@@ -177,12 +177,12 @@ test('semantic inventory and source sections use actual newlines, never escaped 
   '@@ -1 +1 @@',
   '-old',
   '+new'
- ].join('\\n');
+ ].join('\n');
  const result=core.buildSemanticContext({files:['src/main.c','firmware/IMAGE.BIN'],diff,maxBytes:4096});
- assert.ok(result.text.includes('Changed files: 2\\n'));
- assert.ok(result.text.includes('Source files (1):\\n- src/main.c'));
- assert.ok(result.text.includes('Binary files, metadata only (1):\\n- firmware/IMAGE.BIN'));
- assert.ok(result.text.includes('--- SOURCE DIFFS ---\\n'));
+ assert.ok(result.text.includes('Changed files: 2\n'));
+ assert.ok(result.text.includes('Source files (1):\n- src/main.c'));
+ assert.ok(result.text.includes('Binary files, metadata only (1):\n- firmware/IMAGE.BIN'));
+ assert.ok(result.text.includes('--- SOURCE DIFFS ---\n'));
  assert.ok(result.text.includes('+new'));
  assert.equal(result.text.includes('\\\\n'),false);
 });
