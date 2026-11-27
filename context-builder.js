@@ -137,14 +137,14 @@ function boundedInventorySection(label, values, budget) {
  const heading=`${label} (${values.length}):`;
  let text=heading,omitted=0;
  for(const value of values){
-  const line='\\n- '+String(value);
-  const marker=`\\n- ... ${omitted+1} more omitted`;
+  const line='\n- '+String(value);
+  const marker=`\n- ... ${omitted+1} more omitted`;
   if(byteLength(text+line+marker)>budget){omitted++;continue;}
   text+=line;
  }
  if(omitted){
-  const marker=`\\n- ... ${omitted} more omitted`;
-  while(byteLength(text+marker)>budget&&text.length>heading.length)text=text.slice(0,text.lastIndexOf('\\n'));
+  const marker=`\n- ... ${omitted} more omitted`;
+  while(byteLength(text+marker)>budget&&text.length>heading.length)text=text.slice(0,text.lastIndexOf('\n'));
   if(byteLength(text+marker)<=budget)text+=marker;
  }
  return {text,omitted};
@@ -158,21 +158,21 @@ function buildSemanticContext({files=[],diff='',commits=[],maxBytes=512*1024}={}
  const binary=normalizedFiles.filter(file=>file.kind==='binary');
  const metadataBudget=Math.min(16*1024,Math.max(256,Math.floor(budget*0.2)));
  const fixed=`Changed files: ${normalizedFiles.length}`;
- let remaining=Math.max(0,metadataBudget-byteLength(fixed+'\\n'));
+ let remaining=Math.max(0,metadataBudget-byteLength(fixed+'\n'));
  const sections=[fixed];
  for(const [label,values] of [['Source files',source.map(file=>file.path)],['Generated/lock files, metadata only',generated.map(file=>file.path)],['Binary files, metadata only',binary.map(file=>file.path)]]){
   if(!values.length)continue;
   const section=boundedInventorySection(label,values,remaining);
   sections.push(section.text);
-  remaining=Math.max(0,remaining-byteLength(section.text+'\\n\\n'));
+  remaining=Math.max(0,remaining-byteLength(section.text+'\n\n'));
  }
  if(commits.length&&remaining>0)sections.push(boundedInventorySection('Commits',commits.slice(0,50),remaining).text);
- const header=sections.join('\\n\\n');
+ const header=sections.join('\n\n');
  const sourceBlocks=diffBlocks.filter(block=>block.kind==='source');
- const separator='\\n\\n--- SOURCE DIFFS ---\\n';
+ const separator='\n\n--- SOURCE DIFFS ---\n';
  const reserved=byteLength(header+separator),remainingSource=Math.max(0,budget-reserved);
  const bounded=allocateSourceBlocks(sourceBlocks,remainingSource);
- const suffix=bounded.truncatedFiles.length?`\\n\\n[semantic budget omitted or truncated ${bounded.truncatedFiles.length} source file(s)]`:'';
+ const suffix=bounded.truncatedFiles.length?`\n\n[semantic budget omitted or truncated ${bounded.truncatedFiles.length} source file(s)]`:'';
  const baseText=`${header}${separator}${bounded.text}`;
  const fullText=byteLength(baseText+suffix)<=budget?baseText+suffix:baseText;
  const inventoryBytes=normalizedFiles.reduce((n,file)=>n+byteLength(file.path)+3,0);

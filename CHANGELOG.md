@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.18.12
+
+- Fix bounded semantic-context inventory formatting to emit actual line separators instead of literal backslash-n sequences; add regression coverage for readable source and binary metadata sections.
+
+
 ## 4.18.11
 
 - Add a product-neutral request-context budget planner that reserves fixed prompt, output and safety capacity before allocating semantic context; final serialized requests retain the independent hard token gate.
