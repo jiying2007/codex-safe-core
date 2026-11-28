@@ -225,6 +225,7 @@ function verifyExternalReviewBenchmarks(root = path.resolve(__dirname, '..')) {
   const aacrNegative = aacrSource.assets.find(asset => asset.path === 'dataset/v1/negative_samples.json');
   const positiveAcquisition = aacrSource.snapshot.positiveAssetAcquisition;
   const aacrInspection = aacrSource.snapshot.negativeReferenceInspection;
+  const partitionOverlap = aacrInspection.positiveNegativePrOverlap;
   if (review.snapshotComplete !== true || review.records.length !== 25 || review.sources.length !== 25) {
     throw new Error('ReviewBench snapshot must contain the complete pinned 25-PR public test subset');
   }
@@ -398,7 +399,10 @@ function verifyExternalReviewBenchmarks(root = path.resolve(__dirname, '..')) {
       negativeNestedPaths: aacrInspection.nestedCommentPathsPresent,
       negativeNestedLineAnchors: aacrInspection.nestedCommentLineAnchorsPresent,
       explicitNegativeFilePathMapping: aacrInspection.explicitTopLevelFileOrPathField,
-      cleanNegativeEligible: aacrInspection.cleanNegativeEligible}),
+      cleanNegativeEligible: aacrInspection.cleanNegativeEligible,
+      positiveNegativePrOverlap: partitionOverlap.intersectionPrs,
+      uniqueAacrPrs: partitionOverlap.unionPrs,
+      reviewBenchOverlap: aacrInspection.reviewBenchOverlap.overlappingPrs}),
     uniquePullRequests: prs.size,
     distinctRepositories: repos.size,
     candidateGroupingUnits: groups.size,
