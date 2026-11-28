@@ -56,3 +56,31 @@ test('unlabeled PR, duplicated ID, invalid path or unknown category cannot fake 
    format:'reviewbench-golden',records,sourceRevision:'main'
  }),/revision/);
 });
+
+test('real pinned embedded ReviewBench label projection imports through the existing adapter',()=>{
+ const fixture=require('../quality/reviewbench-embedded-development.json');
+ assert.equal(fixture.partition,'development');
+ assert.equal(fixture.holdout,false);
+ assert.equal(fixture.freshModelExecution,false);
+ assert.equal(fixture.qualificationAuthority,false);
+ assert.equal(new Set(fixture.records.map(r=>r.pr.repo)).size,2);
+ const result=normalizeExternalReviewCorpus({format:'reviewbench-golden',sourceRevision:fixture.sourceRevision,records:fixture.records});
+ assert.equal(result.eligibleCases,2);
+ const labels=result.corpus.cases.flatMap(c=>c.expected);
+ assert.equal(labels.length,13);
+ assert.equal(labels.filter(x=>x.severity==='high').length,1);
+ assert.equal(labels.filter(x=>x.severity==='critical').length,0);
+ assert.ok(labels.some(x=>x.sourceCategory==='api-architecture'&&x.category==='api'));
+ assert.ok(labels.some(x=>x.sourceCategory==='testing'&&x.category==='test'));
+ for(const row of result.corpus.cases){
+   assert.match(row.provenance.base,/^[a-f0-9]{40}$/);
+   assert.match(row.provenance.head,/^[a-f0-9]{40}$/);
+ }
+});
+test('ReviewBench reliability crosswalk preserves original category and rejects unmapped labels',()=>{
+ const r={pr_key:'fixture',pr:{repo:'owner/repo',base,head},findings:[{file:'src/main.c',start_line:2,end_line:2,category:'reliability',severity:'high',tp_fp:'tp',scope:'introduced-by-pr'}]};
+ const x=normalizeExternalReviewCorpus({format:'reviewbench-golden',sourceRevision:rev,records:[r]});
+ assert.equal(x.corpus.cases[0].expected[0].category,'robustness');
+ assert.equal(x.corpus.cases[0].expected[0].sourceCategory,'reliability');
+ assert.throws(()=>normalizeExternalReviewCorpus({format:'reviewbench-golden',sourceRevision:rev,records:[{...r,findings:[{...r.findings[0],category:'unmapped-category'}]}]}),/Unsupported/);
+});
