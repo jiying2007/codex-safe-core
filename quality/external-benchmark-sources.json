@@ -143,7 +143,7 @@
         "imported": false,
         "partition": "candidate-only",
         "holdout": false,
-        "note": "AACR-Bench Apache-2.0 repository license and both immutable asset blobs are pinned. Positive v1 JSON was acquired and structurally audited through the GitHub blob API; no raw comment text or source code is copied into Safe Core. The 196 PR / 1,506 reference comments remain unimported and unused for model evaluation pending label crosswalk, root-cause adjudication, and original-project license review.",
+        "note": "AACR-Bench Apache-2.0 repository license and both immutable asset blobs are pinned. Positive v1 JSON was acquired and structurally audited through the GitHub blob API; no raw comment text or source code is copied into Safe Core. The 196 PR / 1,506 reference comments remain not imported and are not used for model evaluation pending label crosswalk, root-cause adjudication, and original-project license review.",
         "positiveAssetAcquisition": {
           "attempted": true,
           "acquired": true,
