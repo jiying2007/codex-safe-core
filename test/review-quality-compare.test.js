@@ -35,3 +35,36 @@ test('benchmark refuses missing results, fabricated unknown usage or incomparabl
    {...candidateResults[0],usage:null},candidateResults[1]]}),/incomplete real usage/);
  assert.throws(()=>compareQualityRuns({cases:[cases[0],cases[0]]},baseline,candidate),/Duplicate/);
 });
+
+test('offline comparison cannot coerce unknown usage or missing ground truth to zero',()=>{
+ const baseline={...identity,results:baseResults},candidate={...identity,results:candidateResults};
+ for(const value of [null,'100',true,-1,1.5,Number.MAX_SAFE_INTEGER+1]){
+   const usage={inputTokens:value,outputTokens:10};
+   assert.throws(()=>compareQualityRuns(corpus,baseline,{...candidate,results:[{...candidateResults[0],usage},candidateResults[1]]}),/incomplete real usage/);
+ }
+ assert.throws(()=>compareQualityRuns(corpus,baseline,{...candidate,results:[{...candidateResults[0],usage:{known:false,inputTokens:0,outputTokens:0}},candidateResults[1]]}),/incomplete real usage/);
+ const missing={cases:[{id:'bug'},cases[1]]};
+ assert.throws(()=>compareQualityRuns(missing,baseline,candidate),/ground truth/);
+ assert.throws(()=>compareQualityRuns({cases:[{expected:[]},cases[1]]},baseline,candidate),/invalid corpus case ID/);
+});
+test('equal aggregate high-risk recall cannot hide a lost baseline defect',()=>{
+ const expected=[{file:'src/motor.c',line:3,category:'correctness',severity:'high'},{file:'src/motor.c',line:9,category:'concurrency',severity:'high'}];
+ const c={cases:[{id:'bug',expected}]};
+ const id={...identity,corpusDigest:crypto.createHash('sha256').update(JSON.stringify(c.cases)).digest('hex')};
+ const run=(label,durationMs,validLine=true)=>({...id,results:[{id:'bug',findings:[{...label,validLine}],usage:{inputTokens:100,outputTokens:10},durationMs}]});
+ const report=compareQualityRuns(c,run(expected[0],30),run(expected[1],45));
+ assert.equal(report.delta.recall,0);
+ assert.equal(report.highRiskLabels.baselineRecall,0.5);
+ assert.equal(report.highRiskLabels.candidateRecall,0.5);
+ assert.equal(report.highRiskLabels.lost[0].expectedIndex,0);
+ assert.equal(report.highRiskLabels.gained[0].expectedIndex,1);
+ assert.equal(report.highRiskLabels.noKnownHighRiskRegression,false);
+ assert.equal(report.delta.p95DurationMs,15);
+ assert.equal(report.productionQualified,false);
+ const invalid=compareQualityRuns(c,run(expected[0],30),run(expected[0],45,false));
+ assert.equal(invalid.highRiskLabels.lost.length,1);
+ assert.equal(invalid.highRiskLabels.noKnownHighRiskRegression,false);
+ const preserved=compareQualityRuns(c,run(expected[0],30),run(expected[0],15));
+ assert.equal(preserved.highRiskLabels.lost.length,0);
+ assert.equal(preserved.highRiskLabels.noKnownHighRiskRegression,true);
+});
