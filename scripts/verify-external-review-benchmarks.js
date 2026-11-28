@@ -223,6 +223,7 @@ function verifyExternalReviewBenchmarks(root = path.resolve(__dirname, '..')) {
   const aacrSource = ledger.sources.find(source => source.id === 'alibaba-aacr-bench-2026');
   const aacrPositive = aacrSource.assets.find(asset => asset.path === 'dataset/v1/positive_samples.json');
   const aacrNegative = aacrSource.assets.find(asset => asset.path === 'dataset/v1/negative_samples.json');
+  const positiveAcquisition = aacrSource.snapshot.positiveAssetAcquisition;
   const aacrInspection = aacrSource.snapshot.negativeReferenceInspection;
   if (review.snapshotComplete !== true || review.records.length !== 25 || review.sources.length !== 25) {
     throw new Error('ReviewBench snapshot must contain the complete pinned 25-PR public test subset');
