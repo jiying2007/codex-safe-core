@@ -188,6 +188,10 @@ function verifyExternalReviewBenchmarks(root = path.resolve(__dirname, '..')) {
   requireSha(cpp.sourceBlobSha, 'CloudAEye corpus blob');
   requireSha(cpp.sourceLicenseBlobSha, 'CloudAEye license blob');
   validateLedgerBinding(ledger, review, cpp, embedded);
+  const aacrSource = ledger.sources.find(source => source.id === 'alibaba-aacr-bench-2026');
+  const aacrPositive = aacrSource.assets.find(asset => asset.path === 'dataset/v1/positive_samples.json');
+  const aacrNegative = aacrSource.assets.find(asset => asset.path === 'dataset/v1/negative_samples.json');
+  const aacrInspection = aacrSource.snapshot.negativeReferenceInspection;
   if (review.snapshotComplete !== true || review.records.length !== 25 || review.sources.length !== 25) {
     throw new Error('ReviewBench snapshot must contain the complete pinned 25-PR public test subset');
   }
@@ -353,10 +357,10 @@ function verifyExternalReviewBenchmarks(root = path.resolve(__dirname, '..')) {
     embedded: Object.freeze({prs: embedded.records.length, positiveFindings: embeddedPositive,
       highRiskCaseGroups: embeddedHighGroups.size}),
     aacr: Object.freeze({positiveReferences: aacrPositive.records, negativeReferences: aacrNegative.records,
-      positiveAssetAcquired: positiveAcquisition.acquired,
-      negativeCommentArrays: negativeInspection.commentsArrayPresent,
-      explicitNegativeFilePathMapping: negativeInspection.explicitTopLevelFileOrPathField,
-      cleanNegativeEligible: negativeInspection.cleanNegativeEligible}),
+      positiveAssetAcquired: aacrSource.snapshot.positiveAssetAcquisition.acquired,
+      negativeCommentArrays: aacrInspection.commentsArrayPresent,
+      explicitNegativeFilePathMapping: aacrInspection.explicitTopLevelFileOrPathField,
+      cleanNegativeEligible: aacrInspection.cleanNegativeEligible}),
     uniquePullRequests: prs.size,
     distinctRepositories: repos.size,
     candidateGroupingUnits: groups.size,
