@@ -48,6 +48,95 @@ function validateSource(source, label) {
   if (source.sourceCodeRedistributed !== false) throw new Error(label + ' must not redistribute upstream source code');
   rejectRawPayload(source, label);
 }
+function requireEqual(actual, expected, label) {
+  if (actual !== expected) throw new Error('External benchmark provenance mismatch: ' + label);
+}
+function validateLedgerBinding(ledger, review, cpp, embedded) {
+  if (ledger.schemaVersion !== 1 || ledger.kind !== 'external-review-benchmark-source-ledger' ||
+      ledger.status !== 'development-only-source-registration') {
+    throw new Error('External benchmark source ledger has an unsupported identity');
+  }
+  const policy = ledger.policy || {};
+  for (const key of [
+    'noAutomaticHoldout', 'noModelExecution', 'noPromotionAuthority',
+    'noCleanNegativeInferenceFromMissingLabels', 'requireExactRepositoryAndDatasetRevision',
+    'requireOriginalProjectLicenseReview'
+  ]) requireEqual(policy[key], true, 'policy.' + key);
+
+  const sources = ledger.sources || [];
+  const sourceById = id => {
+    const matches = sources.filter(source => source.id === id);
+    if (matches.length !== 1) throw new Error('External benchmark source ledger must contain exactly one ' + id);
+    return matches[0];
+  };
+  const assetByPath = (source, assetPath, label) => {
+    const matches = (source.assets || []).filter(asset => asset.path === assetPath);
+    if (matches.length !== 1) throw new Error('External benchmark ledger asset missing or duplicated: ' + label);
+    return matches[0];
+  };
+  const reviewSource = sourceById('github-reviewbench-2026');
+  requireEqual(reviewSource.repository, review.sourceRepository, 'ReviewBench repository');
+  requireEqual(reviewSource.revision, review.sourceRevision, 'ReviewBench revision');
+  requireSha(reviewSource.revision, 'ledger ReviewBench revision');
+  requireEqual(reviewSource.license.repositoryLicense, review.sourceLicense, 'ReviewBench repository license');
+  requireEqual(reviewSource.license.licenseBlobSha, review.sourceLicenseBlobSha, 'ReviewBench license blob');
+  requireSha(reviewSource.license.licenseBlobSha, 'ledger ReviewBench license blob');
+  const reviewManifest = assetByPath(reviewSource, review.sourceManifestPath, 'ReviewBench manifest');
+  requireEqual(reviewManifest.blobSha, review.sourceManifestBlobSha, 'ReviewBench manifest blob');
+  requireSha(reviewManifest.blobSha, 'ledger ReviewBench manifest blob');
+  requireEqual(reviewManifest.records, review.records.length, 'ReviewBench manifest record count');
+  const reviewGolden = assetByPath(reviewSource, 'golden/', 'ReviewBench golden directory');
+  requireEqual(typeof reviewGolden.role, 'string', 'ReviewBench golden role');
+
+  const cppSource = sourceById('cloudaeye-c-cpp-review-benchmark');
+  requireEqual(cppSource.repository, cpp.sourceRepository, 'CloudAEye repository');
+  requireEqual(cppSource.revision, cpp.sourceRevision, 'CloudAEye revision');
+  requireSha(cppSource.revision, 'ledger CloudAEye revision');
+  requireEqual(cppSource.license.repositoryLicense, cpp.sourceLicense, 'CloudAEye repository license');
+  requireEqual(cppSource.license.licenseBlobSha, cpp.sourceLicenseBlobSha, 'CloudAEye license blob');
+  requireSha(cppSource.license.licenseBlobSha, 'ledger CloudAEye license blob');
+  const cppAsset = assetByPath(cppSource, cpp.sourcePath, 'CloudAEye corpus');
+  requireEqual(cppAsset.blobSha, cpp.sourceBlobSha, 'CloudAEye corpus blob');
+  requireSha(cppAsset.blobSha, 'ledger CloudAEye corpus blob');
+  requireEqual(cppAsset.pullRequests, cpp.records.length, 'CloudAEye PR count');
+
+  const aacrSource = sourceById('alibaba-aacr-bench-2026');
+  requireEqual(aacrSource.repository, 'https://github.com/alibaba/aacr-bench', 'AACR repository');
+  requireSha(aacrSource.revision, 'AACR revision');
+  requireEqual(aacrSource.license.repositoryLicense, 'Apache-2.0', 'AACR repository license');
+  requireSha(aacrSource.license.licenseBlobSha, 'AACR license blob');
+  const aacrPositive = assetByPath(aacrSource, 'dataset/v1/positive_samples.json', 'AACR positive references');
+  const aacrNegative = assetByPath(aacrSource, 'dataset/v1/negative_samples.json', 'AACR negative references');
+  requireSha(aacrPositive.blobSha, 'AACR positive asset blob');
+  requireSha(aacrNegative.blobSha, 'AACR negative asset blob');
+  requireEqual(aacrPositive.records, 196, 'AACR positive reference count');
+  requireEqual(aacrNegative.records, 155, 'AACR negative reference count');
+  requireEqual(aacrSource.snapshot.imported, false, 'AACR must remain unimported');
+  requireEqual(aacrSource.snapshot.partition, 'candidate-only', 'AACR partition');
+  requireEqual(aacrSource.snapshot.holdout, false, 'AACR holdout');
+  requireEqual(aacrSource.snapshot.note.includes('not used for model evaluation'), true, 'AACR evaluation exclusion');
+
+  requireEqual(embedded.sourceRepository, reviewSource.repository, 'embedded ReviewBench repository');
+  requireEqual(embedded.sourceRevision, reviewSource.revision, 'embedded ReviewBench revision');
+  requireEqual(embedded.sourceLicense, reviewSource.license.repositoryLicense, 'embedded ReviewBench license');
+  requireEqual(embedded.sources.length, embedded.records.length, 'embedded source/record count');
+  for (const source of embedded.sources) {
+    requireSha(source.sourceBlobSha, 'embedded golden blob');
+    requireSha(source.base, 'embedded source base');
+    requireSha(source.head, 'embedded source head');
+    const record = embedded.records.find(item =>
+      item.pr && item.pr.repo === source.repo &&
+      item.pr.base === source.base && item.pr.head === source.head);
+    if (!record) throw new Error('Embedded golden source identity does not match a projected PR record');
+    if (!String(source.projectLicenseUrl || '').includes(source.head)) {
+      throw new Error('Embedded project license URL is not pinned to the source Head');
+    }
+  }
+  requireEqual(ledger.acceptance.independentHoldoutAvailable, false, 'ledger holdout authority');
+  requireEqual(ledger.acceptance.liveModelEvaluationPerformed, false, 'ledger model execution authority');
+  requireEqual(ledger.acceptance.tokenOrCostSavingsEstablished, false, 'ledger cost authority');
+  requireEqual(ledger.acceptance.embeddedProductionQualificationEstablished, false, 'ledger production qualification');
+}
 function prNumber(record) {
   if (Number.isSafeInteger(record.pr && record.pr.pr_number) && record.pr.pr_number > 0) return record.pr.pr_number;
   const match = String(record.pr_key || '').match(new RegExp('_([0-9]+)-[a-f0-9]{8}$', 'i'));
@@ -67,6 +156,7 @@ function verifyExternalReviewBenchmarks(root = path.resolve(__dirname, '..')) {
   const review = readJson(root, 'quality/reviewbench-public-test-development-v1.json');
   const cpp = readJson(root, 'quality/cloudae-cpp-development-v1.json');
   const embedded = readJson(root, 'quality/reviewbench-embedded-development.json');
+  const ledger = readJson(root, 'quality/external-benchmark-sources.json');
   const pkg = readJson(root, 'package.json');
 
   validateSource(review, 'ReviewBench');
@@ -84,6 +174,7 @@ function verifyExternalReviewBenchmarks(root = path.resolve(__dirname, '..')) {
   requireSha(review.sourceLicenseBlobSha, 'ReviewBench license blob');
   requireSha(cpp.sourceBlobSha, 'CloudAEye corpus blob');
   requireSha(cpp.sourceLicenseBlobSha, 'CloudAEye license blob');
+  validateLedgerBinding(ledger, review, cpp, embedded);
   if (review.snapshotComplete !== true || review.records.length !== 25 || review.sources.length !== 25) {
     throw new Error('ReviewBench snapshot must contain the complete pinned 25-PR public test subset');
   }
@@ -220,6 +311,19 @@ function verifyExternalReviewBenchmarks(root = path.resolve(__dirname, '..')) {
     cpp.rootCauseIndependenceVerified === true && embedded.rootCauseIndependenceVerified === true;
   const freshModelExecution = review.freshModelExecution === true &&
     cpp.freshModelExecution === true && embedded.freshModelExecution === true;
+  const derivedSummary = {
+    uniquePullRequests: prs.size,
+    distinctRepositories: repos.size,
+    candidateGroupingUnits: groups.size,
+    highRiskCandidateGroups: highGroups.size,
+    cleanNegativeCases,
+    blindHoldoutCases: holdoutCases,
+    independentRootCauseAdjudication: independenceVerified,
+    freshModelExecution
+  };
+  for (const [key, value] of Object.entries(derivedSummary)) {
+    requireEqual(ledger.executionSummary && ledger.executionSummary[key], value, 'executionSummary.' + key);
+  }
   const blockers = [];
   if (!independenceVerified) blockers.push('root_cause_independence_not_independently_adjudicated');
   if (cleanNegativeCases < 1) blockers.push('clean_negative_cases_missing');
