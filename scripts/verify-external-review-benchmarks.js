@@ -149,6 +149,17 @@ function validateLedgerBinding(ledger, review, cpp, embedded) {
     aacrNegative.records, 'AACR negative language distribution');
   requireEqual(Object.values(negativeInspection.commentOriginCounts || {}).reduce((sum, count) => sum + count, 0),
     negativeInspection.commentRecords, 'AACR negative comment-origin distribution');
+  const partitionOverlap = negativeInspection.positiveNegativePrOverlap || {};
+  requireEqual(partitionOverlap.positiveRows, aacrPositive.records, 'AACR positive PR rows');
+  requireEqual(partitionOverlap.negativeRows, aacrNegative.records, 'AACR negative PR rows');
+  requireEqual(partitionOverlap.intersectionPrs, 151, 'AACR positive/negative PR overlap');
+  requireEqual(partitionOverlap.positiveOnlyPrs, 45, 'AACR positive-only PRs');
+  requireEqual(partitionOverlap.negativeOnlyPrs, 4, 'AACR negative-only PRs');
+  requireEqual(partitionOverlap.unionPrs, 200, 'AACR unique PR union');
+  requireEqual(partitionOverlap.positiveRows + partitionOverlap.negativeRows - partitionOverlap.intersectionPrs,
+    partitionOverlap.unionPrs, 'AACR partition overlap arithmetic');
+  requireEqual(negativeInspection.reviewBenchOverlap?.reviewBenchManifestRecords, 219, 'ReviewBench manifest PR count');
+  requireEqual(negativeInspection.reviewBenchOverlap?.overlappingPrs, 0, 'AACR/ReviewBench PR overlap');
 
   requireEqual(embedded.sourceRepository, reviewSource.repository, 'embedded ReviewBench repository');
   requireEqual(embedded.sourceRevision, reviewSource.revision, 'embedded ReviewBench revision');
