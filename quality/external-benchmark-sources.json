@@ -44,7 +44,22 @@
         "The 25-task test set is a development set, not a leaderboard-equivalent full evaluation.",
         "TP-empty PRs are unlabeled for this adapter and must not be converted into clean negatives.",
         "The corpus is cross-language and has limited direct embedded coverage; a FreeRTOS PR appears in the full corpus but not the 25-task test partition."
-      ]
+      ],
+      "snapshot": {
+        "path": "quality/reviewbench-public-test-development-v1.json",
+        "records": 25,
+        "uniquePullRequests": 25,
+        "uniqueRepositories": 25,
+        "positiveFindings": 308,
+        "falsePositiveReferences": 213,
+        "highRiskCaseGroups": 12,
+        "partition": "development",
+        "holdout": false,
+        "cleanNegativeCases": 0,
+        "rootCauseIndependenceVerified": false,
+        "freshModelExecution": false,
+        "qualificationAuthority": false
+      }
     },
     {
       "id": "alibaba-aacr-bench-2026",
@@ -74,7 +89,13 @@
         "Negative sample comments are not equivalent to independently adjudicated clean PRs.",
         "Do not import a positive label without exact file/line mapping and human-adjudicated defect provenance.",
         "Original third-party project licenses must be checked per source snapshot."
-      ]
+      ],
+      "snapshot": {
+        "imported": false,
+        "partition": "candidate-only",
+        "holdout": false,
+        "note": "Source and Apache-2.0 license are registered; large positive/negative JSON snapshots were not imported or used for model evaluation."
+      }
     },
     {
       "id": "cloudaeye-c-cpp-review-benchmark",
@@ -99,7 +120,22 @@
         "Only six independent root-cause groups: do not treat 20 findings as 20 independent samples.",
         "Severity and category taxonomies differ from Safe Core; require an explicit crosswalk and preserve source labels.",
         "The set is small and cannot independently support model promotion."
-      ]
+      ],
+      "snapshot": {
+        "path": "quality/cloudae-cpp-development-v1.json",
+        "records": 16,
+        "uniquePullRequests": 16,
+        "uniqueRepositories": 13,
+        "positiveFindings": 20,
+        "rootCauseGroups": 6,
+        "highRiskRootCauseGroups": 5,
+        "partition": "development",
+        "holdout": false,
+        "cleanNegativeCases": 0,
+        "rootCauseIndependenceVerified": false,
+        "freshModelExecution": false,
+        "qualificationAuthority": false
+      }
     }
   ],
   "acceptance": {
@@ -108,5 +144,16 @@
     "liveModelEvaluationPerformed": false,
     "tokenOrCostSavingsEstablished": false,
     "embeddedProductionQualificationEstablished": false
+  },
+  "executionSummary": {
+    "uniquePullRequests": 43,
+    "distinctRepositories": 40,
+    "candidateGroupingUnits": 33,
+    "highRiskCandidateGroups": 18,
+    "cleanNegativeCases": 0,
+    "blindHoldoutCases": 0,
+    "independentRootCauseAdjudication": false,
+    "freshModelExecution": false,
+    "competitionQualified": false
   }
 }
