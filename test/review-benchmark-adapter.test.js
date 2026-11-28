@@ -96,6 +96,10 @@ test('external benchmark snapshots are provenance-bound and cannot qualify model
  assert.equal(result.cloudae.rootCauseGroups,6);
  assert.equal(result.cloudae.highRiskRootCauseGroups,5);
  assert.equal(result.embedded.prs,2);
+ assert.deepEqual(result.aacr,{
+   positiveReferences:196,negativeReferences:155,positiveAssetAcquired:false,
+   negativeCommentArrays:true,explicitNegativeFilePathMapping:false,cleanNegativeEligible:false
+ });
  assert.equal(result.uniquePullRequests,43);
  assert.equal(result.distinctRepositories,40);
  assert.equal(result.candidateGroupingUnits,33);
@@ -157,4 +161,12 @@ test('external benchmark source ledger rejects revision, asset and PR identity d
  aacrLedger.sources.find(x=>x.id==='alibaba-aacr-bench-2026').snapshot.imported=true;
  fs.writeFileSync(aacrLedgerPath,JSON.stringify(aacrLedger));
  assert.throws(()=>verifyExternalReviewBenchmarks(aacrRoot),/AACR must remain unimported/);
+
+ const shapeRoot=fixture();
+ const shapeLedgerPath=path.join(shapeRoot,'quality/external-benchmark-sources.json');
+ const shapeLedger=JSON.parse(fs.readFileSync(shapeLedgerPath,'utf8'));
+ shapeLedger.sources.find(x=>x.id==='alibaba-aacr-bench-2026')
+   .snapshot.negativeReferenceInspection.explicitTopLevelFileOrPathField=true;
+ fs.writeFileSync(shapeLedgerPath,JSON.stringify(shapeLedger));
+ assert.throws(()=>verifyExternalReviewBenchmarks(shapeRoot),/AACR negative file\/path mapping/);
 });
