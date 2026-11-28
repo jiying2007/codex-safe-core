@@ -109,9 +109,12 @@ function buildFunctionImpactEvidence({diff='',candidates=[],maxSymbols=32,maxEdg
  for(const item of parsed.lines){
    if(item.side!=='new')continue;
    const symbol=definition(item.text,item.path);
-   if(!symbol||seedMap.has(symbol))continue;
-   seedMap.set(symbol,{name:symbol,path:item.path,line:item.line,kind:'changed_declaration',
-     identity:hash(item.path+'\0'+symbol+'\0'+item.line).slice(0,20)});
+   if(!symbol)continue;
+   const identity=hash(item.path+'\0'+symbol+'\0'+item.line).slice(0,20);
+   // Same-spelling static functions and declarations in different translation
+   // units are different seeds; lexical edges remain unverified candidates.
+   if(seedMap.has(identity))continue;
+   seedMap.set(identity,{name:symbol,path:item.path,line:item.line,kind:'changed_declaration',identity});
    if(seedMap.size>=symbolLimit){reasons.push('symbol_limit');break;}
  }
  if(!seedMap.size){
@@ -195,6 +198,46 @@ function buildReviewRiskEvidence({diff='',maxSignals=24}={}){
    complete:parsed.complete&&reasons.length===0,reasons:Object.freeze([...new Set(reasons)]),
    disclaimer:'Risk hints prioritize review; no rule creates a confirmed finding.'});
 }
+// Both consumers pass the actual delivered chunk, not its global path list.
+// A hint cannot migrate to another hunk or old/new side of the same file.
+function selectChunkStructuralEvidence({diff='',risk=null,functionImpact=null,maxRisk=12,maxSeeds=8,maxEdges=12}={}){
+ const riskLimit=boundedInt(maxRisk,12,128),seedLimit=boundedInt(maxSeeds,8,256),edgeLimit=boundedInt(maxEdges,12,512);
+ const parsed=parseChangedLines(diff),reasons=new Set(parsed.reasons);
+ const key=(path,side,line)=>JSON.stringify([path,side,line]);
+ const byLine=new Map(parsed.lines.map(row=>[key(row.path,row.side,row.line),row.text]));
+ const result={risk:[],seeds:[],edges:[]};
+ if(!parsed.complete)return Object.freeze({risk:Object.freeze([]),seeds:Object.freeze([]),edges:Object.freeze([]),complete:false,truncated:true,reasons:Object.freeze([...reasons]),verifiedResolution:false});
+ const scopedRisk=[];
+ for(const hint of risk?.signals||[]){
+   const coordinate=key(hint.path,hint.side,hint.line);
+   if(!byLine.has(coordinate))continue;
+   if(hint.textDigest!==hash(byLine.get(coordinate))){reasons.add('risk_text_digest_mismatch');continue;}
+   scopedRisk.push(hint);
+ }
+ if(scopedRisk.length>riskLimit)reasons.add('chunk_risk_limit');
+ result.risk=scopedRisk.slice(0,riskLimit);
+ const scopedSeeds=[];
+ for(const seed of functionImpact?.seeds||[]){
+   const coordinate=key(seed.path,'new',seed.line);
+   if(!byLine.has(coordinate))continue;
+   if(definition(byLine.get(coordinate),seed.path)!==seed.name||seed.identity!==hash(seed.path+'\0'+seed.name+'\0'+seed.line).slice(0,20)){reasons.add('seed_identity_mismatch');continue;}
+   scopedSeeds.push(seed);
+ }
+ if(scopedSeeds.length>seedLimit)reasons.add('chunk_seed_limit');
+ result.seeds=scopedSeeds.slice(0,seedLimit);
+ const selected=new Map(result.seeds.map(seed=>[seed.identity,seed]));
+ const scopedEdges=[];
+ for(const edge of functionImpact?.edges||[]){
+   const seed=selected.get(edge.to?.identity);
+   if(!seed)continue;
+   if(edge.verifiedResolution!==false||edge.to.path!==seed.path||edge.to.line!==seed.line||edge.symbol!==seed.name){reasons.add('edge_identity_mismatch');continue;}
+   scopedEdges.push(edge);
+ }
+ if(scopedEdges.length>edgeLimit)reasons.add('chunk_edge_limit');
+ result.edges=scopedEdges.slice(0,edgeLimit);
+ return Object.freeze({risk:Object.freeze(result.risk),seeds:Object.freeze(result.seeds),edges:Object.freeze(result.edges),
+   complete:reasons.size===0,truncated:reasons.size>0,reasons:Object.freeze([...reasons]),verifiedResolution:false});
+}
 function verifyFindingEvidence({diff='',findings=[],maxFindings=128}={}){
  if(!Array.isArray(findings))throw new TypeError('Findings must be an array');
  const cap=boundedInt(maxFindings,128,512);
@@ -234,4 +277,4 @@ function verifyFindingEvidence({diff='',findings=[],maxFindings=128}={}){
    automaticallyRemoved:0,findings:Object.freeze([...findings]),
    disclaimer:'Verifies changed-line anchors only, never proves or disproves a semantic defect.'});
 }
-module.exports=Object.freeze({parseChangedLines,buildFunctionImpactEvidence,buildReviewRiskEvidence,verifyFindingEvidence});
+module.exports=Object.freeze({parseChangedLines,buildFunctionImpactEvidence,buildReviewRiskEvidence,selectChunkStructuralEvidence,verifyFindingEvidence});

@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.18.14
+
+- Preserve separate lexical function seeds for same-spelling declarations in different files or changed locations; candidates never claim compiler-resolved calls.
+- Expose one bounded, pure structural-evidence selector for Review and Service: exact delivered chunk coordinates, side, risk text digest and lexical seed/edge identity, with explicit limit and invalid-input diagnostics.
+- Cover split hunks in the same file, stale hint content, malformed hunks and same-named C declarations. No new provider, schema, execution authority or model call. Consumers must explicitly adopt the released selector and prove their own integration.
+
 ## 4.18.13
 
 - Repin every current Core reusable workflow, including release-integrity verification, and verify repeat repins are byte-identical.

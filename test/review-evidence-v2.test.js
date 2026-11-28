@@ -2,7 +2,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const crypto=require('node:crypto');
-const {buildFunctionImpactEvidence,buildReviewRiskEvidence,verifyFindingEvidence,parseChangedLines}=require('../review-evidence-v2');
+const {buildFunctionImpactEvidence,buildReviewRiskEvidence,selectChunkStructuralEvidence,verifyFindingEvidence,parseChangedLines}=require('../review-evidence-v2');
 const hash=value=>crypto.createHash('sha256').update(value).digest('hex');
 const diff=[
  'diff --git a/src/motor.c b/src/motor.c',
@@ -165,4 +165,47 @@ test('valid separated, insertion, deletion and no-newline hunks retain exact old
  ]});
  assert.equal(proof.verifiedAnchorCount,4);
  assert.equal(proof.complete,true);
+});
+
+test('same-spelling C declarations in separate files preserve separate candidate identities',()=>{
+ const one=(file,line)=>`diff --git a/${file} b/${file}\n--- a/${file}\n+++ b/${file}\n@@ -${line} +${line} @@\n-static int init(void) { return 0; }\n+static int init(void) { return 1; }`;
+ const a=one('src/first.c',3),b=one('src/second.c',7);
+ const graph=buildFunctionImpactEvidence({diff:a+'\n'+b,candidates:[{path:'src/caller.c',content:'void caller(void) {\n  init();\n}\n'}]});
+ assert.equal(graph.seeds.length,2);
+ assert.notEqual(graph.seeds[0].identity,graph.seeds[1].identity);
+ assert.equal(graph.edges.length,2);
+ assert.ok(graph.edges.every(edge=>edge.verifiedResolution===false));
+ for(const [chunk,path] of [[a,'src/first.c'],[b,'src/second.c']]){
+   const selected=selectChunkStructuralEvidence({diff:chunk,functionImpact:graph});
+   assert.equal(selected.complete,true);
+   assert.equal(selected.seeds.length,1);
+   assert.equal(selected.seeds[0].path,path);
+   assert.equal(selected.edges.length,1);
+   assert.equal(selected.edges[0].to.path,path);
+ }
+});
+test('structural hints are scoped to exact delivered hunk coordinates and content',()=>{
+ const header='diff --git a/src/irq.c b/src/irq.c\n--- a/src/irq.c\n+++ b/src/irq.c\n';
+ const first='@@ -3 +3 @@\n-old\n+mutex_lock(&first);',second='@@ -9 +9 @@\n-old\n+mutex_lock(&second);';
+ const full=header+first+'\n'+second,risk=buildReviewRiskEvidence({diff:full});
+ assert.equal(risk.signals.length,2);
+ for(const [part,line] of [[first,3],[second,9]]){
+   const selected=selectChunkStructuralEvidence({diff:header+part,risk});
+   assert.equal(selected.complete,true);
+   assert.deepEqual(selected.risk.map(h=>h.line),[line]);
+ }
+ const changed=selectChunkStructuralEvidence({diff:header+first.replace('&first','&other'),risk});
+ assert.equal(changed.complete,false);
+ assert.deepEqual(changed.risk,[]);
+ assert.ok(changed.reasons.includes('risk_text_digest_mismatch'));
+ const capped=selectChunkStructuralEvidence({diff:full,risk,maxRisk:1});
+ assert.equal(capped.truncated,true);
+ assert.equal(capped.risk.length,1);
+ assert.ok(capped.reasons.includes('chunk_risk_limit'));
+ const malformed=selectChunkStructuralEvidence({diff:full+'\n+extra',risk});
+ assert.equal(malformed.complete,false);
+ assert.deepEqual(malformed.risk,[]);
+ const oldSide=selectChunkStructuralEvidence({diff:header+'@@ -3 +3 @@\n-mutex_lock(&first);\n+safe_call();',risk});
+ assert.equal(oldSide.risk.length,0);
+ assert.equal(oldSide.complete,false);
 });
