@@ -1,0 +1,531 @@
+{
+  "schemaVersion": 1,
+  "kind": "external-review-benchmark-snapshot",
+  "snapshotComplete": true,
+  "partition": "development",
+  "holdout": false,
+  "freshModelExecution": false,
+  "qualificationAuthority": false,
+  "sourceRepository": "https://github.com/CloudAEye/c_cpp_benchmark",
+  "sourceRevision": "60733901a3deef2c7128b883cde420fea86d2186",
+  "sourcePath": "benchmark_final16.json",
+  "sourceBlobSha": "f506c7edaf58cc4fc73998349140f5f9fe3632e7",
+  "sourceLicense": "MIT",
+  "sourceLicensePath": "LICENSE",
+  "sourceLicenseBlobSha": "9f78de19f41c0f62df0e40209e9a707ce05ecaea",
+  "sourceLicenseText": "MIT License\n\nCopyright (c) 2026 CloudAEye\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n",
+  "sourceCodeRedistributed": false,
+  "upstreamProjectLicensesVerified": false,
+  "projection": "Only public PR identity, exact base/head, finding path/line, severity/category, source root-cause group and verification score are retained. No source code, raw comments, review text, fix evidence, patches or diffs are copied.",
+  "groupingPolicy": "Preserve CloudAEye source root_cause_group labels. Independence is not independently re-adjudicated by this snapshot.",
+  "rootCauseIndependenceVerified": false,
+  "cleanNegativeCases": 0,
+  "positiveFindingCount": 20,
+  "highRiskRootCauseGroups": 5,
+  "rootCauseGroupCount": 6,
+  "categoryCrosswalk": {
+    "logic_error": "correctness",
+    "concurrency_safety": "concurrency",
+    "edge_case_handling": "robustness",
+    "error_handling": "robustness",
+    "code_clarity": "maintainability",
+    "code_signature": "api",
+    "dead_import": "maintainability"
+  },
+  "records": [
+    {
+      "id": "nlohmann/json#5163",
+      "prUrl": "https://github.com/nlohmann/json/pull/5163",
+      "pr": {
+        "repo": "https://github.com/nlohmann/json",
+        "pr_number": 5163,
+        "base": "f0bf4c731a53aab29ebde0234385b9e63bf70dcd",
+        "head": "ee4ee35212f2c168199a8d6aad434869c0297252"
+      },
+      "language": "C++",
+      "caseGroup": "cloudae:nlohmann/json#5163",
+      "rootCauseGroups": [
+        "rc4"
+      ],
+      "findings": [
+        {
+          "file": "tests/src/unit-regression2.cpp",
+          "line": 1279,
+          "endLine": 1279,
+          "category": "maintainability",
+          "sourceCategory": "code_clarity",
+          "severity": "low",
+          "rootCauseGroup": "rc4",
+          "sourceSignal": "resolved_in_review",
+          "fixVerified": 5
+        }
+      ]
+    },
+    {
+      "id": "dragonflydb/dragonfly#6011",
+      "prUrl": "https://github.com/dragonflydb/dragonfly/pull/6011",
+      "pr": {
+        "repo": "https://github.com/dragonflydb/dragonfly",
+        "pr_number": 6011,
+        "base": "0ceda9f2777a495190beb8b6be562b5c9b3e558c",
+        "head": "607c9bcca200124745af6c0d9781f4db4b8d3a81"
+      },
+      "language": "C++",
+      "caseGroup": "cloudae:dragonflydb/dragonfly#6011",
+      "rootCauseGroups": [
+        "rc7",
+        "rc6"
+      ],
+      "findings": [
+        {
+          "file": "src/facade/dragonfly_connection.cc",
+          "line": 2353,
+          "endLine": 2353,
+          "category": "concurrency",
+          "sourceCategory": "concurrency_safety",
+          "severity": "high",
+          "rootCauseGroup": "rc7",
+          "sourceSignal": "rejected",
+          "fixVerified": 4.5
+        },
+        {
+          "file": "src/facade/dragonfly_connection.cc",
+          "line": 2338,
+          "endLine": 2338,
+          "category": "correctness",
+          "sourceCategory": "logic_error",
+          "severity": "high",
+          "rootCauseGroup": "rc6",
+          "sourceSignal": "rejected",
+          "fixVerified": 4
+        }
+      ]
+    },
+    {
+      "id": "fastfetch-cli/fastfetch#2137",
+      "prUrl": "https://github.com/fastfetch-cli/fastfetch/pull/2137",
+      "pr": {
+        "repo": "https://github.com/fastfetch-cli/fastfetch",
+        "pr_number": 2137,
+        "base": "c851c39837e60465c676be5902318b6435eba1e2",
+        "head": "8561bf79b269ee8be1105c642aa8e4f1576d9d7b"
+      },
+      "language": "C",
+      "caseGroup": "cloudae:fastfetch-cli/fastfetch#2137",
+      "rootCauseGroups": [
+        "rc2"
+      ],
+      "findings": [
+        {
+          "file": "src/logo/builtin.c",
+          "line": 2695,
+          "endLine": 2695,
+          "category": "robustness",
+          "sourceCategory": "edge_case_handling",
+          "severity": "medium",
+          "rootCauseGroup": "rc2",
+          "sourceSignal": "resolved_in_review",
+          "fixVerified": 5
+        }
+      ]
+    },
+    {
+      "id": "carla-simulator/carla#9652",
+      "prUrl": "https://github.com/carla-simulator/carla/pull/9652",
+      "pr": {
+        "repo": "https://github.com/carla-simulator/carla",
+        "pr_number": 9652,
+        "base": "815b8ba2c92cd25ab4789565e7563fe86ddfc83a",
+        "head": "4ed53703369b03db47284c920c70ff17081bcd4c"
+      },
+      "language": "C++",
+      "caseGroup": "cloudae:carla-simulator/carla#9652",
+      "rootCauseGroups": [
+        "rc3",
+        "rc1"
+      ],
+      "findings": [
+        {
+          "file": "LibCarla/source/carla/road/Map.cpp",
+          "line": 1298,
+          "endLine": 1298,
+          "category": "correctness",
+          "sourceCategory": "logic_error",
+          "severity": "high",
+          "rootCauseGroup": "rc3",
+          "sourceSignal": "resolved_in_review",
+          "fixVerified": 3.5
+        },
+        {
+          "file": "LibCarla/source/carla/road/MeshFactory.cpp",
+          "line": 764,
+          "endLine": 764,
+          "category": "correctness",
+          "sourceCategory": "logic_error",
+          "severity": "medium",
+          "rootCauseGroup": "rc1",
+          "sourceSignal": "resolved_in_review",
+          "fixVerified": 5
+        }
+      ]
+    },
+    {
+      "id": "carla-simulator/carla#9653",
+      "prUrl": "https://github.com/carla-simulator/carla/pull/9653",
+      "pr": {
+        "repo": "https://github.com/carla-simulator/carla",
+        "pr_number": 9653,
+        "base": "b2948a2bad73e3188bf1f3e0133389ebcd6991c9",
+        "head": "7649e0aae8ef8c725d86ba9758c642fef310261f"
+      },
+      "language": "C++",
+      "caseGroup": "cloudae:carla-simulator/carla#9653",
+      "rootCauseGroups": [
+        "rc2"
+      ],
+      "findings": [
+        {
+          "file": "Unreal/CarlaUnreal/Plugins/Carla/Source/Carla/Util/BoundingBoxCalculator.cpp",
+          "line": 81,
+          "endLine": 81,
+          "category": "robustness",
+          "sourceCategory": "error_handling",
+          "severity": "high",
+          "rootCauseGroup": "rc2",
+          "sourceSignal": "resolved_in_review",
+          "fixVerified": 5
+        }
+      ]
+    },
+    {
+      "id": "libuv/libuv#4936",
+      "prUrl": "https://github.com/libuv/libuv/pull/4936",
+      "pr": {
+        "repo": "https://github.com/libuv/libuv",
+        "pr_number": 4936,
+        "base": "3e9ae1bca07f8155bc4249a21ec41ca2c86fdb93",
+        "head": "fa3aef007ade8c7d0a4f7f38c5d61cd8950271ff"
+      },
+      "language": "C",
+      "caseGroup": "cloudae:libuv/libuv#4936",
+      "rootCauseGroups": [
+        "rc3"
+      ],
+      "findings": [
+        {
+          "file": "src/win/fs.c",
+          "line": 445,
+          "endLine": 445,
+          "category": "correctness",
+          "sourceCategory": "logic_error",
+          "severity": "high",
+          "rootCauseGroup": "rc3",
+          "sourceSignal": "rejected",
+          "fixVerified": 5
+        }
+      ]
+    },
+    {
+      "id": "godotengine/godot#119999",
+      "prUrl": "https://github.com/godotengine/godot/pull/119999",
+      "pr": {
+        "repo": "https://github.com/godotengine/godot",
+        "pr_number": 119999,
+        "base": "72cc0fc9a75bf041e84b9d37e7e31e17cb114a9e",
+        "head": "532e204e5cd3216549ed18ccb96308da8f90e06f"
+      },
+      "language": "C++",
+      "caseGroup": "cloudae:godotengine/godot#119999",
+      "rootCauseGroups": [
+        "rc1"
+      ],
+      "findings": [
+        {
+          "file": "editor/project_manager/project_list.cpp",
+          "line": 179,
+          "endLine": 179,
+          "category": "correctness",
+          "sourceCategory": "logic_error",
+          "severity": "medium",
+          "rootCauseGroup": "rc1",
+          "sourceSignal": "resolved_in_review",
+          "fixVerified": 5
+        }
+      ]
+    },
+    {
+      "id": "libuv/libuv#5013",
+      "prUrl": "https://github.com/libuv/libuv/pull/5013",
+      "pr": {
+        "repo": "https://github.com/libuv/libuv",
+        "pr_number": 5013,
+        "base": "fa38eb43df15562492c03cfa54122f2430b275f0",
+        "head": "7cf90b0145821d949f919b07578d0c63b20da3cb"
+      },
+      "language": "C",
+      "caseGroup": "cloudae:libuv/libuv#5013",
+      "rootCauseGroups": [
+        "rc1"
+      ],
+      "findings": [
+        {
+          "file": "src/win/fs-event.c",
+          "line": 613,
+          "endLine": 613,
+          "category": "correctness",
+          "sourceCategory": "logic_error",
+          "severity": "medium",
+          "rootCauseGroup": "rc1",
+          "sourceSignal": "resolved_in_review",
+          "fixVerified": 5
+        }
+      ]
+    },
+    {
+      "id": "micropython/micropython#19080",
+      "prUrl": "https://github.com/micropython/micropython/pull/19080",
+      "pr": {
+        "repo": "https://github.com/micropython/micropython",
+        "pr_number": 19080,
+        "base": "44a569b637b56764582c3b652e7bc51b53c0df1d",
+        "head": "b8de9f797b5a8ffbac49d676ab746dce94d0a5b5"
+      },
+      "language": "C",
+      "caseGroup": "cloudae:micropython/micropython#19080",
+      "rootCauseGroups": [
+        "rc2"
+      ],
+      "findings": [
+        {
+          "file": "mpy-cross/main.c",
+          "line": 207,
+          "endLine": 207,
+          "category": "correctness",
+          "sourceCategory": "logic_error",
+          "severity": "medium",
+          "rootCauseGroup": "rc2",
+          "sourceSignal": "resolved_in_review",
+          "fixVerified": 5
+        }
+      ]
+    },
+    {
+      "id": "nginx/nginx#1361",
+      "prUrl": "https://github.com/nginx/nginx/pull/1361",
+      "pr": {
+        "repo": "https://github.com/nginx/nginx",
+        "pr_number": 1361,
+        "base": "c5f2afd50e63c94f3696d2d18bdd79ac70643eec",
+        "head": "dffa46e27bd103a2d601e4a75e55628e5f644146"
+      },
+      "language": "C",
+      "caseGroup": "cloudae:nginx/nginx#1361",
+      "rootCauseGroups": [
+        "rc1"
+      ],
+      "findings": [
+        {
+          "file": "src/event/ngx_event_openssl.c",
+          "line": 5734,
+          "endLine": 5734,
+          "category": "api",
+          "sourceCategory": "code_signature",
+          "severity": "medium",
+          "rootCauseGroup": "rc1",
+          "sourceSignal": "resolved_in_review",
+          "fixVerified": 5
+        }
+      ]
+    },
+    {
+      "id": "dragonflydb/dragonfly#7545",
+      "prUrl": "https://github.com/dragonflydb/dragonfly/pull/7545",
+      "pr": {
+        "repo": "https://github.com/dragonflydb/dragonfly",
+        "pr_number": 7545,
+        "base": "e87e04041c4d771ff76f2f52110e9d2e08b1b1a6",
+        "head": "0c7a33f78d7423571159ed731549b751ba5a3f1b"
+      },
+      "language": "C++",
+      "caseGroup": "cloudae:dragonflydb/dragonfly#7545",
+      "rootCauseGroups": [
+        "rc1"
+      ],
+      "findings": [
+        {
+          "file": "src/facade/ok_main.cc",
+          "line": 92,
+          "endLine": 92,
+          "category": "maintainability",
+          "sourceCategory": "dead_import",
+          "severity": "low",
+          "rootCauseGroup": "rc1",
+          "sourceSignal": "resolved_in_review",
+          "fixVerified": 5
+        }
+      ]
+    },
+    {
+      "id": "microsoft/terminal#18953",
+      "prUrl": "https://github.com/microsoft/terminal/pull/18953",
+      "pr": {
+        "repo": "https://github.com/microsoft/terminal",
+        "pr_number": 18953,
+        "base": "a258d7d3dfab1f5f6da52ed02d285927cb6bb70b",
+        "head": "ce1ba031d52844a29dd244ba23b9799b8023a5d4"
+      },
+      "language": "C++",
+      "caseGroup": "cloudae:microsoft/terminal#18953",
+      "rootCauseGroups": [
+        "rc2"
+      ],
+      "findings": [
+        {
+          "file": "src/cascadia/TerminalApp/TerminalPage.cpp",
+          "line": 4892,
+          "endLine": 4892,
+          "category": "correctness",
+          "sourceCategory": "logic_error",
+          "severity": "medium",
+          "rootCauseGroup": "rc2",
+          "sourceSignal": "rejected",
+          "fixVerified": 4.5
+        }
+      ]
+    },
+    {
+      "id": "opencv/opencv#29240",
+      "prUrl": "https://github.com/opencv/opencv/pull/29240",
+      "pr": {
+        "repo": "https://github.com/opencv/opencv",
+        "pr_number": 29240,
+        "base": "aed41fdabe3c5381395e2a7a8272c7519f3c289f",
+        "head": "a26c9b63fd92fbffa35c14cf922e630070ea0755"
+      },
+      "language": "C++",
+      "caseGroup": "cloudae:opencv/opencv#29240",
+      "rootCauseGroups": [
+        "rc2"
+      ],
+      "findings": [
+        {
+          "file": "modules/features2d/src/brisk.cpp",
+          "line": 2040,
+          "endLine": 2040,
+          "category": "correctness",
+          "sourceCategory": "logic_error",
+          "severity": "high",
+          "rootCauseGroup": "rc2",
+          "sourceSignal": "resolved_in_review",
+          "fixVerified": 5
+        }
+      ]
+    },
+    {
+      "id": "tesseract-ocr/tesseract#4138",
+      "prUrl": "https://github.com/tesseract-ocr/tesseract/pull/4138",
+      "pr": {
+        "repo": "https://github.com/tesseract-ocr/tesseract",
+        "pr_number": 4138,
+        "base": "063ad31a6018af928816ead25ffbb7584f667d22",
+        "head": "3173bfeda9f47e010c270363d6841f237b671fc9"
+      },
+      "language": "C++",
+      "caseGroup": "cloudae:tesseract-ocr/tesseract#4138",
+      "rootCauseGroups": [
+        "rc2"
+      ],
+      "findings": [
+        {
+          "file": "src/api/hocrrenderer.cpp",
+          "line": 504,
+          "endLine": 504,
+          "category": "correctness",
+          "sourceCategory": "logic_error",
+          "severity": "high",
+          "rootCauseGroup": "rc2",
+          "sourceSignal": "rejected",
+          "fixVerified": 5
+        }
+      ]
+    },
+    {
+      "id": "php/php-src#22075",
+      "prUrl": "https://github.com/php/php-src/pull/22075",
+      "pr": {
+        "repo": "https://github.com/php/php-src",
+        "pr_number": 22075,
+        "base": "27d7b799c0a13578ee0506b428b8ddc209ffb010",
+        "head": "da11b7fc4d0321a1c3876c71fcb07b990b5d6cb8"
+      },
+      "language": "C",
+      "caseGroup": "cloudae:php/php-src#22075",
+      "rootCauseGroups": [
+        "rc3"
+      ],
+      "findings": [
+        {
+          "file": "ext/uri/uri_parser_rfc3986.c",
+          "line": 114,
+          "endLine": 114,
+          "category": "api",
+          "sourceCategory": "code_signature",
+          "severity": "medium",
+          "rootCauseGroup": "rc3",
+          "sourceSignal": "resolved_in_review",
+          "fixVerified": 5
+        },
+        {
+          "file": "ext/uri/uri_parser_rfc3986.h",
+          "line": 24,
+          "endLine": 24,
+          "category": "api",
+          "sourceCategory": "code_signature",
+          "severity": "medium",
+          "rootCauseGroup": "rc3",
+          "sourceSignal": "resolved_in_review",
+          "fixVerified": 5
+        }
+      ]
+    },
+    {
+      "id": "valkey-io/valkey#3836",
+      "prUrl": "https://github.com/valkey-io/valkey/pull/3836",
+      "pr": {
+        "repo": "https://github.com/valkey-io/valkey",
+        "pr_number": 3836,
+        "base": "ddadbdf5df2dc3c2f6af67e21091a77b548e9021",
+        "head": "9321c56ac2bad587e274764b91a9fea5b34a5e54"
+      },
+      "language": "C",
+      "caseGroup": "cloudae:valkey-io/valkey#3836",
+      "rootCauseGroups": [
+        "rc1"
+      ],
+      "findings": [
+        {
+          "file": "src/cluster.c",
+          "line": 783,
+          "endLine": 783,
+          "category": "correctness",
+          "sourceCategory": "logic_error",
+          "severity": "medium",
+          "rootCauseGroup": "rc1",
+          "sourceSignal": "rejected",
+          "fixVerified": 5
+        },
+        {
+          "file": "src/cluster.c",
+          "line": 789,
+          "endLine": 789,
+          "category": "robustness",
+          "sourceCategory": "edge_case_handling",
+          "severity": "high",
+          "rootCauseGroup": "rc1",
+          "sourceSignal": "rejected",
+          "fixVerified": 4.5
+        }
+      ]
+    }
+  ]
+}

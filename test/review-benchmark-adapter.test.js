@@ -84,3 +84,27 @@ test('ReviewBench reliability crosswalk preserves original category and rejects 
  assert.equal(x.corpus.cases[0].expected[0].sourceCategory,'reliability');
  assert.throws(()=>normalizeExternalReviewCorpus({format:'reviewbench-golden',sourceRevision:rev,records:[{...r,findings:[{...r.findings[0],category:'unmapped-category'}]}]}),/Unsupported/);
 });
+
+test('external benchmark snapshots are provenance-bound and cannot qualify model competition',()=>{
+ const {verifyExternalReviewBenchmarks}=require('../scripts/verify-external-review-benchmarks');
+ const result=verifyExternalReviewBenchmarks();
+ assert.equal(result.reviewBench.prs,25);
+ assert.equal(result.reviewBench.positiveFindings,308);
+ assert.equal(result.reviewBench.highRiskCaseGroups,12);
+ assert.equal(result.cloudae.prs,16);
+ assert.equal(result.cloudae.rootCauseGroups,6);
+ assert.equal(result.cloudae.highRiskRootCauseGroups,5);
+ assert.equal(result.embedded.prs,2);
+ assert.equal(result.uniquePullRequests,43);
+ assert.equal(result.distinctRepositories,40);
+ assert.equal(result.candidateGroupingUnits,33);
+ assert.equal(result.highRiskCandidateGroups,18);
+ assert.equal(result.positiveFindingCount,341);
+ assert.equal(result.cleanNegativeCases,0);
+ assert.equal(result.holdoutCases,0);
+ assert.equal(result.independenceVerified,false);
+ assert.equal(result.freshModelExecution,false);
+ assert.equal(result.competitionQualified,false);
+ assert.ok(result.blockers.includes('clean_negative_cases_missing'));
+ assert.ok(result.blockers.includes('independent_holdout_missing'));
+});

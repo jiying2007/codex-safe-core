@@ -1,0 +1,6119 @@
+{
+  "schemaVersion": 1,
+  "kind": "external-review-benchmark-snapshot",
+  "snapshotComplete": true,
+  "snapshotPart": null,
+  "expectedRecordCount": 25,
+  "partition": "development",
+  "holdout": false,
+  "freshModelExecution": false,
+  "qualificationAuthority": false,
+  "sourceRepository": "https://github.com/review-bench/ReviewBench",
+  "sourceRevision": "86b8fd643e7bbcf41d1cdddd54cc450a420075d1",
+  "sourceManifestPath": "corpus/test/test.json",
+  "sourceManifestBlobSha": "c2db3dcc84ff29ed0be540fea87fcad791b2c58f",
+  "sourceLicense": "MIT",
+  "sourceLicensePath": "LICENSE",
+  "sourceLicenseBlobSha": "53be16002bd0976419b159a7b34bde80d9eaf6ec",
+  "sourceLicenseText": "MIT License\n\nCopyright (c) 2026 review-bench\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n",
+  "sourceCodeRedistributed": false,
+  "upstreamProjectLicensesVerified": false,
+  "projection": "Only public PR identity, exact base/head, file/line ranges and adjudication fields are retained. No source code, PR bodies, raw review messages, justifications, patches or diffs are copied.",
+  "groupingPolicy": "One conservative group per PR. Cross-PR root-cause independence has not been independently adjudicated.",
+  "rootCauseIndependenceVerified": false,
+  "cleanNegativeCases": 0,
+  "positiveFindingCount": 308,
+  "falsePositiveReferenceCount": 213,
+  "highRiskCaseGroups": 12,
+  "categoryCrosswalk": {
+    "security": "security",
+    "correctness": "correctness",
+    "reliability": "robustness",
+    "api-architecture": "api",
+    "maintainability": "maintainability",
+    "testing": "test",
+    "documentation": "other",
+    "performance": "performance",
+    "accessibility": "other",
+    "other": "other"
+  },
+  "sources": [
+    {
+      "sourcePath": "golden/PierreJanineh_TechDebtMCP_135-16a54f0f.json",
+      "sourceBlobSha": "a6f6cb6f96d7cefa641e1fc64233e02854b89e49",
+      "prKey": "PierreJanineh_TechDebtMCP_135-16a54f0f",
+      "repo": "https://github.com/PierreJanineh/TechDebtMCP",
+      "base": "ea0385c7349bbaee04456c57bf0ec3f217d63532",
+      "head": "16a54f0f85a9091f220418850eac6b4122782be5"
+    },
+    {
+      "sourcePath": "golden/simnaut_emdash_2-41d75006.json",
+      "sourceBlobSha": "729ea2ff9d830a453479e4bf3ae59bed05feb12b",
+      "prKey": "simnaut_emdash_2-41d75006",
+      "repo": "https://github.com/simnaut/emdash",
+      "base": "5beb0ddc334deb862ba90cedbf03f052b58e4974",
+      "head": "41d750067fc7a39eb29f6a530cf0d4ae0f8bdb41"
+    },
+    {
+      "sourcePath": "golden/konturio_disaster-ninja-fe_1230-d169e9da.json",
+      "sourceBlobSha": "3a3c122878bfd551f8a7da43d39b2f8096cbcc9e",
+      "prKey": "konturio_disaster-ninja-fe_1230-d169e9da",
+      "repo": "https://github.com/konturio/disaster-ninja-fe",
+      "base": "3c1900acccaae22cb69adb02dd8351f24fe4e8b5",
+      "head": "d169e9da6b816d04a9697359406cdf154b2f8067"
+    },
+    {
+      "sourcePath": "golden/cmik_apilix_12-0c34439a.json",
+      "sourceBlobSha": "571759e4d369916df60453bbe574ab0297e10e98",
+      "prKey": "cmik_apilix_12-0c34439a",
+      "repo": "https://github.com/cmik/apilix",
+      "base": "4fe23e22e3937c38cb859a3b9c00b193bb309aa1",
+      "head": "0c34439aeebedc646d76d90db6b79a5c54b4cb8f"
+    },
+    {
+      "sourcePath": "golden/AA-Factory_aafactory-prototype_17-a1978cb7.json",
+      "sourceBlobSha": "f593fa5be09a6d5031dd7ecbffff105cd0c1979f",
+      "prKey": "AA-Factory_aafactory-prototype_17-a1978cb7",
+      "repo": "https://github.com/AA-Factory/aafactory-prototype",
+      "base": "e7f558c7360abac335af2df22f4ed376992b30ab",
+      "head": "a1978cb75950a879df8805e4a5f373eb6678f6f9"
+    },
+    {
+      "sourcePath": "golden/DisciplinedSoftware_Codebase-Conversion_1-4b46d68c.json",
+      "sourceBlobSha": "255d3191f2f9c62029f154955946e0ae3308b570",
+      "prKey": "DisciplinedSoftware_Codebase-Conversion_1-4b46d68c",
+      "repo": "https://github.com/DisciplinedSoftware/Codebase-Conversion",
+      "base": "ed10728c91f7858a0bd95a97c754f4bd6c0487ec",
+      "head": "4b46d68c215dd2448a62f751e81218a0da789165"
+    },
+    {
+      "sourcePath": "golden/brianc_node-postgres_3650-b922f0dd.json",
+      "sourceBlobSha": "bfbeecffe70c0c90c8c04a4126bfe1d1255123bb",
+      "prKey": "brianc_node-postgres_3650-b922f0dd",
+      "repo": "https://github.com/brianc/node-postgres",
+      "base": "c6028a875f953eff9e8e403622b0aac127d1b4a6",
+      "head": "b922f0ddfa3914cc7b05387cd12fc606bc658dc4"
+    },
+    {
+      "sourcePath": "golden/PaulStSmith_figlet-comment-generator_32-1d0b6642.json",
+      "sourceBlobSha": "cc7c660dec4a3be57921ef44ac320640c138b2b9",
+      "prKey": "PaulStSmith_figlet-comment-generator_32-1d0b6642",
+      "repo": "https://github.com/PaulStSmith/figlet-comment-generator",
+      "base": "3750acad624b6b38b768aa8b9aa3ba1573e2f63e",
+      "head": "1d0b6642fcf5ca31fc308c3d603b19ab02ea249e"
+    },
+    {
+      "sourcePath": "golden/brexhq_CrabTrap_15-5ef0884c.json",
+      "sourceBlobSha": "54afcd68e2402ed61935ef755909e58ffb85906c",
+      "prKey": "brexhq_CrabTrap_15-5ef0884c",
+      "repo": "https://github.com/brexhq/CrabTrap",
+      "base": "b29930e93765700608313c0f0d32c4818734e158",
+      "head": "5ef0884c59b3ee1d5a986dd02686a8232570c80f"
+    },
+    {
+      "sourcePath": "golden/k1LoW_gh-copilot-review_9-f9828193.json",
+      "sourceBlobSha": "4c49ff2fb925df6bcfecf30472e82f5b01fee4a0",
+      "prKey": "k1LoW_gh-copilot-review_9-f9828193",
+      "repo": "https://github.com/k1LoW/gh-copilot-review",
+      "base": "5f3765a9ef25d9c5a57699418bed105d9ac54691",
+      "head": "f98281938e63acd1d2df9b89d6af98dcf58c9fa8"
+    },
+    {
+      "sourcePath": "golden/scotthamilton77_agents-config_1-1fc78970.json",
+      "sourceBlobSha": "a41b14e831e17044dd5adc7f0470b92274ff1134",
+      "prKey": "scotthamilton77_agents-config_1-1fc78970",
+      "repo": "https://github.com/scotthamilton77/agents-config",
+      "base": "3776d9195827d79efec978fb900573f3a5a53339",
+      "head": "1fc789709ae044579908fed58c8c14638d0db095"
+    },
+    {
+      "sourcePath": "golden/ardevd_jadx-collaboration_3-853179dc.json",
+      "sourceBlobSha": "d574d79845b3d4324ac122c5845544e45b5ef3c1",
+      "prKey": "ardevd_jadx-collaboration_3-853179dc",
+      "repo": "https://github.com/ardevd/jadx-collaboration",
+      "base": "a9627c7cd6695e2389a68033c3985a0809f2978e",
+      "head": "853179dcb73aed6afab52d11324ea3ff3eac8b8a"
+    },
+    {
+      "sourcePath": "golden/AY2526S2-CS2103T-W14-3_tp_152-e0a9ce03.json",
+      "sourceBlobSha": "630108f90edd9ab5dec5642a09137e2350f4587d",
+      "prKey": "AY2526S2-CS2103T-W14-3_tp_152-e0a9ce03",
+      "repo": "https://github.com/AY2526S2-CS2103T-W14-3/tp",
+      "base": "a27b3e40d94f92f229b9301a8a9d5207d9a5b0bb",
+      "head": "e0a9ce03c8c1cc839eaf409e2677b9abf2017b1f"
+    },
+    {
+      "sourcePath": "golden/vanyastaff_nebula_224-d5ba86dd.json",
+      "sourceBlobSha": "efae1cc1372d7fb22eecf1b1a95d2cb1ba2c4f82",
+      "prKey": "vanyastaff_nebula_224-d5ba86dd",
+      "repo": "https://github.com/vanyastaff/nebula",
+      "base": "c4879eb1c460e45c11ce28e3e8a305194023b64e",
+      "head": "d5ba86dd1014b79e263d93a1e324eeec0d0b306c"
+    },
+    {
+      "sourcePath": "golden/NCATSTranslator_translator-ingests_336-efb31e9c.json",
+      "sourceBlobSha": "14e386c0126f5791c111c17beadc0bc45fb4922d",
+      "prKey": "NCATSTranslator_translator-ingests_336-efb31e9c",
+      "repo": "https://github.com/NCATSTranslator/translator-ingests",
+      "base": "58d880509f9cf6d37715153b7cf261205dfa0f96",
+      "head": "efb31e9c764865f416230073c6d0b1686a0f44b7"
+    },
+    {
+      "sourcePath": "golden/mheuss_chronicle_14-04ac4c02.json",
+      "sourceBlobSha": "2c565fd620ef9f0a093f05e5cb9566234f57ab4e",
+      "prKey": "mheuss_chronicle_14-04ac4c02",
+      "repo": "https://github.com/mheuss/chronicle",
+      "base": "17e33ca1ebf643d47201a8f94b8ab3e88848cf23",
+      "head": "04ac4c02d48083676c14dd3fa70d26ca102bd50e"
+    },
+    {
+      "sourcePath": "golden/superhighfives_pika_200-b227aff0.json",
+      "sourceBlobSha": "1423be7998c8eb55e1d7650865b9793ab4e2a759",
+      "prKey": "superhighfives_pika_200-b227aff0",
+      "repo": "https://github.com/superhighfives/pika",
+      "base": "bdda75cbeeb8cd72a2cb197f93623c3e197cf49c",
+      "head": "b227aff048155b8d2a8426b4d84bcec4504e7c01"
+    },
+    {
+      "sourcePath": "golden/gagneurlab_PROTRIDER_10-b462b109.json",
+      "sourceBlobSha": "e7df130ba20f1066f6b059f1693cb6deb1d5a69e",
+      "prKey": "gagneurlab_PROTRIDER_10-b462b109",
+      "repo": "https://github.com/gagneurlab/PROTRIDER",
+      "base": "22740c695315543a1064915930f806abf5b058ce",
+      "head": "b462b109b630dd1e1a9a78088b18429d2baaae9b"
+    },
+    {
+      "sourcePath": "golden/allan-mobley-jr_gimmes_468-e1477f8b.json",
+      "sourceBlobSha": "873d35f2d135903321b77475fee08b7e8e12cf9a",
+      "prKey": "allan-mobley-jr_gimmes_468-e1477f8b",
+      "repo": "https://github.com/allan-mobley-jr/gimmes",
+      "base": "08efd0bbc34fd29de2a4077f07d24f3dc02a63b6",
+      "head": "e1477f8b3f18c1de6ff87dbca9465a7b106dc193"
+    },
+    {
+      "sourcePath": "golden/superyyrrzz_ForgeMap_106-2f3977ed.json",
+      "sourceBlobSha": "210ee3e562ad7fcdba4613be2c2a2d3517ccf76f",
+      "prKey": "superyyrrzz_ForgeMap_106-2f3977ed",
+      "repo": "https://github.com/superyyrrzz/ForgeMap",
+      "base": "2ce83d91f981fc579ec53baf9bce4957fdc240fc",
+      "head": "2f3977edabcb8fdf5f947704e727d798a46fe96f"
+    },
+    {
+      "sourcePath": "golden/renedierking_LANdalf_88-bc1698f4.json",
+      "sourceBlobSha": "959997ed67281b4dd9d28d3577207c40d1bb4d40",
+      "prKey": "renedierking_LANdalf_88-bc1698f4",
+      "repo": "https://github.com/renedierking/LANdalf",
+      "base": "cc81fa3dc87a8a50654c1279b3bdb2761e94f832",
+      "head": "bc1698f4dbc3a99dee0a6dcf7629813f2027682a"
+    },
+    {
+      "sourcePath": "golden/scottlz0310_Mcp-Docker_29-e7705d26.json",
+      "sourceBlobSha": "32c89f620437df7384845942d627fef3c467144c",
+      "prKey": "scottlz0310_Mcp-Docker_29-e7705d26",
+      "repo": "https://github.com/scottlz0310/Mcp-Docker",
+      "base": "63baf3dbbc10d271710706f56150dd8425dd4b4a",
+      "head": "e7705d269ea374d49e7999bdb8bc42e9480a6b37"
+    },
+    {
+      "sourcePath": "golden/wirechat_wirechat_183-6e3156e7.json",
+      "sourceBlobSha": "1ea1ab49928651cafa7869ef928a44b0b575fc2e",
+      "prKey": "wirechat_wirechat_183-6e3156e7",
+      "repo": "https://github.com/wirechat/wirechat",
+      "base": "7f645146da1285f3817a9dfcb04be0a53ee50ecd",
+      "head": "6e3156e78da9b47cb4c6d596883b3ef0730b8cf8"
+    },
+    {
+      "sourcePath": "golden/sdsykes_fastimage_165-8fc7cd32.json",
+      "sourceBlobSha": "f2040c857a624fbab3242cee1e6a28956e3cd885",
+      "prKey": "sdsykes_fastimage_165-8fc7cd32",
+      "repo": "https://github.com/sdsykes/fastimage",
+      "base": "7a0dcf780e6d8cd7686520a3a1f57e7cd85b0b46",
+      "head": "8fc7cd32904240c2c841e70aef2ba5c3bb659ffd"
+    },
+    {
+      "sourcePath": "golden/Marvell-Consulting_statswales-frontend_626-30ba27a5.json",
+      "sourceBlobSha": "57af1377408cc99faedf19967691e958b002d4a0",
+      "prKey": "Marvell-Consulting_statswales-frontend_626-30ba27a5",
+      "repo": "https://github.com/Marvell-Consulting/statswales-frontend",
+      "base": "c1707c79a5a947cf7c6912af3ad00848c42a28e0",
+      "head": "30ba27a5f20318f12fe74f26059d8b62d62874e9"
+    }
+  ],
+  "records": [
+    {
+      "pr_key": "PierreJanineh_TechDebtMCP_135-16a54f0f",
+      "pr": {
+        "repo": "https://github.com/PierreJanineh/TechDebtMCP",
+        "pr_number": 135,
+        "base": "ea0385c7349bbaee04456c57bf0ec3f217d63532",
+        "head": "16a54f0f85a9091f220418850eac6b4122782be5"
+      },
+      "language": "TypeScript",
+      "caseGroup": "reviewbench:https://github.com/PierreJanineh/TechDebtMCP#135",
+      "findings": [
+        {
+          "file": "src/server/handlers.ts",
+          "start_line": 438,
+          "end_line": 454,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "exacerbated-by-pr"
+        },
+        {
+          "file": "src/core/customRulesEngine.ts",
+          "start_line": 32,
+          "end_line": 32,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/server/handlers.ts",
+          "start_line": 90,
+          "end_line": 90,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/server/handlers.ts",
+          "start_line": 438,
+          "end_line": 454,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/core/customRulesEngine.ts",
+          "start_line": 32,
+          "end_line": 32,
+          "category": "api",
+          "sourceCategory": "api-architecture",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/core/customRulesEngine.ts",
+          "start_line": 255,
+          "end_line": 278,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/server/handlers.ts",
+          "start_line": 439,
+          "end_line": 448,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/core/customRulesEngine.ts",
+          "start_line": 235,
+          "end_line": 242,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/core/customRulesEngine.ts",
+          "start_line": 110,
+          "end_line": 118,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/server/handlers.ts",
+          "start_line": 444,
+          "end_line": 450,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/core/__tests__/customRulesEngine.test.ts",
+          "start_line": 358,
+          "end_line": 358,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/core/customRulesEngine.ts",
+          "start_line": 132,
+          "end_line": 139,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/core/customRulesEngine.ts",
+          "start_line": 342,
+          "end_line": 352,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/core/customRulesEngine.ts",
+          "start_line": 155,
+          "end_line": 161,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "src/server/handlers.ts",
+          "start_line": 344,
+          "end_line": 357,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/server/handlers.ts",
+          "start_line": 170,
+          "end_line": 172,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "src/core/customRulesEngine.ts",
+          "start_line": 153,
+          "end_line": 153,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "medium",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "src/core/customRulesEngine.ts",
+          "start_line": 272,
+          "end_line": 272,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "medium",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "CHANGELOG.md",
+          "start_line": 36,
+          "end_line": 36,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "simnaut_emdash_2-41d75006",
+      "pr": {
+        "repo": "https://github.com/simnaut/emdash",
+        "pr_number": 2,
+        "base": "5beb0ddc334deb862ba90cedbf03f052b58e4974",
+        "head": "41d750067fc7a39eb29f6a530cf0d4ae0f8bdb41"
+      },
+      "language": "TypeScript",
+      "caseGroup": "reviewbench:https://github.com/simnaut/emdash#2",
+      "findings": [
+        {
+          "file": "packages/auth-atproto/src/routes/login.ts",
+          "start_line": 27,
+          "end_line": 34,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/auth-atproto/src/routes/callback.ts",
+          "start_line": 41,
+          "end_line": 60,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/core/src/database/migrations/034_published_at_index.ts",
+          "start_line": 12,
+          "end_line": 15,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/auth-atproto/src/oauth-client.ts",
+          "start_line": 59,
+          "end_line": 102,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/auth-atproto/src/routes/setup-admin.ts",
+          "start_line": 55,
+          "end_line": 61,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/core/src/astro/middleware.ts",
+          "start_line": 192,
+          "end_line": 205,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/admin/src/components/ContentList.tsx",
+          "start_line": 108,
+          "end_line": 112,
+          "category": "performance",
+          "sourceCategory": "performance",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/core/src/astro/routes/api/auth/mode.ts",
+          "start_line": 19,
+          "end_line": 46,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Dockerfile",
+          "start_line": 49,
+          "end_line": 49,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/auth-atproto/src/routes/callback.ts",
+          "start_line": 138,
+          "end_line": 138,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/auth-atproto/src/routes/callback.ts",
+          "start_line": 140,
+          "end_line": 140,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/core/src/database/repositories/options.ts",
+          "start_line": 6,
+          "end_line": 6,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "packages/core/src/emdash-runtime.ts",
+          "start_line": 2046,
+          "end_line": 2046,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/core/src/emdash-runtime.ts",
+          "start_line": 2067,
+          "end_line": 2067,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/core/tests/unit/astro/routes.test.ts",
+          "start_line": 32,
+          "end_line": 32,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "packages/core/tests/unit/menus/menus.test.ts",
+          "start_line": 250,
+          "end_line": 250,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "packages/core/tests/unit/menus/menus.test.ts",
+          "start_line": 251,
+          "end_line": 251,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        }
+      ]
+    },
+    {
+      "pr_key": "konturio_disaster-ninja-fe_1230-d169e9da",
+      "pr": {
+        "repo": "https://github.com/konturio/disaster-ninja-fe",
+        "pr_number": 1230,
+        "base": "3c1900acccaae22cb69adb02dd8351f24fe4e8b5",
+        "head": "d169e9da6b816d04a9697359406cdf154b2f8067"
+      },
+      "language": "TypeScript",
+      "caseGroup": "reviewbench:https://github.com/konturio/disaster-ninja-fe#1230",
+      "findings": [
+        {
+          "file": "src/core/logical_layers/renderers/GenericRenderer.ts",
+          "start_line": 239,
+          "end_line": 240,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/core/logical_layers/renderers/GenericRenderer.ts",
+          "start_line": 237,
+          "end_line": 237,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/core/logical_layers/renderers/GenericRenderer.ts",
+          "start_line": 235,
+          "end_line": 238,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/core/logical_layers/renderers/GenericRenderer.ts",
+          "start_line": 229,
+          "end_line": 244,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/core/logical_layers/renderers/GenericRenderer.ts",
+          "start_line": 236,
+          "end_line": 236,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/core/logical_layers/renderers/GenericRenderer.test.ts",
+          "start_line": 47,
+          "end_line": 52,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/core/logical_layers/renderers/GenericRenderer.ts",
+          "start_line": 226,
+          "end_line": 244,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "exacerbated-by-pr"
+        },
+        {
+          "file": "src/core/logical_layers/renderers/GenericRenderer.ts",
+          "start_line": 228,
+          "end_line": 232,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/core/logical_layers/renderers/GenericRenderer.ts",
+          "start_line": 226,
+          "end_line": 241,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/core/logical_layers/renderers/GenericRenderer.ts",
+          "start_line": 227,
+          "end_line": 241,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/core/logical_layers/renderers/GenericRenderer.test.ts",
+          "start_line": 34,
+          "end_line": 35,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/core/logical_layers/renderers/GenericRenderer.test.ts",
+          "start_line": 26,
+          "end_line": 27,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/core/logical_layers/renderers/GenericRenderer.ts",
+          "start_line": 227,
+          "end_line": 241,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/core/logical_layers/renderers/GenericRenderer.ts",
+          "start_line": 229,
+          "end_line": 243,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/core/logical_layers/renderers/GenericRenderer.ts",
+          "start_line": 238,
+          "end_line": 240,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/core/logical_layers/renderers/GenericRenderer.ts",
+          "start_line": 231,
+          "end_line": 233,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/core/logical_layers/renderers/GenericRenderer.test.ts",
+          "start_line": 48,
+          "end_line": 51,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/core/logical_layers/renderers/GenericRenderer.test.ts",
+          "start_line": 18,
+          "end_line": 20,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "cmik_apilix_12-0c34439a",
+      "pr": {
+        "repo": "https://github.com/cmik/apilix",
+        "pr_number": 12,
+        "base": "4fe23e22e3937c38cb859a3b9c00b193bb309aa1",
+        "head": "0c34439aeebedc646d76d90db6b79a5c54b4cb8f"
+      },
+      "language": "TypeScript",
+      "caseGroup": "reviewbench:https://github.com/cmik/apilix#12",
+      "findings": [
+        {
+          "file": "server/package.json",
+          "start_line": 1,
+          "end_line": 23,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "server/index.js",
+          "start_line": 1037,
+          "end_line": 1044,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "server/index.js",
+          "start_line": 1044,
+          "end_line": 1044,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "client/src/utils/syncEngine.ts",
+          "start_line": 49,
+          "end_line": 51,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "client/src/utils/syncEngine.ts",
+          "start_line": 50,
+          "end_line": 51,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "client/src/store.tsx",
+          "start_line": 573,
+          "end_line": 573,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "client/src/store.tsx",
+          "start_line": 648,
+          "end_line": 668,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "client/src/utils/storageDriver.ts",
+          "start_line": 179,
+          "end_line": 191,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "electron/main.js",
+          "start_line": 140,
+          "end_line": 176,
+          "category": "performance",
+          "sourceCategory": "performance",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "client/src/components/WorkspaceManagerModal.tsx",
+          "start_line": 87,
+          "end_line": 101,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "server/index.js",
+          "start_line": 1056,
+          "end_line": 1061,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "client/src/components/WorkspaceManagerModal.tsx",
+          "start_line": 107,
+          "end_line": 113,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "client/src/utils/storageDriver.ts",
+          "start_line": 182,
+          "end_line": 182,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "medium",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "client/src/utils/sync/s3Adapter.ts",
+          "start_line": 23,
+          "end_line": 26,
+          "category": "other",
+          "sourceCategory": "accessibility",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "server/index.js",
+          "start_line": 1009,
+          "end_line": 1009,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "electron/main.js",
+          "start_line": 120,
+          "end_line": 126,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "server/index.js",
+          "start_line": 1054,
+          "end_line": 1062,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "server/index.js",
+          "start_line": 1175,
+          "end_line": 1177,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "server/package-lock.json",
+          "start_line": 13,
+          "end_line": 18,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "client/src/utils/sync/s3Adapter.ts",
+          "start_line": 20,
+          "end_line": 39,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "client/src/utils/snapshotEngine.ts",
+          "start_line": 36,
+          "end_line": 44,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "client/src/store.tsx",
+          "start_line": 664,
+          "end_line": 666,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "WORKSPACES.md",
+          "start_line": 667,
+          "end_line": 670,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "client/src/components/WorkspaceManagerModal.tsx",
+          "start_line": 87,
+          "end_line": 99,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "client/src/components/WorkspaceManagerModal.tsx",
+          "start_line": 444,
+          "end_line": 476,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "client/src/components/WorkspaceManagerModal.tsx",
+          "start_line": 227,
+          "end_line": 228,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "client/src/utils/storageDriver.ts",
+          "start_line": 185,
+          "end_line": 187,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "client/src/components/WorkspaceSwitcher.tsx",
+          "start_line": 46,
+          "end_line": 47,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "client/src/components/WorkspaceManagerModal.tsx",
+          "start_line": 67,
+          "end_line": 68,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "server/index.js",
+          "start_line": 1033,
+          "end_line": 1035,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "client/src/components/WorkspaceManagerModal.tsx",
+          "start_line": 309,
+          "end_line": 310,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "client/src/components/WorkspaceManagerModal.tsx",
+          "start_line": 287,
+          "end_line": 291,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "client/src/components/WorkspaceManagerModal.tsx",
+          "start_line": 101,
+          "end_line": 112,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "client/src/components/WorkspaceSwitcher.tsx",
+          "start_line": 60,
+          "end_line": 62,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "server/index.js",
+          "start_line": 1061,
+          "end_line": 1063,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "client/src/utils/storageDriver.ts",
+          "start_line": 123,
+          "end_line": 124,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "client/src/components/WorkspaceManagerModal.tsx",
+          "start_line": 92,
+          "end_line": 97,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "WORKSPACES.md",
+          "start_line": 1,
+          "end_line": 3,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "AA-Factory_aafactory-prototype_17-a1978cb7",
+      "pr": {
+        "repo": "https://github.com/AA-Factory/aafactory-prototype",
+        "pr_number": 17,
+        "base": "e7f558c7360abac335af2df22f4ed376992b30ab",
+        "head": "a1978cb75950a879df8805e4a5f373eb6678f6f9"
+      },
+      "language": "Python",
+      "caseGroup": "reviewbench:https://github.com/AA-Factory/aafactory-prototype#17",
+      "findings": [
+        {
+          "file": "aafactory/src/tests/test_chat/test_mock_chat.py",
+          "start_line": 1,
+          "end_line": 45,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "aafactory/src/tests/test_chat/test_mock_chat.py",
+          "start_line": 34,
+          "end_line": 40,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "aafactory/src/tests/test_chat/test_mock_chat.py",
+          "start_line": 32,
+          "end_line": 32,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "aafactory/src/tests/test_chat/test_mock_chat.py",
+          "start_line": 35,
+          "end_line": 37,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "aafactory/src/tests/test_chat/test_mock_chat.py",
+          "start_line": 13,
+          "end_line": 21,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "aafactory/src/tests/test_chat/test_mock_chat.py",
+          "start_line": 7,
+          "end_line": 45,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "aafactory/src/tests/test_chat/test_mock_chat.py",
+          "start_line": 1,
+          "end_line": 45,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "aafactory/src/tests/test_chat/test_mock_chat.py",
+          "start_line": 9,
+          "end_line": 9,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "aafactory/src/tests/test_chat/test_mock_chat.py",
+          "start_line": 24,
+          "end_line": 28,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "aafactory/src/tests/test_chat/test_mock_chat.py",
+          "start_line": 41,
+          "end_line": 45,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "aafactory/src/tests/test_chat/test_mock_chat.py",
+          "start_line": 23,
+          "end_line": 30,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "aafactory/src/tests/test_chat/test_mock_chat.py",
+          "start_line": 44,
+          "end_line": 45,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "aafactory/src/tests/test_chat/test_mock_chat.py",
+          "start_line": 23,
+          "end_line": 23,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "aafactory/src/tests/test_chat/test_mock_chat.py",
+          "start_line": 5,
+          "end_line": 5,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "aafactory/src/tests/test_chat/test_mock_chat.py",
+          "start_line": 30,
+          "end_line": 30,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "aafactory/src/tests/test_chat/test_mock_chat.py",
+          "start_line": 56,
+          "end_line": 56,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "aafactory/src/tests/test_chat/test_mock_chat.py",
+          "start_line": 51,
+          "end_line": 51,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "DisciplinedSoftware_Codebase-Conversion_1-4b46d68c",
+      "pr": {
+        "repo": "https://github.com/DisciplinedSoftware/Codebase-Conversion",
+        "pr_number": 1,
+        "base": "ed10728c91f7858a0bd95a97c754f4bd6c0487ec",
+        "head": "4b46d68c215dd2448a62f751e81218a0da789165"
+      },
+      "language": "Python",
+      "caseGroup": "reviewbench:https://github.com/DisciplinedSoftware/Codebase-Conversion#1",
+      "findings": [
+        {
+          "file": "convert.py",
+          "start_line": 37,
+          "end_line": 43,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/fetcher.py",
+          "start_line": 63,
+          "end_line": 66,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/fetcher.py",
+          "start_line": 85,
+          "end_line": 92,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/strategies/hybrid.py",
+          "start_line": 161,
+          "end_line": 172,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/test_harness.py",
+          "start_line": 672,
+          "end_line": 691,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/llm_client.py",
+          "start_line": 233,
+          "end_line": 253,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/test_harness.py",
+          "start_line": 242,
+          "end_line": 243,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/test_harness.py",
+          "start_line": 735,
+          "end_line": 736,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/fetcher.py",
+          "start_line": 94,
+          "end_line": 99,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/llm_client.py",
+          "start_line": 77,
+          "end_line": 84,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/test_harness.py",
+          "start_line": 526,
+          "end_line": 530,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/benchmarker.py",
+          "start_line": 169,
+          "end_line": 172,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "convert.py",
+          "start_line": 133,
+          "end_line": 133,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/llm_client.py",
+          "start_line": 235,
+          "end_line": 242,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/parser.py",
+          "start_line": 204,
+          "end_line": 210,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/test_harness.py",
+          "start_line": 396,
+          "end_line": 403,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/strategies/llm_first.py",
+          "start_line": 147,
+          "end_line": 155,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "convert.py",
+          "start_line": 117,
+          "end_line": 122,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/llm_client.py",
+          "start_line": 221,
+          "end_line": 260,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/benchmarker.py",
+          "start_line": 368,
+          "end_line": 379,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/strategies/hybrid.py",
+          "start_line": 206,
+          "end_line": 243,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/test_harness.py",
+          "start_line": 258,
+          "end_line": 270,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": ".devcontainer/devcontainer.json",
+          "start_line": 49,
+          "end_line": 53,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/test_harness.py",
+          "start_line": 409,
+          "end_line": 419,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/parser.py",
+          "start_line": 66,
+          "end_line": 75,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/reporter.py",
+          "start_line": 37,
+          "end_line": 47,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/benchmarker.py",
+          "start_line": 423,
+          "end_line": 426,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": ".devcontainer/Dockerfile",
+          "start_line": 33,
+          "end_line": 33,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/fetcher.py",
+          "start_line": 64,
+          "end_line": 64,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/benchmarker.py",
+          "start_line": 47,
+          "end_line": 47,
+          "category": "other",
+          "sourceCategory": "other",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "fortran_to_rust/cli.py",
+          "start_line": 215,
+          "end_line": 215,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/test_harness.py",
+          "start_line": 7,
+          "end_line": 7,
+          "category": "other",
+          "sourceCategory": "other",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "README.md",
+          "start_line": 151,
+          "end_line": 177,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": ".devcontainer/devcontainer.json",
+          "start_line": 1,
+          "end_line": 1,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "convert.py",
+          "start_line": 1,
+          "end_line": 1,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/cli.py",
+          "start_line": 41,
+          "end_line": 47,
+          "category": "other",
+          "sourceCategory": "accessibility",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/reporter.py",
+          "start_line": 1,
+          "end_line": 1,
+          "category": "other",
+          "sourceCategory": "other",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/benchmarker.py",
+          "start_line": 183,
+          "end_line": 190,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "convert.py",
+          "start_line": 254,
+          "end_line": 264,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "convert.py",
+          "start_line": 18,
+          "end_line": 24,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/strategies/llm_first.py",
+          "start_line": 100,
+          "end_line": 103,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/strategies/agentic.py",
+          "start_line": 141,
+          "end_line": 144,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/strategies/hybrid.py",
+          "start_line": 97,
+          "end_line": 100,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/test_harness.py",
+          "start_line": 553,
+          "end_line": 560,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/test_harness.py",
+          "start_line": 446,
+          "end_line": 449,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/fetcher.py",
+          "start_line": 40,
+          "end_line": 42,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/parser.py",
+          "start_line": 94,
+          "end_line": 99,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "setup.py",
+          "start_line": 14,
+          "end_line": 17,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/benchmarker.py",
+          "start_line": 142,
+          "end_line": 143,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/llm_client.py",
+          "start_line": 186,
+          "end_line": 189,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/strategies/hybrid.py",
+          "start_line": 190,
+          "end_line": 197,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "fortran_to_rust/fetcher.py",
+          "start_line": 63,
+          "end_line": 65,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "brianc_node-postgres_3650-b922f0dd",
+      "pr": {
+        "repo": "https://github.com/brianc/node-postgres",
+        "pr_number": 3650,
+        "base": "c6028a875f953eff9e8e403622b0aac127d1b4a6",
+        "head": "b922f0ddfa3914cc7b05387cd12fc606bc658dc4"
+      },
+      "language": "JavaScript",
+      "caseGroup": "reviewbench:https://github.com/brianc/node-postgres#3650",
+      "findings": [
+        {
+          "file": "packages/pg/lib/client.js",
+          "start_line": 653,
+          "end_line": 664,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/pg/lib/diagnostics.js",
+          "start_line": 26,
+          "end_line": 29,
+          "category": "performance",
+          "sourceCategory": "performance",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/pg-pool/diagnostics.js",
+          "start_line": 31,
+          "end_line": 34,
+          "category": "performance",
+          "sourceCategory": "performance",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/pg-pool/index.js",
+          "start_line": 218,
+          "end_line": 226,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/pg/lib/client.js",
+          "start_line": 709,
+          "end_line": 709,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/pg/lib/client.js",
+          "start_line": 209,
+          "end_line": 235,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/pg-pool/index.js",
+          "start_line": 214,
+          "end_line": 216,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "packages/pg-pool/index.js",
+          "start_line": 204,
+          "end_line": 223,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "high",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/pg-pool/diagnostics.js",
+          "start_line": 15,
+          "end_line": 18,
+          "category": "api",
+          "sourceCategory": "api-architecture",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/pg-pool/index.js",
+          "start_line": 400,
+          "end_line": 400,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/pg-pool/test/diagnostics.js",
+          "start_line": 13,
+          "end_line": 13,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/pg/lib/diagnostics.js",
+          "start_line": 10,
+          "end_line": 13,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/pg-pool/test/diagnostics.js",
+          "start_line": 11,
+          "end_line": 11,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/pg-pool/index.js",
+          "start_line": 179,
+          "end_line": 183,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "packages/pg-pool/index.js",
+          "start_line": 201,
+          "end_line": 223,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/pg-pool/index.js",
+          "start_line": 418,
+          "end_line": 423,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "packages/pg/lib/client.js",
+          "start_line": 208,
+          "end_line": 223,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/pg/lib/client.js",
+          "start_line": 700,
+          "end_line": 742,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/pg-pool/diagnostics.js",
+          "start_line": 10,
+          "end_line": 25,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/pg-pool/test/diagnostics.js",
+          "start_line": 80,
+          "end_line": 87,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/pg/test/unit/client/diagnostics-tests.js",
+          "start_line": 302,
+          "end_line": 307,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/pg/test/unit/client/diagnostics-tests.js",
+          "start_line": 17,
+          "end_line": 17,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/pg-pool/diagnostics.js",
+          "start_line": 1,
+          "end_line": 35,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/pg-pool/index.js",
+          "start_line": 3,
+          "end_line": 3,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/pg/lib/client.js",
+          "start_line": 722,
+          "end_line": 724,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "packages/pg/lib/client.js",
+          "start_line": 12,
+          "end_line": 12,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "PaulStSmith_figlet-comment-generator_32-1d0b6642",
+      "pr": {
+        "repo": "https://github.com/PaulStSmith/figlet-comment-generator",
+        "pr_number": 32,
+        "base": "3750acad624b6b38b768aa8b9aa3ba1573e2f63e",
+        "head": "1d0b6642fcf5ca31fc308c3d603b19ab02ea249e"
+      },
+      "language": "C#",
+      "caseGroup": "reviewbench:https://github.com/PaulStSmith/figlet-comment-generator#32",
+      "findings": [
+        {
+          "file": "FIGLet.VSCodeExtension/src/BannerUtils.ts",
+          "start_line": 62,
+          "end_line": 75,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": ".github/workflows/publish-figprint.yml",
+          "start_line": 253,
+          "end_line": 262,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "high",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": ".github/workflows/publish-figlet-nuget.yml",
+          "start_line": 8,
+          "end_line": 8,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": ".github/workflows/publish-vscode-extension.yml",
+          "start_line": 8,
+          "end_line": 9,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "FIGLet.VSCodeExtension/tsconfig.json",
+          "start_line": 11,
+          "end_line": 17,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": ".github/workflows/publish-figprint.yml",
+          "start_line": 8,
+          "end_line": 8,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": ".github/workflows/publish-vs-extension.yml",
+          "start_line": 8,
+          "end_line": 9,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "FIGLet.VSCodeExtension/src/FigletPanel.ts",
+          "start_line": 227,
+          "end_line": 228,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": ".github/workflows/publish-figlet-py.yml",
+          "start_line": 8,
+          "end_line": 8,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": ".github/workflows/publish-figlet-ts.yml",
+          "start_line": 8,
+          "end_line": 9,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "FIGLet.VSCodeExtension/src/BannerUtils.ts",
+          "start_line": 61,
+          "end_line": 61,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "FIGLet.VSCodeExtension/src/webview/SettingsApp.tsx",
+          "start_line": 269,
+          "end_line": 269,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "FIGLet.VSCodeExtension/src/LanguageCommentStyles.ts",
+          "start_line": 74,
+          "end_line": 74,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "FIGLet.VSCodeExtension/src/FigletSettingsPanel.ts",
+          "start_line": 185,
+          "end_line": 191,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "FIGLet.VSCodeExtension/src/LanguageCommentStyles.ts",
+          "start_line": 67,
+          "end_line": 67,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": ".github/workflows/publish-figprint.yml",
+          "start_line": 216,
+          "end_line": 247,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": ".github/workflows/publish-figprint.yml",
+          "start_line": 206,
+          "end_line": 208,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "FIGLet.VSCodeExtension/package.json",
+          "start_line": 20,
+          "end_line": 22,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "FIGLet.VSCodeExtension/tsconfig.json",
+          "start_line": 10,
+          "end_line": 15,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "FIGPrint/readme.md",
+          "start_line": 44,
+          "end_line": 48,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": ".github/workflows/publish-figprint.yml",
+          "start_line": 254,
+          "end_line": 256,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "ChangeLog-2026.md",
+          "start_line": 63,
+          "end_line": 64,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "brexhq_CrabTrap_15-5ef0884c",
+      "pr": {
+        "repo": "https://github.com/brexhq/CrabTrap",
+        "pr_number": 15,
+        "base": "b29930e93765700608313c0f0d32c4818734e158",
+        "head": "5ef0884c59b3ee1d5a986dd02686a8232570c80f"
+      },
+      "language": "Go",
+      "caseGroup": "reviewbench:https://github.com/brexhq/CrabTrap#15",
+      "findings": [
+        {
+          "file": "internal/admin/pg_audit_reader.go",
+          "start_line": 370,
+          "end_line": 395,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "exacerbated-by-pr"
+        },
+        {
+          "file": "internal/admin/api.go",
+          "start_line": 325,
+          "end_line": 341,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "internal/admin/api.go",
+          "start_line": 331,
+          "end_line": 341,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "web/src/components/AuditTrail.tsx",
+          "start_line": 103,
+          "end_line": 125,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "web/src/hooks/useAuditLog.ts",
+          "start_line": 72,
+          "end_line": 89,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "web/src/api/client.ts",
+          "start_line": 74,
+          "end_line": 74,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "internal/admin/audit_integration_test.go",
+          "start_line": 146,
+          "end_line": 225,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "internal/admin/api_auth_test.go",
+          "start_line": 56,
+          "end_line": 62,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "internal/admin/pg_audit_reader.go",
+          "start_line": 371,
+          "end_line": 371,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "web/src/components/AuditTrail.tsx",
+          "start_line": 427,
+          "end_line": 427,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "web/src/components/AuditTrail.tsx",
+          "start_line": 393,
+          "end_line": 393,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "exacerbated-by-pr"
+        },
+        {
+          "file": "internal/admin/api.go",
+          "start_line": 306,
+          "end_line": 313,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "internal/admin/api.go",
+          "start_line": 320,
+          "end_line": 324,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "internal/admin/api.go",
+          "start_line": 308,
+          "end_line": 310,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "internal/admin/api.go",
+          "start_line": 314,
+          "end_line": 315,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "internal/admin/audit_integration_test.go",
+          "start_line": 70,
+          "end_line": 74,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "internal/admin/audit_integration_test.go",
+          "start_line": 117,
+          "end_line": 122,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "internal/admin/api.go",
+          "start_line": 313,
+          "end_line": 313,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "internal/admin/api.go",
+          "start_line": 307,
+          "end_line": 315,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "internal/admin/api.go",
+          "start_line": 325,
+          "end_line": 325,
+          "category": "performance",
+          "sourceCategory": "performance",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "web/src/components/AuditTrail.tsx",
+          "start_line": 113,
+          "end_line": 113,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "exacerbated-by-pr"
+        },
+        {
+          "file": "web/src/components/AuditTrail.tsx",
+          "start_line": 105,
+          "end_line": 105,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "internal/admin/api.go",
+          "start_line": 312,
+          "end_line": 314,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "internal/admin/api.go",
+          "start_line": 340,
+          "end_line": 340,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "k1LoW_gh-copilot-review_9-f9828193",
+      "pr": {
+        "repo": "https://github.com/k1LoW/gh-copilot-review",
+        "pr_number": 9,
+        "base": "5f3765a9ef25d9c5a57699418bed105d9ac54691",
+        "head": "f98281938e63acd1d2df9b89d6af98dcf58c9fa8"
+      },
+      "language": "Go",
+      "caseGroup": "reviewbench:https://github.com/k1LoW/gh-copilot-review#9",
+      "findings": [
+        {
+          "file": "internal/github/github.go",
+          "start_line": 84,
+          "end_line": 91,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "internal/github/github.go",
+          "start_line": 100,
+          "end_line": 110,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "internal/github/github.go",
+          "start_line": 91,
+          "end_line": 116,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "internal/github/github.go",
+          "start_line": 100,
+          "end_line": 103,
+          "category": "performance",
+          "sourceCategory": "performance",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "internal/github/github.go",
+          "start_line": 105,
+          "end_line": 113,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "cmd/root.go",
+          "start_line": 70,
+          "end_line": 79,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "internal/github/github.go",
+          "start_line": 78,
+          "end_line": 83,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "internal/github/github.go",
+          "start_line": 97,
+          "end_line": 97,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "cmd/root.go",
+          "start_line": 26,
+          "end_line": 29,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "cmd/root.go",
+          "start_line": 68,
+          "end_line": 72,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "internal/github/github.go",
+          "start_line": 75,
+          "end_line": 117,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "cmd/root.go",
+          "start_line": 73,
+          "end_line": 79,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "scotthamilton77_agents-config_1-1fc78970",
+      "pr": {
+        "repo": "https://github.com/scotthamilton77/agents-config",
+        "pr_number": 1,
+        "base": "3776d9195827d79efec978fb900573f3a5a53339",
+        "head": "1fc789709ae044579908fed58c8c14638d0db095"
+      },
+      "language": "Shell",
+      "caseGroup": "reviewbench:https://github.com/scotthamilton77/agents-config#1",
+      "findings": [
+        {
+          "file": "src/user/.codex/AGENTS.md.template",
+          "start_line": 6,
+          "end_line": 11,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/user/.gemini/GEMINI.md.template",
+          "start_line": 6,
+          "end_line": 11,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/user/.claude/AGENTS.md.template",
+          "start_line": 7,
+          "end_line": 12,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "scripts/install.sh",
+          "start_line": 504,
+          "end_line": 508,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "scripts/install.sh",
+          "start_line": 128,
+          "end_line": 144,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "scripts/install.sh",
+          "start_line": 146,
+          "end_line": 151,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "scripts/install.sh",
+          "start_line": 188,
+          "end_line": 196,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "scripts/install.sh",
+          "start_line": 423,
+          "end_line": 427,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "scripts/install.sh",
+          "start_line": 129,
+          "end_line": 129,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "scripts/install.sh",
+          "start_line": 275,
+          "end_line": 280,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "scripts/install.sh",
+          "start_line": 286,
+          "end_line": 289,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "scripts/install.sh",
+          "start_line": 131,
+          "end_line": 142,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "scripts/install.sh",
+          "start_line": 105,
+          "end_line": 105,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "scripts/install.sh",
+          "start_line": 405,
+          "end_line": 418,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "scripts/install.sh",
+          "start_line": 135,
+          "end_line": 146,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "scripts/install.sh",
+          "start_line": 348,
+          "end_line": 348,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "scripts/install.sh",
+          "start_line": 232,
+          "end_line": 232,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "scripts/install.sh",
+          "start_line": 38,
+          "end_line": 41,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "scripts/install.sh",
+          "start_line": 405,
+          "end_line": 411,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "scripts/install.sh",
+          "start_line": 206,
+          "end_line": 211,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "src/user/.agents/AGENT-PERSONA.md.template",
+          "start_line": 1,
+          "end_line": 20,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "src/user/.agents/AGENT-PERSONA.md.template",
+          "start_line": 3,
+          "end_line": 3,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "src/user/.agents/AGENT-PERSONA.md.template",
+          "start_line": 3,
+          "end_line": 3,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "scripts/install.sh",
+          "start_line": 53,
+          "end_line": 53,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/user/.agents/agents/tech-lead.md",
+          "start_line": 40,
+          "end_line": 42,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "exacerbated-by-pr"
+        },
+        {
+          "file": "src/user/.agents/skills/self-improving-agent/SKILL.md",
+          "start_line": 33,
+          "end_line": 38,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "exacerbated-by-pr"
+        },
+        {
+          "file": "src/user/.agents/skills/root-cause-tracing/find-polluter.sh",
+          "start_line": 21,
+          "end_line": 23,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "src/user/.agents/skills/root-cause-tracing/find-polluter.sh",
+          "start_line": 32,
+          "end_line": 36,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "src/user/.agents/agents/javascript-developer.md",
+          "start_line": 51,
+          "end_line": 60,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "src/user/.agents/agents/frontend-developer.md",
+          "start_line": 85,
+          "end_line": 87,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "src/user/.agents/skills/condition-based-waiting/SKILL.md",
+          "start_line": 47,
+          "end_line": 49,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "src/user/.agents/skills/ralf-it/foreign-eyes-prompt.md",
+          "start_line": 103,
+          "end_line": 108,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "src/user/.agents/skills/ralf-it/SKILL.md",
+          "start_line": 147,
+          "end_line": 152,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "src/user/.agents/skills/optimize-agents-md/SKILL.md",
+          "start_line": 3,
+          "end_line": 3,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "src/user/.agents/agents/code-reviewer.md",
+          "start_line": 164,
+          "end_line": 166,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "exacerbated-by-pr"
+        },
+        {
+          "file": "AGENTS.md",
+          "start_line": 7,
+          "end_line": 7,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "ardevd_jadx-collaboration_3-853179dc",
+      "pr": {
+        "repo": "https://github.com/ardevd/jadx-collaboration",
+        "pr_number": 3,
+        "base": "a9627c7cd6695e2389a68033c3985a0809f2978e",
+        "head": "853179dcb73aed6afab52d11324ea3ff3eac8b8a"
+      },
+      "language": "Kotlin",
+      "caseGroup": "reviewbench:https://github.com/ardevd/jadx-collaboration#3",
+      "findings": [
+        {
+          "file": "src/main/kotlin/uk/oshawk/jadx/collaboration/Plugin.kt",
+          "start_line": 44,
+          "end_line": 54,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "exacerbated-by-pr"
+        },
+        {
+          "file": "src/main/kotlin/uk/oshawk/jadx/collaboration/Plugin.kt",
+          "start_line": 645,
+          "end_line": 647,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/main/kotlin/uk/oshawk/jadx/collaboration/Plugin.kt",
+          "start_line": 550,
+          "end_line": 550,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/main/kotlin/uk/oshawk/jadx/collaboration/Plugin.kt",
+          "start_line": 572,
+          "end_line": 575,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/main/kotlin/uk/oshawk/jadx/collaboration/Plugin.kt",
+          "start_line": 61,
+          "end_line": 63,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/main/kotlin/uk/oshawk/jadx/collaboration/Plugin.kt",
+          "start_line": 589,
+          "end_line": 589,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/test/kotlin/uk/oshawk/jadx/collaboration/PluginTest.kt",
+          "start_line": 32,
+          "end_line": 33,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/main/kotlin/uk/oshawk/jadx/collaboration/ConflictResolvers.kt",
+          "start_line": 172,
+          "end_line": 172,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/main/kotlin/uk/oshawk/jadx/collaboration/ConflictResolvers.kt",
+          "start_line": 12,
+          "end_line": 21,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "src/main/kotlin/uk/oshawk/jadx/collaboration/Plugin.kt",
+          "start_line": 364,
+          "end_line": 369,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "src/main/kotlin/uk/oshawk/jadx/collaboration/Plugin.kt",
+          "start_line": 469,
+          "end_line": 473,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/main/kotlin/uk/oshawk/jadx/collaboration/Plugin.kt",
+          "start_line": 215,
+          "end_line": 221,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "src/main/kotlin/uk/oshawk/jadx/collaboration/Plugin.kt",
+          "start_line": 44,
+          "end_line": 45,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "AY2526S2-CS2103T-W14-3_tp_152-e0a9ce03",
+      "pr": {
+        "repo": "https://github.com/AY2526S2-CS2103T-W14-3/tp",
+        "pr_number": 152,
+        "base": "a27b3e40d94f92f229b9301a8a9d5207d9a5b0bb",
+        "head": "e0a9ce03c8c1cc839eaf409e2677b9abf2017b1f"
+      },
+      "language": "Java",
+      "caseGroup": "reviewbench:https://github.com/AY2526S2-CS2103T-W14-3/tp#152",
+      "findings": [
+        {
+          "file": "src/main/java/seedu/address/logic/commands/DeleteNoteCommand.java",
+          "start_line": 35,
+          "end_line": 38,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "src/main/java/seedu/address/model/Model.java",
+          "start_line": 167,
+          "end_line": 184,
+          "category": "api",
+          "sourceCategory": "api-architecture",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/main/java/seedu/address/logic/commands/DeleteNoteCommand.java",
+          "start_line": 13,
+          "end_line": 55,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "src/main/java/seedu/address/storage/JsonSerializableAddressBook.java",
+          "start_line": 29,
+          "end_line": 29,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/test/java/seedu/address/logic/commands/DeleteNoteCommandTest.java",
+          "start_line": 24,
+          "end_line": 29,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "src/main/java/seedu/address/model/ModelManager.java",
+          "start_line": 285,
+          "end_line": 291,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/main/java/seedu/address/model/AddressBook.java",
+          "start_line": 174,
+          "end_line": 175,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/main/java/seedu/address/model/location/NoteContent.java",
+          "start_line": 18,
+          "end_line": 18,
+          "category": "api",
+          "sourceCategory": "api-architecture",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/main/java/seedu/address/logic/commands/NoteCommand.java",
+          "start_line": 45,
+          "end_line": 45,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/main/java/seedu/address/ui/PlannerListPanel.java",
+          "start_line": 40,
+          "end_line": 44,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/main/java/seedu/address/model/AddressBook.java",
+          "start_line": 81,
+          "end_line": 84,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/main/java/seedu/address/storage/JsonSerializableAddressBook.java",
+          "start_line": 60,
+          "end_line": 66,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/main/java/seedu/address/model/ModelManager.java",
+          "start_line": 289,
+          "end_line": 299,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/main/java/seedu/address/model/ModelManager.java",
+          "start_line": 252,
+          "end_line": 272,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/main/java/seedu/address/model/location/NoteContent.java",
+          "start_line": 17,
+          "end_line": 18,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/main/java/seedu/address/ui/PlannerListPanel.java",
+          "start_line": 45,
+          "end_line": 45,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/main/java/seedu/address/storage/JsonSerializableAddressBook.java",
+          "start_line": 69,
+          "end_line": 72,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/test/java/seedu/address/model/AddressBookTest.java",
+          "start_line": 92,
+          "end_line": 94,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/main/java/seedu/address/model/AddressBook.java",
+          "start_line": 68,
+          "end_line": 105,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/main/java/seedu/address/ui/PlannerListPanel.java",
+          "start_line": 47,
+          "end_line": 47,
+          "category": "other",
+          "sourceCategory": "other",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/test/java/seedu/address/model/ModelManagerTest.java",
+          "start_line": 264,
+          "end_line": 280,
+          "category": "other",
+          "sourceCategory": "other",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/main/java/seedu/address/logic/Logic.java",
+          "start_line": 41,
+          "end_line": 41,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/main/java/seedu/address/logic/LogicManager.java",
+          "start_line": 121,
+          "end_line": 121,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/main/java/seedu/address/logic/commands/NoteCommand.java",
+          "start_line": 23,
+          "end_line": 23,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/test/java/seedu/address/logic/commands/AddCommandTest.java",
+          "start_line": 224,
+          "end_line": 224,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/test/java/seedu/address/testutil/AddressBookBuilder.java",
+          "start_line": 25,
+          "end_line": 25,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/test/java/seedu/address/model/AddressBookTest.java",
+          "start_line": 109,
+          "end_line": 109,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/test/java/seedu/address/storage/JsonSerializableAddressBookTest.java",
+          "start_line": 68,
+          "end_line": 68,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/main/java/seedu/address/storage/JsonSerializableAddressBook.java",
+          "start_line": 69,
+          "end_line": 82,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docs/UserGuide.md",
+          "start_line": 340,
+          "end_line": 340,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/main/java/seedu/address/logic/commands/NoteCommand.java",
+          "start_line": 47,
+          "end_line": 50,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/main/java/seedu/address/model/AddressBook.java",
+          "start_line": 64,
+          "end_line": 65,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/main/java/seedu/address/model/AddressBook.java",
+          "start_line": 79,
+          "end_line": 80,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "vanyastaff_nebula_224-d5ba86dd",
+      "pr": {
+        "repo": "https://github.com/vanyastaff/nebula",
+        "pr_number": 224,
+        "base": "c4879eb1c460e45c11ce28e3e8a305194023b64e",
+        "head": "d5ba86dd1014b79e263d93a1e324eeec0d0b306c"
+      },
+      "language": "Rust",
+      "caseGroup": "reviewbench:https://github.com/vanyastaff/nebula#224",
+      "findings": [
+        {
+          "file": "crates/credential/src/layer/encryption.rs",
+          "start_line": 133,
+          "end_line": 158,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "crates/credential/src/layer/encryption.rs",
+          "start_line": 85,
+          "end_line": 102,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "crates/credential/src/crypto.rs",
+          "start_line": 196,
+          "end_line": 205,
+          "category": "api",
+          "sourceCategory": "api-architecture",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "crates/credential/src/context.rs",
+          "start_line": 203,
+          "end_line": 218,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "crates/credential/src/snapshot.rs",
+          "start_line": 152,
+          "end_line": 152,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "crates/credential/src/credential.rs",
+          "start_line": 125,
+          "end_line": 125,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "crates/credential/src/description.rs",
+          "start_line": 146,
+          "end_line": 148,
+          "category": "api",
+          "sourceCategory": "api-architecture",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": ".github/workflows/ci.yml",
+          "start_line": 165,
+          "end_line": 165,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "crates/credential/src/layer/encryption.rs",
+          "start_line": 204,
+          "end_line": 218,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "crates/credential/src/crypto.rs",
+          "start_line": 234,
+          "end_line": 240,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "crates/credential/src/credentials/mod.rs",
+          "start_line": 26,
+          "end_line": 27,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "crates/webhook/src/rate_limit.rs",
+          "start_line": 63,
+          "end_line": 64,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "NCATSTranslator_translator-ingests_336-efb31e9c",
+      "pr": {
+        "repo": "https://github.com/NCATSTranslator/translator-ingests",
+        "pr_number": 336,
+        "base": "58d880509f9cf6d37715153b7cf261205dfa0f96",
+        "head": "efb31e9c764865f416230073c6d0b1686a0f44b7"
+      },
+      "language": "Jupyter Notebook",
+      "caseGroup": "reviewbench:https://github.com/NCATSTranslator/translator-ingests#336",
+      "findings": [
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 413,
+          "end_line": 413,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 167,
+          "end_line": 170,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 257,
+          "end_line": 258,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 331,
+          "end_line": 332,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 97,
+          "end_line": 104,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 138,
+          "end_line": 138,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 80,
+          "end_line": 97,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 159,
+          "end_line": 159,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 885,
+          "end_line": 893,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 411,
+          "end_line": 450,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 218,
+          "end_line": 218,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 137,
+          "end_line": 137,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 172,
+          "end_line": 172,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 204,
+          "end_line": 204,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 412,
+          "end_line": 412,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 167,
+          "end_line": 167,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 330,
+          "end_line": 330,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 998,
+          "end_line": 1000,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 145,
+          "end_line": 145,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 972,
+          "end_line": 974,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "mheuss_chronicle_14-04ac4c02",
+      "pr": {
+        "repo": "https://github.com/mheuss/chronicle",
+        "pr_number": 14,
+        "base": "17e33ca1ebf643d47201a8f94b8ab3e88848cf23",
+        "head": "04ac4c02d48083676c14dd3fa70d26ca102bd50e"
+      },
+      "language": "Rust",
+      "caseGroup": "reviewbench:https://github.com/mheuss/chronicle#14",
+      "findings": [
+        {
+          "file": "chronicle-daemon/src/pipeline.rs",
+          "start_line": 200,
+          "end_line": 200,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "high",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/crates/storage/src/media.rs",
+          "start_line": 296,
+          "end_line": 313,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/crates/storage/src/media.rs",
+          "start_line": 133,
+          "end_line": 139,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/src/pipeline.rs",
+          "start_line": 59,
+          "end_line": 67,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/src/main.rs",
+          "start_line": 24,
+          "end_line": 31,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/crates/storage/src/retention.rs",
+          "start_line": 78,
+          "end_line": 86,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/crates/storage/src/retention.rs",
+          "start_line": 150,
+          "end_line": 166,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/crates/storage/src/media.rs",
+          "start_line": 46,
+          "end_line": 78,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/crates/storage/src/media.rs",
+          "start_line": 107,
+          "end_line": 114,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/crates/storage/src/media.rs",
+          "start_line": 153,
+          "end_line": 161,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/crates/storage/src/media.rs",
+          "start_line": 226,
+          "end_line": 266,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/crates/storage/src/media.rs",
+          "start_line": 340,
+          "end_line": 356,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/crates/storage/src/files.rs",
+          "start_line": 1,
+          "end_line": 42,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/crates/storage/src/retention.rs",
+          "start_line": 187,
+          "end_line": 191,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/crates/storage/src/media.rs",
+          "start_line": 238,
+          "end_line": 241,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/crates/storage/src/media.rs",
+          "start_line": 55,
+          "end_line": 67,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/crates/storage/src/lib.rs",
+          "start_line": 16,
+          "end_line": 16,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/crates/storage/src/retention.rs",
+          "start_line": 187,
+          "end_line": 190,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "superhighfives_pika_200-b227aff0",
+      "pr": {
+        "repo": "https://github.com/superhighfives/pika",
+        "pr_number": 200,
+        "base": "bdda75cbeeb8cd72a2cb197f93623c3e197cf49c",
+        "head": "b227aff048155b8d2a8426b4d84bcec4504e7c01"
+      },
+      "language": "Swift",
+      "caseGroup": "reviewbench:https://github.com/superhighfives/pika#200",
+      "findings": [
+        {
+          "file": "Pika/Services/Eyedroppers.swift",
+          "start_line": 81,
+          "end_line": 82,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Services/Eyedroppers.swift",
+          "start_line": 284,
+          "end_line": 292,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Services/Eyedroppers.swift",
+          "start_line": 284,
+          "end_line": 292,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Services/Eyedroppers.swift",
+          "start_line": 236,
+          "end_line": 244,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Services/Eyedroppers.swift",
+          "start_line": 155,
+          "end_line": 165,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/AppDelegate.swift",
+          "start_line": 132,
+          "end_line": 138,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Services/Exporter.swift",
+          "start_line": 75,
+          "end_line": 83,
+          "category": "performance",
+          "sourceCategory": "performance",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Views/NavigationMenu.swift",
+          "start_line": 44,
+          "end_line": 46,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Views/ColorHistoryDrawer.swift",
+          "start_line": 39,
+          "end_line": 45,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Views/ContentView.swift",
+          "start_line": 151,
+          "end_line": 152,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Views/ColorPreview.swift",
+          "start_line": 107,
+          "end_line": 107,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Services/Eyedroppers.swift",
+          "start_line": 90,
+          "end_line": 94,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Views/ContentView.swift",
+          "start_line": 139,
+          "end_line": 142,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Services/Exporter.swift",
+          "start_line": 1,
+          "end_line": 1,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Services/Eyedroppers.swift",
+          "start_line": 270,
+          "end_line": 274,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Views/ColorHistoryDrawer.swift",
+          "start_line": 218,
+          "end_line": 225,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Views/ColorHistoryDrawer.swift",
+          "start_line": 240,
+          "end_line": 242,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Constants/Constants.swift",
+          "start_line": 99,
+          "end_line": 104,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Views/ColorHistoryDrawer.swift",
+          "start_line": 310,
+          "end_line": 313,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Views/NavigationMenuItems.swift",
+          "start_line": 101,
+          "end_line": 103,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "gagneurlab_PROTRIDER_10-b462b109",
+      "pr": {
+        "repo": "https://github.com/gagneurlab/PROTRIDER",
+        "pr_number": 10,
+        "base": "22740c695315543a1064915930f806abf5b058ce",
+        "head": "b462b109b630dd1e1a9a78088b18429d2baaae9b"
+      },
+      "language": "Python",
+      "caseGroup": "reviewbench:https://github.com/gagneurlab/PROTRIDER#10",
+      "findings": [
+        {
+          "file": "src/protrider/model/model_helper.py",
+          "start_line": 75,
+          "end_line": 86,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/model/model_helper.py",
+          "start_line": 148,
+          "end_line": 163,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/model/model_helper.py",
+          "start_line": 134,
+          "end_line": 135,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/pipeline.py",
+          "start_line": 539,
+          "end_line": 540,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/config.py",
+          "start_line": 79,
+          "end_line": 79,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/config.py",
+          "start_line": 49,
+          "end_line": 49,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/model/model_helper.py",
+          "start_line": 185,
+          "end_line": 186,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/stats.py",
+          "start_line": 218,
+          "end_line": 236,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/model/model_helper.py",
+          "start_line": 122,
+          "end_line": 122,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/model/model.py",
+          "start_line": 232,
+          "end_line": 271,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/datasets/protein_intensities.py",
+          "start_line": 28,
+          "end_line": 28,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/pipeline.py",
+          "start_line": 32,
+          "end_line": 37,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/pipeline.py",
+          "start_line": 62,
+          "end_line": 62,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "tests/test_model_save_load.py",
+          "start_line": 66,
+          "end_line": 66,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/datasets/protein_intensities.py",
+          "start_line": 32,
+          "end_line": 32,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/model/model_helper.py",
+          "start_line": 44,
+          "end_line": 93,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/pipeline.py",
+          "start_line": 509,
+          "end_line": 510,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "tests/test_model_save_load.py",
+          "start_line": 33,
+          "end_line": 40,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "tests/test_pipeline_cv.py",
+          "start_line": 1,
+          "end_line": 1,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/cli.py",
+          "start_line": 258,
+          "end_line": 262,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/stats.py",
+          "start_line": 34,
+          "end_line": 36,
+          "category": "api",
+          "sourceCategory": "api-architecture",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/pipeline.py",
+          "start_line": 218,
+          "end_line": 220,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/pipeline.py",
+          "start_line": 426,
+          "end_line": 428,
+          "category": "api",
+          "sourceCategory": "api-architecture",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/stats.py",
+          "start_line": 245,
+          "end_line": 249,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "exacerbated-by-pr"
+        },
+        {
+          "file": "src/protrider/model/model_helper.py",
+          "start_line": 30,
+          "end_line": 32,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "tests/test_model_save_load.py",
+          "start_line": 179,
+          "end_line": 181,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/pipeline.py",
+          "start_line": 32,
+          "end_line": 36,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "config.yaml",
+          "start_line": 67,
+          "end_line": 71,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/pipeline.py",
+          "start_line": 402,
+          "end_line": 402,
+          "category": "api",
+          "sourceCategory": "api-architecture",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "allan-mobley-jr_gimmes_468-e1477f8b",
+      "pr": {
+        "repo": "https://github.com/allan-mobley-jr/gimmes",
+        "pr_number": 468,
+        "base": "08efd0bbc34fd29de2a4077f07d24f3dc02a63b6",
+        "head": "e1477f8b3f18c1de6ff87dbca9465a7b106dc193"
+      },
+      "language": "Python",
+      "caseGroup": "reviewbench:https://github.com/allan-mobley-jr/gimmes#468",
+      "findings": [
+        {
+          "file": "src/gimmes/strategy/staleness.py",
+          "start_line": 89,
+          "end_line": 95,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/gimmes/cli.py",
+          "start_line": 312,
+          "end_line": 315,
+          "category": "api",
+          "sourceCategory": "api-architecture",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/gimmes/strategy/staleness.py",
+          "start_line": 80,
+          "end_line": 80,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/gimmes/strategy/staleness.py",
+          "start_line": 79,
+          "end_line": 79,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/gimmes/strategy/staleness.py",
+          "start_line": 72,
+          "end_line": 79,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "exacerbated-by-pr"
+        },
+        {
+          "file": "src/gimmes/strategy/staleness.py",
+          "start_line": 86,
+          "end_line": 91,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/gimmes/strategy/staleness.py",
+          "start_line": 115,
+          "end_line": 123,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "src/gimmes/config.py",
+          "start_line": 316,
+          "end_line": 320,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/gimmes/cli.py",
+          "start_line": 348,
+          "end_line": 353,
+          "category": "performance",
+          "sourceCategory": "performance",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "tests/unit/test_staleness.py",
+          "start_line": 29,
+          "end_line": 31,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "superyyrrzz_ForgeMap_106-2f3977ed",
+      "pr": {
+        "repo": "https://github.com/superyyrrzz/ForgeMap",
+        "pr_number": 106,
+        "base": "2ce83d91f981fc579ec53baf9bce4957fdc240fc",
+        "head": "2f3977edabcb8fdf5f947704e727d798a46fe96f"
+      },
+      "language": "C#",
+      "caseGroup": "reviewbench:https://github.com/superyyrrzz/ForgeMap#106",
+      "findings": [
+        {
+          "file": ".github/workflows/docs.yml",
+          "start_line": 26,
+          "end_line": 27,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 241,
+          "end_line": 244,
+          "category": "other",
+          "sourceCategory": "accessibility",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 246,
+          "end_line": 255,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 279,
+          "end_line": 286,
+          "category": "other",
+          "sourceCategory": "accessibility",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 331,
+          "end_line": 331,
+          "category": "performance",
+          "sourceCategory": "performance",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 9,
+          "end_line": 9,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 184,
+          "end_line": 193,
+          "category": "other",
+          "sourceCategory": "accessibility",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 284,
+          "end_line": 284,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 204,
+          "end_line": 204,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 130,
+          "end_line": 133,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 25,
+          "end_line": 25,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 125,
+          "end_line": 125,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 365,
+          "end_line": 368,
+          "category": "other",
+          "sourceCategory": "accessibility",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 124,
+          "end_line": 131,
+          "category": "other",
+          "sourceCategory": "accessibility",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 168,
+          "end_line": 170,
+          "category": "other",
+          "sourceCategory": "accessibility",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 30,
+          "end_line": 32,
+          "category": "other",
+          "sourceCategory": "accessibility",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 33,
+          "end_line": 36,
+          "category": "other",
+          "sourceCategory": "accessibility",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 314,
+          "end_line": 318,
+          "category": "other",
+          "sourceCategory": "accessibility",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 207,
+          "end_line": 214,
+          "category": "other",
+          "sourceCategory": "accessibility",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "renedierking_LANdalf_88-bc1698f4",
+      "pr": {
+        "repo": "https://github.com/renedierking/LANdalf",
+        "pr_number": 88,
+        "base": "cc81fa3dc87a8a50654c1279b3bdb2761e94f832",
+        "head": "bc1698f4dbc3a99dee0a6dcf7629813f2027682a"
+      },
+      "language": "C#",
+      "caseGroup": "reviewbench:https://github.com/renedierking/LANdalf#88",
+      "findings": [
+        {
+          "file": "src/API/Services/DeviceMonitoringService.cs",
+          "start_line": 184,
+          "end_line": 187,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/API/Dockerfile",
+          "start_line": 31,
+          "end_line": 34,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/API/Services/DeviceMonitoringService.cs",
+          "start_line": 182,
+          "end_line": 182,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/API/Services/DeviceMonitoringService.cs",
+          "start_line": 176,
+          "end_line": 180,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docker-compose.yaml",
+          "start_line": 1,
+          "end_line": 20,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/API/Services/DeviceMonitoringService.cs",
+          "start_line": 1,
+          "end_line": 4,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/API/Services/DeviceMonitoringService.cs",
+          "start_line": 174,
+          "end_line": 179,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/API/Services/DeviceMonitoringService.cs",
+          "start_line": 169,
+          "end_line": 172,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "high",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/API/Services/DeviceMonitoringService.cs",
+          "start_line": 175,
+          "end_line": 177,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/API/Services/DeviceMonitoringService.cs",
+          "start_line": 176,
+          "end_line": 178,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "scottlz0310_Mcp-Docker_29-e7705d26",
+      "pr": {
+        "repo": "https://github.com/scottlz0310/Mcp-Docker",
+        "pr_number": 29,
+        "base": "63baf3dbbc10d271710706f56150dd8425dd4b4a",
+        "head": "e7705d269ea374d49e7999bdb8bc42e9480a6b37"
+      },
+      "language": "Go",
+      "caseGroup": "reviewbench:https://github.com/scottlz0310/Mcp-Docker#29",
+      "findings": [
+        {
+          "file": "services/copilot-review-mcp/internal/auth/session.go",
+          "start_line": 111,
+          "end_line": 115,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 173,
+          "end_line": 213,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 238,
+          "end_line": 238,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/session.go",
+          "start_line": 57,
+          "end_line": 66,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/session.go",
+          "start_line": 44,
+          "end_line": 53,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 106,
+          "end_line": 109,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 75,
+          "end_line": 75,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/Dockerfile",
+          "start_line": 13,
+          "end_line": 13,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/session.go",
+          "start_line": 154,
+          "end_line": 172,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 28,
+          "end_line": 28,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 321,
+          "end_line": 321,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/cmd/server/main.go",
+          "start_line": 13,
+          "end_line": 13,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 167,
+          "end_line": 173,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 129,
+          "end_line": 134,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 191,
+          "end_line": 200,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 417,
+          "end_line": 422,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/session.go",
+          "start_line": 128,
+          "end_line": 134,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/session.go",
+          "start_line": 183,
+          "end_line": 188,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/middleware/auth.go",
+          "start_line": 51,
+          "end_line": 61,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docker-compose.yml",
+          "start_line": 47,
+          "end_line": 50,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/cmd/server/main.go",
+          "start_line": 59,
+          "end_line": 62,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 170,
+          "end_line": 170,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 193,
+          "end_line": 198,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/session.go",
+          "start_line": 99,
+          "end_line": 123,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 90,
+          "end_line": 94,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/session.go",
+          "start_line": 77,
+          "end_line": 96,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 46,
+          "end_line": 56,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 216,
+          "end_line": 251,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/cmd/server/main.go",
+          "start_line": 22,
+          "end_line": 29,
+          "category": "api",
+          "sourceCategory": "api-architecture",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 90,
+          "end_line": 94,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 74,
+          "end_line": 79,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docker-compose.yml",
+          "start_line": 58,
+          "end_line": 60,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/session.go",
+          "start_line": 91,
+          "end_line": 95,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 126,
+          "end_line": 132,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/cmd/server/main.go",
+          "start_line": 87,
+          "end_line": 89,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docker-compose.yml",
+          "start_line": 58,
+          "end_line": 60,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "wirechat_wirechat_183-6e3156e7",
+      "pr": {
+        "repo": "https://github.com/wirechat/wirechat",
+        "pr_number": 183,
+        "base": "7f645146da1285f3817a9dfcb04be0a53ee50ecd",
+        "head": "6e3156e78da9b47cb4c6d596883b3ef0730b8cf8"
+      },
+      "language": "PHP",
+      "caseGroup": "reviewbench:https://github.com/wirechat/wirechat#183",
+      "findings": [
+        {
+          "file": "resources/views/livewire/chat/partials/body.blade.php",
+          "start_line": 86,
+          "end_line": 105,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/Livewire/Chat/Chat.php",
+          "start_line": 647,
+          "end_line": 658,
+          "category": "performance",
+          "sourceCategory": "performance",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "resources/views/livewire/chats/chats.blade.php",
+          "start_line": 84,
+          "end_line": 84,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "resources/views/livewire/chat/partials/body.blade.php",
+          "start_line": 227,
+          "end_line": 234,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/Livewire/Chat/Chat.php",
+          "start_line": 1031,
+          "end_line": 1031,
+          "category": "performance",
+          "sourceCategory": "performance",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/Livewire/Chat/Chat.php",
+          "start_line": 107,
+          "end_line": 111,
+          "category": "api",
+          "sourceCategory": "api-architecture",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "resources/views/livewire/chats/partials/list.blade.php",
+          "start_line": 50,
+          "end_line": 50,
+          "category": "performance",
+          "sourceCategory": "performance",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "resources/views/livewire/chats/partials/list.blade.php",
+          "start_line": 95,
+          "end_line": 107,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "resources/views/livewire/widgets/wire-chat.blade.php",
+          "start_line": 138,
+          "end_line": 145,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "resources/views/livewire/chat/partials/body.blade.php",
+          "start_line": 242,
+          "end_line": 242,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "src/Livewire/Chat/Chat.php",
+          "start_line": 1083,
+          "end_line": 1083,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "tests/Feature/ChatTest.php",
+          "start_line": 513,
+          "end_line": 513,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "resources/views/livewire/chats/partials/list.blade.php",
+          "start_line": 37,
+          "end_line": 39,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "resources/views/livewire/chats/chats.blade.php",
+          "start_line": 36,
+          "end_line": 39,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/Livewire/Chat/Chat.php",
+          "start_line": 654,
+          "end_line": 656,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "tests/Feature/ChatTest.php",
+          "start_line": 513,
+          "end_line": 513,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "resources/views/livewire/chat/partials/body.blade.php",
+          "start_line": 219,
+          "end_line": 221,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "resources/views/livewire/chat/partials/body.blade.php",
+          "start_line": 65,
+          "end_line": 73,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "tests/Feature/ChatsTest.php",
+          "start_line": 778,
+          "end_line": 779,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "sdsykes_fastimage_165-8fc7cd32",
+      "pr": {
+        "repo": "https://github.com/sdsykes/fastimage",
+        "pr_number": 165,
+        "base": "7a0dcf780e6d8cd7686520a3a1f57e7cd85b0b46",
+        "head": "8fc7cd32904240c2c841e70aef2ba5c3bb659ffd"
+      },
+      "language": "Ruby",
+      "caseGroup": "reviewbench:https://github.com/sdsykes/fastimage#165",
+      "findings": [
+        {
+          "file": "lib/fastimage/fastimage.rb",
+          "start_line": 257,
+          "end_line": 268,
+          "category": "performance",
+          "sourceCategory": "performance",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/jpeg.rb",
+          "start_line": 35,
+          "end_line": 44,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/exif.rb",
+          "start_line": 88,
+          "end_line": 96,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/exif.rb",
+          "start_line": 76,
+          "end_line": 84,
+          "category": "performance",
+          "sourceCategory": "performance",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/bmp.rb",
+          "start_line": 18,
+          "end_line": 26,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/png.rb",
+          "start_line": 14,
+          "end_line": 22,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/jpeg.rb",
+          "start_line": 45,
+          "end_line": 62,
+          "category": "api",
+          "sourceCategory": "api-architecture",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage.rb",
+          "start_line": 476,
+          "end_line": 484,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/jpeg.rb",
+          "start_line": 51,
+          "end_line": 52,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/png.rb",
+          "start_line": 17,
+          "end_line": 20,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/jpeg.rb",
+          "start_line": 34,
+          "end_line": 34,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/jpeg.rb",
+          "start_line": 40,
+          "end_line": 40,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage.rb",
+          "start_line": 454,
+          "end_line": 454,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/jpeg.rb",
+          "start_line": 28,
+          "end_line": 28,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/tiff.rb",
+          "start_line": 25,
+          "end_line": 25,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage.rb",
+          "start_line": 255,
+          "end_line": 265,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/exif.rb",
+          "start_line": 152,
+          "end_line": 170,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/jpeg.rb",
+          "start_line": 35,
+          "end_line": 36,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "test/test.rb",
+          "start_line": 124,
+          "end_line": 134,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/exif.rb",
+          "start_line": 102,
+          "end_line": 103,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "test/test.rb",
+          "start_line": 562,
+          "end_line": 567,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/jpeg.rb",
+          "start_line": 75,
+          "end_line": 77,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "lib/fastimage/fastimage.rb",
+          "start_line": 436,
+          "end_line": 505,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "lib/fastimage/fastimage.rb",
+          "start_line": 198,
+          "end_line": 198,
+          "category": "api",
+          "sourceCategory": "api-architecture",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/exif.rb",
+          "start_line": 19,
+          "end_line": 19,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/jpeg.rb",
+          "start_line": 51,
+          "end_line": 51,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "test/test.rb",
+          "start_line": 125,
+          "end_line": 129,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "README.md",
+          "start_line": 79,
+          "end_line": 82,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "Marvell-Consulting_statswales-frontend_626-30ba27a5",
+      "pr": {
+        "repo": "https://github.com/Marvell-Consulting/statswales-frontend",
+        "pr_number": 626,
+        "base": "c1707c79a5a947cf7c6912af3ad00848c42a28e0",
+        "head": "30ba27a5f20318f12fe74f26059d8b62d62874e9"
+      },
+      "language": "TypeScript",
+      "caseGroup": "reviewbench:https://github.com/Marvell-Consulting/statswales-frontend#626",
+      "findings": [
+        {
+          "file": "tests-e2e/consumer/dataset-download.spec.ts",
+          "start_line": 184,
+          "end_line": 201,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/consumer/services/consumer-api.ts",
+          "start_line": 224,
+          "end_line": 229,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "exacerbated-by-pr"
+        },
+        {
+          "file": "src/consumer/services/consumer-api.ts",
+          "start_line": 237,
+          "end_line": 242,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "exacerbated-by-pr"
+        },
+        {
+          "file": "src/publisher/services/publisher-api.ts",
+          "start_line": 924,
+          "end_line": 933,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "exacerbated-by-pr"
+        },
+        {
+          "file": "tests-e2e/consumer/dataset-download.spec.ts",
+          "start_line": 203,
+          "end_line": 205,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/publisher/services/publisher-api.ts",
+          "start_line": 932,
+          "end_line": 932,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/consumer/services/consumer-api.ts",
+          "start_line": 241,
+          "end_line": 241,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    }
+  ]
+}
