@@ -117,17 +117,38 @@ function validateLedgerBinding(ledger, review, cpp, embedded) {
   requireEqual(aacrSource.snapshot.note.includes('not imported') && aacrSource.snapshot.note.includes('used for model evaluation'), true, 'AACR evaluation exclusion');
   const positiveAcquisition = aacrSource.snapshot.positiveAssetAcquisition || {};
   requireEqual(positiveAcquisition.attempted, true, 'AACR positive acquisition attempted');
-  requireEqual(positiveAcquisition.acquired, false, 'AACR positive remains unacquired');
+  requireEqual(positiveAcquisition.acquired, true, 'AACR positive blob acquisition');
+  requireEqual(positiveAcquisition.method, 'github-git-blob-api', 'AACR positive acquisition method');
   requireEqual(positiveAcquisition.blobSha, aacrPositive.blobSha, 'AACR positive acquisition blob');
   requireEqual(positiveAcquisition.records, aacrPositive.records, 'AACR positive acquisition count');
+  requireEqual(positiveAcquisition.contentBytes, 1116722, 'AACR positive content byte count');
+  requireEqual(positiveAcquisition.commentRecords, 1506, 'AACR positive comment count');
+  requireEqual(positiveAcquisition.uniqueRepositories, 50, 'AACR positive repository count');
+  requireEqual(positiveAcquisition.uniquePaths, 633, 'AACR positive path count');
+  requireEqual(positiveAcquisition.validAnchors, 1505, 'AACR positive valid anchor count');
+  requireEqual(positiveAcquisition.invalidAnchors, 1, 'AACR positive invalid anchor count');
+  requireEqual(positiveAcquisition.commentOriginCounts.aiGenerated, 1114, 'AACR AI reference count');
+  requireEqual(positiveAcquisition.commentOriginCounts.humanDiscussion, 392, 'AACR human reference count');
+  requireEqual(Object.values(positiveAcquisition.languageCounts || {}).reduce((sum, count) => sum + count, 0),
+    positiveAcquisition.records, 'AACR positive language distribution');
+  requireEqual(Object.values(positiveAcquisition.categoryCounts || {}).reduce((sum, count) => sum + count, 0),
+    positiveAcquisition.commentRecords, 'AACR positive category distribution');
   const negativeInspection = aacrSource.snapshot.negativeReferenceInspection || {};
   requireEqual(negativeInspection.inspected, true, 'AACR negative shape inspected');
   requireEqual(negativeInspection.records, aacrNegative.records, 'AACR negative inspected count');
+  requireEqual(negativeInspection.commentRecords, 639, 'AACR negative comment count');
+  requireEqual(negativeInspection.uniqueRepositories, 49, 'AACR negative repository count');
+  requireEqual(negativeInspection.uniquePaths, 375, 'AACR negative path count');
+  requireEqual(negativeInspection.validAnchors, 639, 'AACR negative valid anchor count');
   requireEqual(negativeInspection.commentsArrayPresent, true, 'AACR negative comment arrays');
-  requireEqual(negativeInspection.explicitTopLevelFileOrPathField, false, 'AACR negative file/path mapping');
+  requireEqual(negativeInspection.nestedCommentPathsPresent, true, 'AACR negative nested paths');
+  requireEqual(negativeInspection.nestedCommentLineAnchorsPresent, true, 'AACR negative nested line anchors');
+  requireEqual(negativeInspection.explicitTopLevelFileOrPathField, false, 'AACR negative top-level file/path mapping');
   requireEqual(negativeInspection.cleanNegativeEligible, false, 'AACR clean-negative eligibility');
   requireEqual(Object.values(negativeInspection.languageCounts || {}).reduce((sum, count) => sum + count, 0),
     aacrNegative.records, 'AACR negative language distribution');
+  requireEqual(Object.values(negativeInspection.commentOriginCounts || {}).reduce((sum, count) => sum + count, 0),
+    negativeInspection.commentRecords, 'AACR negative comment-origin distribution');
 
   requireEqual(embedded.sourceRepository, reviewSource.repository, 'embedded ReviewBench repository');
   requireEqual(embedded.sourceRevision, reviewSource.revision, 'embedded ReviewBench revision');
@@ -356,9 +377,14 @@ function verifyExternalReviewBenchmarks(root = path.resolve(__dirname, '..')) {
       rootCauseGroups: cppGroups.size, highRiskRootCauseGroups: cppHighGroups.size}),
     embedded: Object.freeze({prs: embedded.records.length, positiveFindings: embeddedPositive,
       highRiskCaseGroups: embeddedHighGroups.size}),
-    aacr: Object.freeze({positiveReferences: aacrPositive.records, negativeReferences: aacrNegative.records,
-      positiveAssetAcquired: aacrSource.snapshot.positiveAssetAcquisition.acquired,
+    aacr: Object.freeze({positiveReferences: aacrPositive.records, positiveComments: positiveAcquisition.commentRecords,
+      positiveAssetAcquired: positiveAcquisition.acquired, positiveValidAnchors: positiveAcquisition.validAnchors,
+      positiveInvalidAnchors: positiveAcquisition.invalidAnchors, positiveAiComments: positiveAcquisition.commentOriginCounts.aiGenerated,
+      positiveHumanComments: positiveAcquisition.commentOriginCounts.humanDiscussion,
+      negativeReferences: aacrNegative.records, negativeComments: aacrInspection.commentRecords,
       negativeCommentArrays: aacrInspection.commentsArrayPresent,
+      negativeNestedPaths: aacrInspection.nestedCommentPathsPresent,
+      negativeNestedLineAnchors: aacrInspection.nestedCommentLineAnchorsPresent,
       explicitNegativeFilePathMapping: aacrInspection.explicitTopLevelFileOrPathField,
       cleanNegativeEligible: aacrInspection.cleanNegativeEligible}),
     uniquePullRequests: prs.size,
