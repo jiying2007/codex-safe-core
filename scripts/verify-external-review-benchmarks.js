@@ -75,6 +75,11 @@ function verifyExternalReviewBenchmarks(root = path.resolve(__dirname, '..')) {
       embedded.freshModelExecution !== false || embedded.qualificationAuthority !== false) {
     throw new Error('Embedded ReviewBench fixture must remain development-only');
   }
+  if (embedded.sourceLicense !== 'MIT' || !String(embedded.sourceLicenseText || '').startsWith('MIT License')) {
+    throw new Error('Embedded ReviewBench fixture is missing its verified MIT license text');
+  }
+  requireSha(embedded.sourceRevision, 'Embedded ReviewBench source revision');
+  rejectRawPayload(embedded, 'Embedded ReviewBench');
   requireSha(review.sourceManifestBlobSha, 'ReviewBench manifest blob');
   requireSha(review.sourceLicenseBlobSha, 'ReviewBench license blob');
   requireSha(cpp.sourceBlobSha, 'CloudAEye corpus blob');
@@ -132,7 +137,10 @@ function verifyExternalReviewBenchmarks(root = path.resolve(__dirname, '..')) {
     }
     for (const finding of findings) {
       validateFinding(finding, label + ':' + String(finding.file || finding.path), lineKey, endKey);
-      if (finding.tp_fp === 'fp') falsePositiveReferences += 1;
+      if (finding.tp_fp === 'fp') {
+        falsePositiveReferences += 1;
+        if (label === 'ReviewBench') reviewFalsePositive += 1;
+      }
       if (positivePredicate(finding)) {
         positives += 1;
         if (label === 'ReviewBench') reviewPositive += 1;
@@ -181,7 +189,7 @@ function verifyExternalReviewBenchmarks(root = path.resolve(__dirname, '..')) {
         return 'embedded:' + String(record.pr.repo).toLowerCase() + '#' + number;
       }));
 
-  if (reviewPositive !== review.positiveFindingCount || reviewFalsePositive !== 0 ||
+  if (reviewPositive !== review.positiveFindingCount || reviewFalsePositive !== review.falsePositiveReferenceCount ||
       reviewHighGroups.size !== review.highRiskCaseGroups) {
     throw new Error('ReviewBench snapshot metadata does not match its labels');
   }
@@ -206,8 +214,8 @@ function verifyExternalReviewBenchmarks(root = path.resolve(__dirname, '..')) {
     sum + source.records.filter(record => record.holdout === true).length, 0);
   const independenceVerified = review.rootCauseIndependenceVerified === true &&
     cpp.rootCauseIndependenceVerified === true && embedded.rootCauseIndependenceVerified === true;
-  const freshModelExecution = review.freshModelExecution === true ||
-    cpp.freshModelExecution === true || embedded.freshModelExecution === true;
+  const freshModelExecution = review.freshModelExecution === true &&
+    cpp.freshModelExecution === true && embedded.freshModelExecution === true;
   const blockers = [];
   if (!independenceVerified) blockers.push('root_cause_independence_not_independently_adjudicated');
   if (cleanNegativeCases < 1) blockers.push('clean_negative_cases_missing');
