@@ -114,7 +114,7 @@ function validateLedgerBinding(ledger, review, cpp, embedded) {
   requireEqual(aacrSource.snapshot.imported, false, 'AACR must remain unimported');
   requireEqual(aacrSource.snapshot.partition, 'candidate-only', 'AACR partition');
   requireEqual(aacrSource.snapshot.holdout, false, 'AACR holdout');
-  requireEqual(aacrSource.snapshot.note.includes('not used for model evaluation'), true, 'AACR evaluation exclusion');
+  requireEqual(aacrSource.snapshot.note.includes('not imported') && aacrSource.snapshot.note.includes('used for model evaluation'), true, 'AACR evaluation exclusion');
 
   requireEqual(embedded.sourceRepository, reviewSource.repository, 'embedded ReviewBench repository');
   requireEqual(embedded.sourceRevision, reviewSource.revision, 'embedded ReviewBench revision');
