@@ -1,5 +1,6 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
+const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
 const {normalizeExternalReviewCorpus}=require('../review-benchmark-adapter');
 const rev='a'.repeat(40),base='b'.repeat(40),head='c'.repeat(40);
 test('ReviewBench golden record imports only adjudicated introduced-by-PR true positives',()=>{
@@ -107,4 +108,53 @@ test('external benchmark snapshots are provenance-bound and cannot qualify model
  assert.equal(result.competitionQualified,false);
  assert.ok(result.blockers.includes('clean_negative_cases_missing'));
  assert.ok(result.blockers.includes('independent_holdout_missing'));
+});
+
+test('external benchmark source ledger rejects revision, asset and PR identity drift',t=>{
+ const sourceRoot=path.resolve(__dirname,'..');
+ function fixture(){
+   const root=fs.mkdtempSync(path.join(os.tmpdir(),'external-benchmark-ledger-'));
+   t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+   for(const relative of [
+     'package.json',
+     'scripts/verify-external-review-benchmarks.js',
+     'quality/external-benchmark-sources.json',
+     'quality/reviewbench-public-test-development-v1.json',
+     'quality/cloudae-cpp-development-v1.json',
+     'quality/reviewbench-embedded-development.json'
+   ]){
+     const destination=path.join(root,relative);
+     fs.mkdirSync(path.dirname(destination),{recursive:true});
+     fs.copyFileSync(path.join(sourceRoot,relative),destination);
+   }
+   return root;
+ }
+ const {verifyExternalReviewBenchmarks}=require('../scripts/verify-external-review-benchmarks');
+ const revisionRoot=fixture();
+ const ledgerPath=path.join(revisionRoot,'quality/external-benchmark-sources.json');
+ const ledger=JSON.parse(fs.readFileSync(ledgerPath,'utf8'));
+ ledger.sources.find(x=>x.id==='github-reviewbench-2026').revision='0'.repeat(40);
+ fs.writeFileSync(ledgerPath,JSON.stringify(ledger));
+ assert.throws(()=>verifyExternalReviewBenchmarks(revisionRoot),/ReviewBench revision/);
+
+ const assetRoot=fixture();
+ const reviewPath=path.join(assetRoot,'quality/reviewbench-public-test-development-v1.json');
+ const review=JSON.parse(fs.readFileSync(reviewPath,'utf8'));
+ review.sourceManifestBlobSha='1'.repeat(40);
+ fs.writeFileSync(reviewPath,JSON.stringify(review));
+ assert.throws(()=>verifyExternalReviewBenchmarks(assetRoot),/ReviewBench manifest blob/);
+
+ const embeddedRoot=fixture();
+ const embeddedPath=path.join(embeddedRoot,'quality/reviewbench-embedded-development.json');
+ const embedded=JSON.parse(fs.readFileSync(embeddedPath,'utf8'));
+ embedded.sources[0].base='2'.repeat(40);
+ fs.writeFileSync(embeddedPath,JSON.stringify(embedded));
+ assert.throws(()=>verifyExternalReviewBenchmarks(embeddedRoot),/identity does not match/);
+
+ const aacrRoot=fixture();
+ const aacrLedgerPath=path.join(aacrRoot,'quality/external-benchmark-sources.json');
+ const aacrLedger=JSON.parse(fs.readFileSync(aacrLedgerPath,'utf8'));
+ aacrLedger.sources.find(x=>x.id==='alibaba-aacr-bench-2026').snapshot.imported=true;
+ fs.writeFileSync(aacrLedgerPath,JSON.stringify(aacrLedger));
+ assert.throws(()=>verifyExternalReviewBenchmarks(aacrRoot),/AACR must remain unimported/);
 });
