@@ -161,7 +161,7 @@ test('offline zizmor retains required reporting in an isolated Security job', ()
   assert.doesNotMatch(codeqlJob, /zizmorcore\/zizmor-action/);
   assert.doesNotMatch(zizmorJob, /github\/codeql-action\/(?:init|analyze)/);
   assert.match(zizmorJob, /zizmorcore\/zizmor-action/);
-  assert.match(security, /zizmorcore\/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd/);
+  assert.match(security, /zizmorcore\/zizmor-action@1b4550e929643b8b26a62303c6bd64814271a4f1/);
   assert.match(security, /inputs: \.github\/workflows/);
   assert.match(security, /collect: workflows/);
   assert.match(security, /version: '1\.32\.0'/);
