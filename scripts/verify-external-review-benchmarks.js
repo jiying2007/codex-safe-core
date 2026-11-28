@@ -16,9 +16,12 @@ function requireSha(value, label) {
   if (typeof value !== 'string' || !SHA.test(value)) throw new Error('Invalid pinned SHA: ' + label);
 }
 function requirePath(value, label) {
-  if (typeof value !== 'string' || !value || value.length > 1024 || value.startsWith('/') ||
-      value.includes('\\0') || value.includes('\\r') || value.includes('\\n') ||
-      value.split('/').some(part => !part || part === '.' || part === '..')) {
+  const text = String(value || '');
+  if (!text || text.length > 1024 || text.startsWith('/') ||
+      text.includes(String.fromCharCode(0)) ||
+      text.includes(String.fromCharCode(13)) ||
+      text.includes(String.fromCharCode(10)) ||
+      text.split('/').some(part => !part || part === '.' || part === '..')) {
     throw new Error('Unsafe benchmark path: ' + label);
   }
 }
@@ -47,7 +50,7 @@ function validateSource(source, label) {
 }
 function prNumber(record) {
   if (Number.isSafeInteger(record.pr && record.pr.pr_number) && record.pr.pr_number > 0) return record.pr.pr_number;
-  const match = String(record.pr_key || '').match(/_(\\d+)-[a-f0-9]{8}$/i);
+  const match = String(record.pr_key || '').match(new RegExp('_([0-9]+)-[a-f0-9]{8}$', 'i'));
   if (match) return Number(match[1]);
   throw new Error('Missing pinned PR number');
 }
@@ -85,6 +88,11 @@ function verifyExternalReviewBenchmarks(root = path.resolve(__dirname, '..')) {
   if (embedded.records.length !== 2 || embedded.sources.length !== 2) {
     throw new Error('Embedded development fixture must retain its two source projects');
   }
+  for (const source of review.sources.concat(embedded.sources)) {
+    requireSha(source.sourceBlobSha, 'ReviewBench source blob');
+    requireSha(source.base, 'ReviewBench source base');
+    requireSha(source.head, 'ReviewBench source head');
+  }
   const packaged = new Set(pkg.files || []);
   for (const file of [
     'quality/reviewbench-public-test-development-v1.json',
@@ -100,7 +108,15 @@ function verifyExternalReviewBenchmarks(root = path.resolve(__dirname, '..')) {
   const highGroups = new Set();
   let positives = 0;
   let falsePositiveReferences = 0;
-  function addPr(record, label, groupIds, findings, lineKey, endKey, positivePredicate) {
+  let reviewPositive = 0;
+  let reviewHigh = 0;
+  let reviewFalsePositive = 0;
+  let cppPositive = 0;
+  let cppHigh = 0;
+  let embeddedPositive = 0;
+  let embeddedHigh = 0;
+
+  function addPr(record, label, groupIds, findings, lineKey, endKey, positivePredicate, highGroupForFinding) {
     const repo = String(record.pr && record.pr.repo || '');
     const number = prNumber(record);
     const base = String(record.pr && record.pr.base || '');
@@ -119,9 +135,15 @@ function verifyExternalReviewBenchmarks(root = path.resolve(__dirname, '..')) {
       if (finding.tp_fp === 'fp') falsePositiveReferences += 1;
       if (positivePredicate(finding)) {
         positives += 1;
+        if (label === 'ReviewBench') reviewPositive += 1;
+        if (label === 'CloudAEye') cppPositive += 1;
+        if (label === 'Embedded ReviewBench') embeddedPositive += 1;
         if (finding.severity === 'high' || finding.severity === 'critical') {
-          for (const group of groupIds) highGroups.add(group);
-          if (finding.rootCauseGroup) highGroups.add('cloudae:' + finding.rootCauseGroup);
+          const highIds = highGroupForFinding(finding, groupIds);
+          for (const group of highIds) highGroups.add(group);
+          if (label === 'ReviewBench') reviewHigh += 1;
+          if (label === 'CloudAEye') cppHigh += 1;
+          if (label === 'Embedded ReviewBench') embeddedHigh += 1;
         }
       }
     }
@@ -129,18 +151,54 @@ function verifyExternalReviewBenchmarks(root = path.resolve(__dirname, '..')) {
 
   for (const record of review.records) {
     addPr(record, 'ReviewBench', [record.caseGroup], record.findings, 'start_line', 'end_line',
-      finding => finding.tp_fp === 'tp' && finding.scope === 'introduced-by-pr');
+      finding => finding.tp_fp === 'tp' && finding.scope === 'introduced-by-pr',
+      () => [record.caseGroup]);
   }
   for (const record of cpp.records) {
     const groupIds = (record.rootCauseGroups || []).map(group => 'cloudae:' + group);
-    addPr(record, 'CloudAEye', groupIds, record.findings, 'line', 'endLine', () => true);
+    addPr(record, 'CloudAEye', groupIds, record.findings, 'line', 'endLine', () => true,
+      finding => finding.rootCauseGroup ? ['cloudae:' + finding.rootCauseGroup] : []);
   }
   for (const record of embedded.records) {
     const number = prNumber(record);
     const group = 'embedded:' + String(record.pr.repo).toLowerCase() + '#' + number;
     addPr(record, 'Embedded ReviewBench', [group], record.findings, 'line', 'endLine',
-      finding => finding.tp_fp === 'tp' && finding.scope === 'introduced-by-pr');
+      finding => finding.tp_fp === 'tp' && finding.scope === 'introduced-by-pr',
+      () => [group]);
   }
+
+  const reviewHighGroups = new Set(review.records.filter(record =>
+    record.findings.some(f => f.tp_fp === 'tp' && f.scope === 'introduced-by-pr' &&
+      (f.severity === 'high' || f.severity === 'critical'))).map(record => record.caseGroup));
+  const cppGroups = new Set(cpp.records.flatMap(record => record.rootCauseGroups || []));
+  const cppHighGroups = new Set(cpp.records.flatMap(record => record.findings
+    .filter(f => f.severity === 'high' || f.severity === 'critical')
+    .map(f => 'cloudae:' + f.rootCauseGroup)));
+  const embeddedHighGroups = new Set(embedded.records.filter(record =>
+    record.findings.some(f => f.tp_fp === 'tp' && f.scope === 'introduced-by-pr' &&
+      (f.severity === 'high' || f.severity === 'critical'))).map(record => {
+        const number = prNumber(record);
+        return 'embedded:' + String(record.pr.repo).toLowerCase() + '#' + number;
+      }));
+
+  if (reviewPositive !== review.positiveFindingCount || reviewFalsePositive !== 0 ||
+      reviewHighGroups.size !== review.highRiskCaseGroups) {
+    throw new Error('ReviewBench snapshot metadata does not match its labels');
+  }
+  if (cppPositive !== cpp.positiveFindingCount || cppGroups.size !== cpp.rootCauseGroupCount ||
+      cppHighGroups.size !== cpp.highRiskRootCauseGroups) {
+    throw new Error('CloudAEye snapshot metadata does not match its labels');
+  }
+  if (reviewHigh !== review.records.reduce((sum, record) => sum + record.findings.filter(f =>
+      f.tp_fp === 'tp' && f.scope === 'introduced-by-pr' && (f.severity === 'high' || f.severity === 'critical')).length, 0)) {
+    throw new Error('ReviewBench high-severity finding count mismatch');
+  }
+  if (cppHigh !== cpp.records.reduce((sum, record) => sum + record.findings.filter(f =>
+      f.severity === 'high' || f.severity === 'critical').length, 0)) {
+    throw new Error('CloudAEye high-severity finding count mismatch');
+  }
+  const expectedHighGroups = new Set([...reviewHighGroups, ...cppHighGroups, ...embeddedHighGroups]);
+  if (expectedHighGroups.size !== highGroups.size) throw new Error('High-risk grouping projection mismatch');
 
   const cleanNegativeCases = Number(review.cleanNegativeCases || 0) +
     Number(cpp.cleanNegativeCases || 0) + Number(embedded.cleanNegativeCases || 0);
@@ -159,16 +217,18 @@ function verifyExternalReviewBenchmarks(root = path.resolve(__dirname, '..')) {
     blockers.push('upstream_project_license_review_required_before_source_acquisition');
   }
   return Object.freeze({
-    reviewBench: Object.freeze({prs: review.records.length, positiveFindings: 308, falsePositiveReferences: review.falsePositiveReferenceCount, highRiskCaseGroups: review.highRiskCaseGroups}),
-    cloudae: Object.freeze({prs: cpp.records.length, findings: cpp.positiveFindingCount, rootCauseGroups: cpp.rootCauseGroupCount, highRiskRootCauseGroups: cpp.highRiskRootCauseGroups}),
-    embedded: Object.freeze({prs: embedded.records.length, positiveFindings: embedded.records.reduce((sum, record) =>
-      sum + record.findings.filter(f => f.tp_fp === 'tp' && f.scope === 'introduced-by-pr').length, 0)}),
+    reviewBench: Object.freeze({prs: review.records.length, positiveFindings: reviewPositive,
+      falsePositiveReferences: review.falsePositiveReferenceCount, highRiskCaseGroups: reviewHighGroups.size}),
+    cloudae: Object.freeze({prs: cpp.records.length, findings: cppPositive,
+      rootCauseGroups: cppGroups.size, highRiskRootCauseGroups: cppHighGroups.size}),
+    embedded: Object.freeze({prs: embedded.records.length, positiveFindings: embeddedPositive,
+      highRiskCaseGroups: embeddedHighGroups.size}),
     uniquePullRequests: prs.size,
     distinctRepositories: repos.size,
     candidateGroupingUnits: groups.size,
     highRiskCandidateGroups: highGroups.size,
     positiveFindingCount: positives,
-    falsePositiveReferenceCount: falsePositiveReferences,
+    falsePositiveReferenceCount,
     cleanNegativeCases,
     holdoutCases,
     independenceVerified,
@@ -178,7 +238,7 @@ function verifyExternalReviewBenchmarks(root = path.resolve(__dirname, '..')) {
   });
 }
 if (require.main === module) {
-  try { process.stdout.write(JSON.stringify(verifyExternalReviewBenchmarks(), null, 2) + '\\n'); }
+  try { process.stdout.write(JSON.stringify(verifyExternalReviewBenchmarks(), null, 2) + String.fromCharCode(10)); }
   catch (error) { console.error(error.stack || error.message || String(error)); process.exitCode = 2; }
 }
 module.exports = Object.freeze({ verifyExternalReviewBenchmarks });
