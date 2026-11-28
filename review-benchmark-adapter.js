@@ -4,20 +4,23 @@ const sha=x=>crypto.createHash('sha256').update(JSON.stringify(x)).digest('hex')
 const SHA=/^[a-f0-9]{40}$/;
 const CATEGORIES=new Set(['correctness','security','concurrency','resource','performance','robustness','maintainability','api','test','other']);
 const SEVERITIES=new Set(['critical','high','medium','low','info']);
+// Explicit ReviewBench taxonomy crosswalk. Other unknown categories remain
+// rejected. Do not invent critical severity from its high/medium/low scale.
+const REVIEWBENCH_CATEGORY_MAP=Object.freeze({'api-architecture':'api','testing':'test','reliability':'robustness'});
 function validPath(x){
  return typeof x==='string'&&x.length>0&&x.length<=1024&&!x.startsWith('/')&&!x.includes('\0')&&
  !x.includes('\r')&&!x.includes('\n')&&!x.split('/').some(y=>y==='.'||y==='..'||!y);
 }
-function normalizeLabel(source){
+function normalizeLabel(source,{reviewbench=false}={}){
  if(!source||!validPath(source.file||source.path))throw new Error('Unscoped external benchmark finding');
  const line=source.line??source.start_line??source.from_line;
  const end=source.endLine??source.end_line??source.to_line??line;
  if(!Number.isSafeInteger(line)||line<1||!Number.isSafeInteger(end)||end<line||end-line>200)
    throw new Error('External label requires a bounded exact line range');
- const category=String(source.category||'correctness'),severity=String(source.severity||'medium');
+ const sourceCategory=String(source.category||'correctness'),category=reviewbench&&Object.hasOwn(REVIEWBENCH_CATEGORY_MAP,sourceCategory)?REVIEWBENCH_CATEGORY_MAP[sourceCategory]:sourceCategory,severity=String(source.severity||'medium');
  if(!CATEGORIES.has(category)||!SEVERITIES.has(severity))
    throw new Error('Unsupported externally labelled category or severity');
- return Object.freeze({file:source.file||source.path,line,endLine:end,category,severity});
+ return Object.freeze({file:source.file||source.path,line,endLine:end,category,severity,...(category!==sourceCategory?{sourceCategory}:{})});
 }
 function normalizeExternalReviewCorpus({format,records,approval={},sourceRevision='',maxCases=200}={}){
  if(!['reviewbench-golden','aacr-review-instances'].includes(format))throw new Error('Unknown external Review benchmark format');
@@ -59,7 +62,7 @@ function normalizeExternalReviewCorpus({format,records,approval={},sourceRevisio
      continue; // Never convert an unlabeled or TP-empty PR into a clean negative.
    }
    if(rawLabels.length>128)throw new Error('Too many external findings per case');
-   const labels=rawLabels.map(normalizeLabel);
+   const labels=rawLabels.map(label=>normalizeLabel(label,{reviewbench:format==='reviewbench-golden'}));
    cases.push(Object.freeze({id:format+':'+id,sourceKind:'external-adjudicated',
      expected:Object.freeze(labels),provenance:Object.freeze({repo,base,head,groundTruth:truth})}));
    if(cases.length>=maxCases){excluded.push({id:'<remaining>',reason:'corpus_cap'});break;}

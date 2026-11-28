@@ -1,0 +1,401 @@
+{
+  "schemaVersion": 1,
+  "kind": "reviewbench-embedded-development-projection",
+  "partition": "development",
+  "holdout": false,
+  "freshModelExecution": false,
+  "qualificationAuthority": false,
+  "sourceRepository": "https://github.com/review-bench/ReviewBench",
+  "sourceRevision": "86b8fd643e7bbcf41d1cdddd54cc450a420075d1",
+  "sourceLicense": "MIT",
+  "sourceLicenseText": "MIT License\n\nCopyright (c) 2026 review-bench\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n",
+  "projection": "Only source PR identities, path/line ranges and factual label fields; no code, review messages or justifications copied. Positive labels are not exhaustive; TP-empty PRs do not qualify as clean negatives. Public labels are development references, not an independent holdout.",
+  "sources": [
+    {
+      "sourcePath": "golden/FreeRTOS_FreeRTOS-Kernel_1379-c926adcf.json",
+      "sourceBlobSha": "d37c7258d74609f56fc63ed13d4ed83adda85e62",
+      "domain": "rtos-kernel-c",
+      "repo": "https://github.com/FreeRTOS/FreeRTOS-Kernel",
+      "base": "f1043c49d59944353291654c175852bd17b34f99",
+      "head": "c926adcf6e0be826e3313fc503a92b53a78f8ef8",
+      "projectLicense": "MIT",
+      "projectLicensePath": "LICENSE.md",
+      "projectLicenseUrl": "https://github.com/FreeRTOS/FreeRTOS-Kernel/blob/c926adcf6e0be826e3313fc503a92b53a78f8ef8/LICENSE.md",
+      "licenseVerifiedAt": "head only; source not acquired/executed"
+    },
+    {
+      "sourcePath": "golden/OpenDevicePartnership_embedded-services_793-f63a0246.json",
+      "sourceBlobSha": "9aaef04685b0f00d8b57fd3d24c48a1d72f23363",
+      "domain": "embedded-services-rust",
+      "repo": "https://github.com/OpenDevicePartnership/embedded-services",
+      "base": "90130bc3d3df2f186323d70a8f757a5dfa16c6a2",
+      "head": "f63a02462d1eebd5b06b45ebdf1d2705c919413a",
+      "projectLicense": "MIT",
+      "projectLicensePath": "LICENSE",
+      "projectLicenseUrl": "https://github.com/OpenDevicePartnership/embedded-services/blob/f63a02462d1eebd5b06b45ebdf1d2705c919413a/LICENSE",
+      "licenseVerifiedAt": "head only; source not acquired/executed"
+    }
+  ],
+  "positiveCounts": {
+    "high": 1,
+    "medium": 2,
+    "low": 10
+  },
+  "records": [
+    {
+      "pr_key": "FreeRTOS_FreeRTOS-Kernel_1379-c926adcf",
+      "pr": {
+        "repo": "https://github.com/FreeRTOS/FreeRTOS-Kernel",
+        "pr_number": 1379,
+        "base": "f1043c49d59944353291654c175852bd17b34f99",
+        "head": "c926adcf6e0be826e3313fc503a92b53a78f8ef8"
+      },
+      "findings": [
+        {
+          "file": "tasks.c",
+          "start_line": 5233,
+          "end_line": 5244,
+          "category": "correctness",
+          "severity": "high",
+          "scope": "introduced-by-pr",
+          "tp_fp": "tp"
+        },
+        {
+          "file": "tasks.c",
+          "start_line": 5233,
+          "end_line": 5244,
+          "category": "performance",
+          "severity": "low",
+          "scope": "introduced-by-pr",
+          "tp_fp": "fp"
+        },
+        {
+          "file": "tasks.c",
+          "start_line": 5497,
+          "end_line": 5509,
+          "category": "correctness",
+          "severity": "medium",
+          "scope": "introduced-by-pr",
+          "tp_fp": "tp"
+        },
+        {
+          "file": "tasks.c",
+          "start_line": 4118,
+          "end_line": 4123,
+          "category": "maintainability",
+          "severity": "low",
+          "scope": "introduced-by-pr",
+          "tp_fp": "tp"
+        },
+        {
+          "file": "tasks.c",
+          "start_line": 4893,
+          "end_line": 4905,
+          "category": "testing",
+          "severity": "low",
+          "scope": "introduced-by-pr",
+          "tp_fp": "fp"
+        },
+        {
+          "file": "tasks.c",
+          "start_line": 3525,
+          "end_line": 3535,
+          "category": "correctness",
+          "severity": "low",
+          "scope": "pre-existing",
+          "tp_fp": "fp"
+        },
+        {
+          "file": "tasks.c",
+          "start_line": 5233,
+          "end_line": 5236,
+          "category": "correctness",
+          "severity": "low",
+          "scope": "introduced-by-pr",
+          "tp_fp": "fp"
+        },
+        {
+          "file": "tasks.c",
+          "start_line": 8196,
+          "end_line": 8197,
+          "category": "maintainability",
+          "severity": "low",
+          "scope": "introduced-by-pr",
+          "tp_fp": "fp"
+        },
+        {
+          "file": "tasks.c",
+          "start_line": 8330,
+          "end_line": 8331,
+          "category": "maintainability",
+          "severity": "low",
+          "scope": "introduced-by-pr",
+          "tp_fp": "fp"
+        },
+        {
+          "file": "tasks.c",
+          "start_line": 4893,
+          "end_line": 4896,
+          "category": "correctness",
+          "severity": "low",
+          "scope": "introduced-by-pr",
+          "tp_fp": "fp"
+        },
+        {
+          "file": "tasks.c",
+          "start_line": 5218,
+          "end_line": 5232,
+          "category": "reliability",
+          "severity": "low",
+          "scope": "introduced-by-pr",
+          "tp_fp": "fp"
+        },
+        {
+          "file": "tasks.c",
+          "start_line": 3525,
+          "end_line": 3529,
+          "category": "reliability",
+          "severity": "low",
+          "scope": "introduced-by-pr",
+          "tp_fp": "fp"
+        },
+        {
+          "file": "tasks.c",
+          "start_line": 5479,
+          "end_line": 5484,
+          "category": "reliability",
+          "severity": "low",
+          "scope": "introduced-by-pr",
+          "tp_fp": "fp"
+        }
+      ]
+    },
+    {
+      "pr_key": "OpenDevicePartnership_embedded-services_793-f63a0246",
+      "pr": {
+        "repo": "https://github.com/OpenDevicePartnership/embedded-services",
+        "pr_number": 793,
+        "base": "90130bc3d3df2f186323d70a8f757a5dfa16c6a2",
+        "head": "f63a02462d1eebd5b06b45ebdf1d2705c919413a"
+      },
+      "findings": [
+        {
+          "file": "partition-manager/partition-manager/Cargo.toml",
+          "start_line": 29,
+          "end_line": 29,
+          "category": "api-architecture",
+          "severity": "medium",
+          "scope": "introduced-by-pr",
+          "tp_fp": "tp"
+        },
+        {
+          "file": "partition-manager/partition-manager/src/ext/esa.rs",
+          "start_line": 61,
+          "end_line": 63,
+          "category": "testing",
+          "severity": "low",
+          "scope": "introduced-by-pr",
+          "tp_fp": "tp"
+        },
+        {
+          "file": "partition-manager/partition-manager/src/lib.rs",
+          "start_line": 138,
+          "end_line": 151,
+          "category": "maintainability",
+          "severity": "low",
+          "scope": "introduced-by-pr",
+          "tp_fp": "tp"
+        },
+        {
+          "file": "partition-manager/partition-manager/src/ext/bdd.rs",
+          "start_line": 53,
+          "end_line": 88,
+          "category": "maintainability",
+          "severity": "low",
+          "scope": "introduced-by-pr",
+          "tp_fp": "tp"
+        },
+        {
+          "file": "partition-manager/partition-manager/src/ext/bdd.rs",
+          "start_line": 189,
+          "end_line": 201,
+          "category": "maintainability",
+          "severity": "low",
+          "scope": "introduced-by-pr",
+          "tp_fp": "tp"
+        },
+        {
+          "file": "partition-manager/partition-manager/src/ext/esa.rs",
+          "start_line": 95,
+          "end_line": 109,
+          "category": "api-architecture",
+          "severity": "low",
+          "scope": "pre-existing",
+          "tp_fp": "fp"
+        },
+        {
+          "file": "partition-manager/partition-manager/src/lib.rs",
+          "start_line": 52,
+          "end_line": 64,
+          "category": "documentation",
+          "severity": "low",
+          "scope": "introduced-by-pr",
+          "tp_fp": "fp"
+        },
+        {
+          "file": "partition-manager/partition-manager/src/test/bdd.rs",
+          "start_line": 120,
+          "end_line": 134,
+          "category": "testing",
+          "severity": "low",
+          "scope": "introduced-by-pr",
+          "tp_fp": "tp"
+        },
+        {
+          "file": "partition-manager/partition-manager/src/ext/bdd.rs",
+          "start_line": 81,
+          "end_line": 102,
+          "category": "maintainability",
+          "severity": "low",
+          "scope": "introduced-by-pr",
+          "tp_fp": "fp"
+        },
+        {
+          "file": "partition-manager/partition-manager/src/ext/esa.rs",
+          "start_line": 25,
+          "end_line": 39,
+          "category": "maintainability",
+          "severity": "low",
+          "scope": "pre-existing",
+          "tp_fp": "fp"
+        },
+        {
+          "file": "partition-manager/partition-manager/src/ext/esa.rs",
+          "start_line": 56,
+          "end_line": 85,
+          "category": "maintainability",
+          "severity": "low",
+          "scope": "pre-existing",
+          "tp_fp": "fp"
+        },
+        {
+          "file": "partition-manager/partition-manager/src/ext/bdd.rs",
+          "start_line": 33,
+          "end_line": 37,
+          "category": "correctness",
+          "severity": "low",
+          "scope": "introduced-by-pr",
+          "tp_fp": "fp"
+        },
+        {
+          "file": "partition-manager/partition-manager/src/ext/bdd.rs",
+          "start_line": 122,
+          "end_line": 126,
+          "category": "documentation",
+          "severity": "low",
+          "scope": "pre-existing",
+          "tp_fp": "fp"
+        },
+        {
+          "file": "partition-manager/partition-manager/src/ext/esa.rs",
+          "start_line": 81,
+          "end_line": 85,
+          "category": "correctness",
+          "severity": "low",
+          "scope": "introduced-by-pr",
+          "tp_fp": "fp"
+        },
+        {
+          "file": "partition-manager/partition-manager/src/lib.rs",
+          "start_line": 58,
+          "end_line": 60,
+          "category": "correctness",
+          "severity": "low",
+          "scope": "introduced-by-pr",
+          "tp_fp": "fp"
+        },
+        {
+          "file": "partition-manager/partition-manager/src/lib.rs",
+          "start_line": 94,
+          "end_line": 98,
+          "category": "correctness",
+          "severity": "low",
+          "scope": "introduced-by-pr",
+          "tp_fp": "fp"
+        },
+        {
+          "file": "partition-manager/partition-manager/src/ext/esa.rs",
+          "start_line": 106,
+          "end_line": 110,
+          "category": "correctness",
+          "severity": "low",
+          "scope": "introduced-by-pr",
+          "tp_fp": "fp"
+        },
+        {
+          "file": "partition-manager/partition-manager/src/ext/bdd.rs",
+          "start_line": 188,
+          "end_line": 192,
+          "category": "correctness",
+          "severity": "low",
+          "scope": "introduced-by-pr",
+          "tp_fp": "fp"
+        },
+        {
+          "file": "partition-manager/partition-manager/src/lib.rs",
+          "start_line": 165,
+          "end_line": 165,
+          "category": "api-architecture",
+          "severity": "low",
+          "scope": "introduced-by-pr",
+          "tp_fp": "fp"
+        },
+        {
+          "file": "partition-manager/partition-manager/src/ext/bdd.rs",
+          "start_line": 104,
+          "end_line": 104,
+          "category": "correctness",
+          "severity": "low",
+          "scope": "introduced-by-pr",
+          "tp_fp": "fp"
+        },
+        {
+          "file": "partition-manager/partition-manager/src/ext/esa.rs",
+          "start_line": 116,
+          "end_line": 116,
+          "category": "maintainability",
+          "severity": "low",
+          "scope": "introduced-by-pr",
+          "tp_fp": "tp"
+        },
+        {
+          "file": "partition-manager/partition-manager/src/ext/esa.rs",
+          "start_line": 34,
+          "end_line": 36,
+          "category": "testing",
+          "severity": "low",
+          "scope": "introduced-by-pr",
+          "tp_fp": "tp"
+        },
+        {
+          "file": "partition-manager/partition-manager/src/ext/esa.rs",
+          "start_line": 96,
+          "end_line": 100,
+          "category": "maintainability",
+          "severity": "low",
+          "scope": "introduced-by-pr",
+          "tp_fp": "tp"
+        },
+        {
+          "file": "partition-manager/partition-manager/Cargo.toml",
+          "start_line": 40,
+          "end_line": 40,
+          "category": "maintainability",
+          "severity": "low",
+          "scope": "introduced-by-pr",
+          "tp_fp": "tp"
+        }
+      ]
+    }
+  ]
+}

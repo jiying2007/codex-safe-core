@@ -79,6 +79,7 @@
     "review-quality-comparison",
     "review-function-level-impact-evidence",
     "review-deterministic-risk-evidence",
+    "review-chunk-structural-evidence-selection",
     "review-exact-finding-evidence-verification",
     "review-external-benchmark-ingestion"
   ],
@@ -144,6 +145,7 @@
     "auditReviewClaims",
     "buildFunctionImpactEvidence",
     "buildReviewRiskEvidence",
+    "selectChunkStructuralEvidence",
     "verifyFindingEvidence",
     "normalizeExternalReviewCorpus"
   ],
