@@ -170,7 +170,7 @@ function verifyExternalReviewBenchmarks(root = path.resolve(__dirname, '..')) {
   for (const record of embedded.records) {
     const number = prNumber(record);
     const group = 'embedded:' + String(record.pr.repo).toLowerCase() + '#' + number;
-    addPr(record, 'Embedded ReviewBench', [group], record.findings, 'line', 'endLine',
+    addPr(record, 'Embedded ReviewBench', [group], record.findings, 'start_line', 'end_line',
       finding => finding.tp_fp === 'tp' && finding.scope === 'introduced-by-pr',
       () => [group]);
   }
