@@ -75,38 +75,100 @@
           "path": "dataset/v1/positive_samples.json",
           "blobSha": "053adcb264857b13e62d62d5d223341cbb09ec97",
           "records": 196,
-          "role": "positive references; full content acquisition must be verified before import"
+          "role": "positive reference comments; blob content acquired and structurally audited; remains development-only and unimported pending label/anchor review",
+          "commentRecords": 1506,
+          "uniqueRepositories": 50,
+          "uniquePaths": 633,
+          "validAnchors": 1505,
+          "invalidAnchors": 1,
+          "languageCounts": {
+            "C++": 33,
+            "Go": 22,
+            "C#": 10,
+            "C": 19,
+            "Python": 21,
+            "JavaScript": 11,
+            "TypeScript": 29,
+            "PHP": 11,
+            "Java": 30,
+            "Rust": 10
+          },
+          "categoryCounts": {
+            "Performance": 117,
+            "Maintainability and Readability": 626,
+            "Code Defect": 710,
+            "Security Vulnerability": 53
+          },
+          "commentOriginCounts": {
+            "aiGenerated": 1114,
+            "humanDiscussion": 392
+          }
         },
         {
           "path": "dataset/v1/negative_samples.json",
           "blobSha": "c986541917d820bdca529fa276c5b2570e512396",
           "records": 155,
-          "role": "negative discussion/reference records; not automatically clean code-change negatives"
+          "role": "negative review-reference comments; not clean PR/code-change negatives",
+          "commentRecords": 639,
+          "uniqueRepositories": 49,
+          "uniquePaths": 375,
+          "validAnchors": 639,
+          "commentOriginCounts": {
+            "aiGenerated": 483,
+            "humanDiscussion": 156
+          },
+          "languageCounts": {
+            "C++": 31,
+            "Go": 18,
+            "C#": 6,
+            "C": 16,
+            "Python": 15,
+            "JavaScript": 9,
+            "TypeScript": 26,
+            "PHP": 7,
+            "Java": 18,
+            "Rust": 9
+          }
         }
       ],
       "knownLimitations": [
-        "Reference comments combine original review discussions and model-generated feedback followed by expert annotation.",
-        "Negative sample comments are not equivalent to independently adjudicated clean PRs.",
-        "Do not import a positive label without exact file/line mapping and human-adjudicated defect provenance.",
-        "Original third-party project licenses must be checked per source snapshot.",
-        "A pinned inspection of all 155 negative-reference rows found top-level comment arrays and no explicit top-level file/path field; they are review-reference records, not clean-negative code changes.",
-        "The positive-reference asset is pinned at its upstream blob SHA but could not be acquired through the available GitHub content read path; it remains unimported."
+        "Reference comments combine original review discussions and model-generated feedback followed by expert annotation; AI-generated and human discussion references must remain separately stratified.",
+        "The v1 positive asset contains 196 PR rows and 1,506 nested reference comments. It is acquired and structurally audited, but is not yet imported into Safe Core or used for model evaluation.",
+        "One of the 1,506 positive comments has a reversed from_line/to_line range; exclude or adjudicate it before any normalized evaluation import.",
+        "The 155-row negative_samples asset contains 639 nested review-reference comments with file paths and line anchors, but is not an independently adjudicated set of clean PRs; do not use it as a clean-negative denominator.",
+        "The repository README describes expert annotation of reference comments; this does not establish independent root-cause grouping, blind holdout status, or a Safe Core-specific true-positive label without a documented crosswalk.",
+        "Original third-party project licenses must be checked per source snapshot; no upstream source code or comment text is redistributed by this metadata-only audit."
       ],
       "snapshot": {
         "imported": false,
         "partition": "candidate-only",
         "holdout": false,
-        "note": "Source and Apache-2.0 license are registered; large positive/negative JSON snapshots were not imported or used for model evaluation.",
+        "note": "AACR-Bench Apache-2.0 repository license and both immutable asset blobs are pinned. Positive v1 JSON was acquired and structurally audited through the GitHub blob API; no raw comment text or source code is copied into Safe Core. The 196 PR / 1,506 reference comments remain unimported and unused for model evaluation pending label crosswalk, root-cause adjudication, and original-project license review.",
         "positiveAssetAcquisition": {
           "attempted": true,
-          "acquired": false,
+          "acquired": true,
+          "method": "github-git-blob-api",
           "blobSha": "053adcb264857b13e62d62d5d223341cbb09ec97",
           "records": 196,
-          "note": "Pinned upstream asset could not be retrieved through the available GitHub content read path; no source comments or records were imported."
+          "contentBytes": 1116722,
+          "commentRecords": 1506,
+          "uniqueRepositories": 50,
+          "uniquePaths": 633,
+          "validAnchors": 1505,
+          "invalidAnchors": 1,
+          "commentOriginCounts": {
+            "aiGenerated": 1114,
+            "humanDiscussion": 392
+          },
+          "note": "Exact immutable Git blob was fetched and parsed. Metadata-only structural audit; no comments or source code copied. One reversed line range remains excluded from normalized import."
         },
         "negativeReferenceInspection": {
           "inspected": true,
           "records": 155,
+          "commentRecords": 639,
+          "uniqueRepositories": 49,
+          "uniquePaths": 375,
+          "validAnchors": 639,
           "topLevelFields": [
             "change_line_count",
             "project_main_language",
@@ -130,9 +192,16 @@
             "Java": 18,
             "Rust": 9
           },
+          "commentOriginCounts": {
+            "aiGenerated": 483,
+            "humanDiscussion": 156
+          },
           "commentsArrayPresent": true,
+          "nestedCommentPathsPresent": true,
+          "nestedCommentLineAnchorsPresent": true,
           "explicitTopLevelFileOrPathField": false,
-          "cleanNegativeEligible": false
+          "cleanNegativeEligible": false,
+          "note": "The nested comments contain paths and line anchors; however these are negative review-reference records, not adjudicated clean PRs."
         }
       }
     },
