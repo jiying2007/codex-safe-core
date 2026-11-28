@@ -82,15 +82,21 @@
           "blobSha": "c986541917d820bdca529fa276c5b2570e512396",
           "records": 155,
           "role": "negative discussion/reference records; not automatically clean code-change negatives"
+        },
+        {
+          "path": "README.md",
+          "blobSha": "ea38bc71d29a232fd8a9ad5a0e3de379362feb3b",
+          "role": "pinned dataset methodology, schema and annotation description"
         }
       ],
       "knownLimitations": [
-        "Reference comments combine original review discussions and model-generated feedback followed by expert annotation.",
-        "Negative sample comments are not equivalent to independently adjudicated clean PRs.",
-        "Do not import a positive label without exact file/line mapping and human-adjudicated defect provenance.",
-        "Original third-party project licenses must be checked per source snapshot.",
-        "A pinned inspection of all 155 negative-reference rows found top-level comment arrays and no explicit top-level file/path field; they are review-reference records, not clean-negative code changes.",
-        "The positive-reference asset is pinned at its upstream blob SHA but could not be acquired through the available GitHub content read path; it remains unimported."
+        "The dataset is a comment-level benchmark: 196 positive PR records contain 1,506 expert-annotated positive reference comments; 155 negative PR records contain 639 expert-annotated incorrect reference comments. Negative comments are false-positive references, not clean-negative code-change PRs.",
+        "The upstream README states reference comments combine original review discussions and model-generated feedback followed by expert annotation; preserve is_ai_comment and source_model instead of treating AI-generated comments as human-originated.",
+        "The positive reference asset includes 1,506 nested comments with file paths and line ranges, but one positive comment has a reversed range (from_line 1153, to_line 1144) and must be quarantined; do not silently normalize it.",
+        "The negative reference asset has 639 nested comments with file paths and line ranges; all 639 ranges pass the bounded range check. Its PR-level rows have no top-level file/path field.",
+        "Do not import a positive or negative label into Safe Core until the AACR-to-Safe category/severity/scope crosswalk and per-project source license review are approved.",
+        "The positive and negative assets contain model-generated comments as well as human-originated comments; retain is_ai_comment and source_model for stratified evaluation.",
+        "Original third-party project licenses must be checked per source snapshot."
       ],
       "snapshot": {
         "imported": false,
@@ -99,14 +105,30 @@
         "note": "Source and Apache-2.0 license are registered; large positive/negative JSON snapshots were not imported or used for model evaluation.",
         "positiveAssetAcquisition": {
           "attempted": true,
-          "acquired": false,
+          "acquired": true,
           "blobSha": "053adcb264857b13e62d62d5d223341cbb09ec97",
+          "bytes": 1116722,
           "records": 196,
-          "note": "Pinned upstream asset could not be retrieved through the available GitHub content read path; no source comments or records were imported."
+          "comments": 1506,
+          "aiGeneratedComments": 1114,
+          "humanOriginatedComments": 392,
+          "validBoundedRanges": 1505,
+          "invalidRanges": 1,
+          "imported": false,
+          "invalidRangeExample": {
+            "pr": "https://github.com/FreeCAD/FreeCAD/pull/19411",
+            "path": "src/Mod/TechDraw/App/DrawProjGroup.cpp",
+            "fromLine": 1153,
+            "toLine": 1144
+          },
+          "note": "Pinned asset retrieved and structurally inspected. No comments or source code were imported; one reversed line range is quarantined."
         },
         "negativeReferenceInspection": {
           "inspected": true,
           "records": 155,
+          "comments": 639,
+          "aiGeneratedComments": 483,
+          "humanOriginatedComments": 156,
           "topLevelFields": [
             "change_line_count",
             "project_main_language",
@@ -130,9 +152,31 @@
             "Java": 18,
             "Rust": 9
           },
+          "commentFields": [
+            "is_ai_comment",
+            "note",
+            "path",
+            "side",
+            "source_model",
+            "from_line",
+            "to_line",
+            "category",
+            "context"
+          ],
           "commentsArrayPresent": true,
           "explicitTopLevelFileOrPathField": false,
-          "cleanNegativeEligible": false
+          "validBoundedRanges": 639,
+          "invalidRanges": 0,
+          "cleanNegativeEligible": false,
+          "imported": false
+        },
+        "annotationMethod": {
+          "upstreamReadmeBlobSha": "ea38bc71d29a232fd8a9ad5a0e3de379362feb3b",
+          "paperArxivId": "2601.19494v3",
+          "expertAnnotators": 80,
+          "annotatedComments": 2145,
+          "seniorEngineerExperienceYearsMinimum": 2,
+          "description": "Paper describes 80 senior software engineers with at least two years of industry experience annotating 2,145 comments generated by two ACR systems across six LLMs."
         }
       }
     },
