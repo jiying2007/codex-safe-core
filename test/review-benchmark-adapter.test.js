@@ -97,8 +97,12 @@ test('external benchmark snapshots are provenance-bound and cannot qualify model
  assert.equal(result.cloudae.highRiskRootCauseGroups,5);
  assert.equal(result.embedded.prs,2);
  assert.deepEqual(result.aacr,{
-   positiveReferences:196,negativeReferences:155,positiveAssetAcquired:false,
-   negativeCommentArrays:true,explicitNegativeFilePathMapping:false,cleanNegativeEligible:false
+   positiveReferences:196,positiveComments:1506,positiveAssetAcquired:true,
+   positiveValidAnchors:1505,positiveInvalidAnchors:1,positiveAiComments:1114,positiveHumanComments:392,
+   negativeReferences:155,negativeComments:639,negativeCommentArrays:true,
+   negativeNestedPaths:true,negativeNestedLineAnchors:true,
+   explicitNegativeFilePathMapping:false,cleanNegativeEligible:false,
+   positiveNegativePrOverlap:151,uniqueAacrPrs:200,reviewBenchOverlap:0
  });
  assert.equal(result.uniquePullRequests,43);
  assert.equal(result.distinctRepositories,40);
@@ -168,5 +172,29 @@ test('external benchmark source ledger rejects revision, asset and PR identity d
  shapeLedger.sources.find(x=>x.id==='alibaba-aacr-bench-2026')
    .snapshot.negativeReferenceInspection.explicitTopLevelFileOrPathField=true;
  fs.writeFileSync(shapeLedgerPath,JSON.stringify(shapeLedger));
- assert.throws(()=>verifyExternalReviewBenchmarks(shapeRoot),/AACR negative file\/path mapping/);
+ assert.throws(()=>verifyExternalReviewBenchmarks(shapeRoot),/AACR negative top-level file\/path mapping/);
+ 
+ const acquiredRoot=fixture();
+ const acquiredLedgerPath=path.join(acquiredRoot,'quality/external-benchmark-sources.json');
+ const acquiredLedger=JSON.parse(fs.readFileSync(acquiredLedgerPath,'utf8'));
+ acquiredLedger.sources.find(x=>x.id==='alibaba-aacr-bench-2026')
+   .snapshot.positiveAssetAcquisition.acquired=false;
+ fs.writeFileSync(acquiredLedgerPath,JSON.stringify(acquiredLedger));
+ assert.throws(()=>verifyExternalReviewBenchmarks(acquiredRoot),/AACR positive blob acquisition/);
+
+ const anchorRoot=fixture();
+ const anchorLedgerPath=path.join(anchorRoot,'quality/external-benchmark-sources.json');
+ const anchorLedger=JSON.parse(fs.readFileSync(anchorLedgerPath,'utf8'));
+ anchorLedger.sources.find(x=>x.id==='alibaba-aacr-bench-2026')
+   .snapshot.positiveAssetAcquisition.invalidAnchors=0;
+ fs.writeFileSync(anchorLedgerPath,JSON.stringify(anchorLedger));
+ assert.throws(()=>verifyExternalReviewBenchmarks(anchorRoot),/AACR positive invalid anchor count/);
+
+ const overlapRoot=fixture();
+ const overlapPath=path.join(overlapRoot,'quality/external-benchmark-sources.json');
+ const overlapLedger=JSON.parse(fs.readFileSync(overlapPath,'utf8'));
+ overlapLedger.sources.find(x=>x.id==='alibaba-aacr-bench-2026')
+   .snapshot.negativeReferenceInspection.positiveNegativePrOverlap.intersectionPrs=150;
+ fs.writeFileSync(overlapPath,JSON.stringify(overlapLedger));
+ assert.throws(()=>verifyExternalReviewBenchmarks(overlapRoot),/AACR positive\/negative PR overlap/);
 });
