@@ -115,6 +115,19 @@ function validateLedgerBinding(ledger, review, cpp, embedded) {
   requireEqual(aacrSource.snapshot.partition, 'candidate-only', 'AACR partition');
   requireEqual(aacrSource.snapshot.holdout, false, 'AACR holdout');
   requireEqual(aacrSource.snapshot.note.includes('not imported') && aacrSource.snapshot.note.includes('used for model evaluation'), true, 'AACR evaluation exclusion');
+  const positiveAcquisition = aacrSource.snapshot.positiveAssetAcquisition || {};
+  requireEqual(positiveAcquisition.attempted, true, 'AACR positive acquisition attempted');
+  requireEqual(positiveAcquisition.acquired, false, 'AACR positive remains unacquired');
+  requireEqual(positiveAcquisition.blobSha, aacrPositive.blobSha, 'AACR positive acquisition blob');
+  requireEqual(positiveAcquisition.records, aacrPositive.records, 'AACR positive acquisition count');
+  const negativeInspection = aacrSource.snapshot.negativeReferenceInspection || {};
+  requireEqual(negativeInspection.inspected, true, 'AACR negative shape inspected');
+  requireEqual(negativeInspection.records, aacrNegative.records, 'AACR negative inspected count');
+  requireEqual(negativeInspection.commentsArrayPresent, true, 'AACR negative comment arrays');
+  requireEqual(negativeInspection.explicitTopLevelFileOrPathField, false, 'AACR negative file/path mapping');
+  requireEqual(negativeInspection.cleanNegativeEligible, false, 'AACR clean-negative eligibility');
+  requireEqual(Object.values(negativeInspection.languageCounts || {}).reduce((sum, count) => sum + count, 0),
+    aacrNegative.records, 'AACR negative language distribution');
 
   requireEqual(embedded.sourceRepository, reviewSource.repository, 'embedded ReviewBench repository');
   requireEqual(embedded.sourceRevision, reviewSource.revision, 'embedded ReviewBench revision');
@@ -175,6 +188,10 @@ function verifyExternalReviewBenchmarks(root = path.resolve(__dirname, '..')) {
   requireSha(cpp.sourceBlobSha, 'CloudAEye corpus blob');
   requireSha(cpp.sourceLicenseBlobSha, 'CloudAEye license blob');
   validateLedgerBinding(ledger, review, cpp, embedded);
+  const aacrSource = ledger.sources.find(source => source.id === 'alibaba-aacr-bench-2026');
+  const aacrPositive = aacrSource.assets.find(asset => asset.path === 'dataset/v1/positive_samples.json');
+  const aacrNegative = aacrSource.assets.find(asset => asset.path === 'dataset/v1/negative_samples.json');
+  const aacrInspection = aacrSource.snapshot.negativeReferenceInspection;
   if (review.snapshotComplete !== true || review.records.length !== 25 || review.sources.length !== 25) {
     throw new Error('ReviewBench snapshot must contain the complete pinned 25-PR public test subset');
   }
@@ -339,6 +356,11 @@ function verifyExternalReviewBenchmarks(root = path.resolve(__dirname, '..')) {
       rootCauseGroups: cppGroups.size, highRiskRootCauseGroups: cppHighGroups.size}),
     embedded: Object.freeze({prs: embedded.records.length, positiveFindings: embeddedPositive,
       highRiskCaseGroups: embeddedHighGroups.size}),
+    aacr: Object.freeze({positiveReferences: aacrPositive.records, negativeReferences: aacrNegative.records,
+      positiveAssetAcquired: aacrSource.snapshot.positiveAssetAcquisition.acquired,
+      negativeCommentArrays: aacrInspection.commentsArrayPresent,
+      explicitNegativeFilePathMapping: aacrInspection.explicitTopLevelFileOrPathField,
+      cleanNegativeEligible: aacrInspection.cleanNegativeEligible}),
     uniquePullRequests: prs.size,
     distinctRepositories: repos.size,
     candidateGroupingUnits: groups.size,
