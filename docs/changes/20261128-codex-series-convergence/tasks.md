@@ -25,7 +25,7 @@
 - [ ] T09 | Review、Service、Core | R04/R14 | V09 | T03/T07：对比本地/service 已有 review planner、evidence validation、risk routing/coverage 重复实现，只抽取真实重复的纯函数和数据约束；保留 snapshot 获取/发布归属；用同一 immutable fixture 比较两端语义，不强求异种快照身份相等。
 - [ ] T10 | Diagnose | R09/R14 | V04/V07 | T04/T07：已知可机械判断基础设施错误零模型、复杂情况有界一次调用；复用公共 parser/预算；删除多余 wrapper 只在无消费者且有真实回归时。
 - [x] T11 | Safe 族 | R14/R16 | V07/V15 | T07–T10：沿用 Core runtimeDigest/governanceDigest 和既有 Family release admission；runtime 有语义变化才按当前契约正式发布并 repin，文档/治理等价不强迫相同 runtime 重发。消费者分别 CI、exact SHA 和发布校验，不创建新版本家族。
-  证据：六个消费者均已绑定 Core 4.18.15；Commit #158、Review #146、Diagnose #50、Service #172、Change #80、Debug #64 均已合并，六个对应 CI Gate 均成功。Service #172 的 gitlab-system、fault-injection、Main qualification 为 skipped，不作为生产验收证据。
+  证据：六个消费者均已绑定同一 Safe Core 4.18.15 exact SHA `779afbd6982d6271942301e6f59656b50ff7e3cb`，runtime digest `9331f48aa1e943293a5d89371df68bb3d688937cf62c5b90442bdca5c128e39d`、governance digest `1c0b66ac5fba925888bcec52210f8d000ad78ea026bef26afe97234453151dd8` 一致；当前产品版本分别 Commit 4.6.15、Review 4.8.19、PR 5.4.21、Diagnose 1.5.12、Service 8.0.4、Debug 0.1.18。Commit #158、Review #146、Diagnose #50、Service #172、Change #80、Debug #64 均已合并，六个对应 CI Gate 成功；Commit/Review/PR/Diagnose/Service 的 immutable Release Integrity 也成功。Service main CI run `46102380101` 另已验证 GitLab CE 14.6.1/17.11.7/19.3.0 E2E、Ubuntu/Windows fault injection、migration portability 与 recovery gate 全部成功；v8.0.4 immutable release + independent integrity 成功。Debug 0.1.18 仍是 development，不宣称发布或 promotion。
 
 退出 G1：功能/安全基线保持；实际重复或无用代码减少，有调用方证明及 CI；Commit 零/一调用，服务与本地共享真实公共逻辑；不存在新兼容架构。
 
