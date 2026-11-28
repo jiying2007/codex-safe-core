@@ -9,7 +9,7 @@
 ## G0 — 冻结基线、关键风险（P0）
 
 - [ ] T01 | 全系列 | R16 | V01 | 无依赖：读取九仓最新 main、open PR/issue、contracts/gitlinks、CI、发布渠道和已知现场版本；冻结实际测试/成本基线及适用范围，已完成项记录证据，避免重复。产出一份在现有任务/PR 中的基线引用和差距，不新增巡检。
-  进度：已核查九仓仓库元数据、近期 PR/Issue、产品契约及关键 CI；仍缺真实安装版本、完整发布渠道与现场主机证据，T01 不关闭。
+  进度：已核查九仓元数据、近期 PR/Issue、contracts/gitlinks、CI 与产品契约。Live ruleset GET：Safe Core、Service、Commit、Review、Change、Diagnose、Debug 七仓有 active ruleset，但均为 `~DEFAULT_BRANCH` 且 `dismiss_stale_reviews_on_push=false`；Debug promotion exact-main lock 仍不满足。Codex 与 TUI rulesets 均为 `[]`（分别跟踪于 [Codex #24](https://github.com/jiying2007/codex/issues/24) 与 [TUI #459](https://github.com/jiying2007/codex-tui/issues/459)），classic protection endpoint 对当前集成返回 403，需 owner/admin 现场设置与回读。TUI main `af0f6669be2462a42ea56ff1d9af81f17d826b62` 的 ci/security/terminal-regression/scale-evidence/performance-diagnostics/development-qualification 等 push workflow 已成功，release workflow 尚 pending；真实安装版本、生产主机和现场部署证据仍缺，T01 不关闭。
 - [ ] T02 | Change | R07 | V02 | T01：用正常/缺失/不一致 HEAD、写前/写后 mock/真实 provider replay 复现 workflow.js 条件边界；修复必要的 head 断言及未知状态；测试并发 push、fork/target、陈旧 pipeline/native merge；不自动重放写请求。交付源码、正负例与 CI。
 - [ ] T03 | Core、Commit、Review、Service | R01/R02 | V03 | T01：复核已合并 binary metadata 修复；用真实 Git 仓生成大 BIN、无扩展、rename/delete、quoted paths、LFS、attributes、混合巨大 hunk、无匹配 inventory；仅修复真实缺口并保证 bounded acquisition/fingerprint；不重新发送二进制。交付跨消费者契约回归。
 - [ ] T04 | Diagnose | R01/R09 | V04 | T01：复现 Artifact redirect 目的地策略；在有界 HTTP 客户端增加必要 allowlist/连接校验和合法内网正控；测试跨域凭据、代理、DNS、循环及限额，不新增通用下载服务。
@@ -45,7 +45,7 @@
 - [ ] T17 | Core/Review/Service | R06 | V11 | T12/T16：冻结同一 Base/Head、源码/上下文限制、模型版本/配置、预算、盲测计划、重复次数、计费口径、失败处理。原生 Codex 同可见输入与权限；不支持相同约束时独立记录不可直接比较。授权预算、独立计费身份确认后才调用模型。
 - [ ] T18 | Review、Service | R06 | V11 | T17：真实运行当前 Safe、原生 Codex、单次低成本候选、风险路由候选、独立发现/验证候选；先小规模开发集淘汰明显劣势，再固定候选跑未看标签 holdout。每个调用真实 usage/latency/失败/重试/缓存/结果引用，不循环试到通过。
 - [ ] T19 | Core/Review/Service | R06/R14 | V11 | T18：按严重度、仓库/根因分组输出 precision/recall/F1、关键漏报、时间/Token/费用、置信区间与逐案例差异；采用安全约束内 Pareto 候选或保留 baseline。现有 benchmark comparator 只做研究，证据未到生产不晋级。
-  进度：Core #132 已合并高危逐标签召回及真实 Usage/P95 比较器；当前仍无 fresh model execution、完整模型身份/计费回执或配对 holdout 结果，不能晋级。
+  进度：Core #132 已合并高危逐标签召回及真实 Usage/P95 比较器；Core #135 已合并 PR performance diagnostic 原始七样本 artifact 保留（精确 CI run `46109089478` 的上传 artifact `15249016090` 已验证）。这仍是单候选诊断；当前无 fresh model execution、完整模型身份/计费回执或配对 holdout 结果，不能晋级。
 - [ ] T20 | Review、Service、Core | R04/R06 | V11/V15 | T19：将唯一获证据支持的行为接入现有路由/预算契约，保留必要安全 fallback 而非多套永久实验实现；回归、exact Core repin、正式发布资格检查；无实质收益候选明确停止。
 
 退出 G3：独立对比证据达到 verification.md 的晋级规则。若候选未获收益，保留 baseline、记录失败结论；不把预算不足或未运行写作优化成功。
@@ -65,7 +65,7 @@
 - [ ] T25 | TUI | R12 | V13 | T01：真实安装版本原生 agents/review/resume/search/queue/doctor 对照，冻结 Lite 五项高频使用故事、跨主机/source/account/parent/fork 能力与时延；未验证来源标 partial。优先复用官方能力。
 - [ ] T26 | TUI | R12 | V13 | T25：先完成五能力的真实行为，精确目标、子线程待处理、不可达和分页异常；native resume 或准确定位，不使用 --last 猜测、不接管个人会话；业务 link 仅引用原平台。
 - [ ] T27 | TUI | R12/R14 | V13 | T26：按调用关系删除旧 Board/WorkCard、Composer/Queue、重复 Git 写、嵌入终端等不再消费路径及相关配置/help/test；不是直接删除关键回归门禁；保留历史 release 和用户必要数据的离线保全，不维护第二套 runtime。
-  进度：TUI #450–#457 已按依赖顺序合并到 main（最新 SHA `af0f6669be2462a42ea56ff1d9af81f17d826b62`）；七个 PR 的对应 CI 全部成功，无未解决 review thread。#458 仍为 Draft（Head `0bb06f4a0ced36f231c8eb156fc4c2d538c06b54`），七个 hosted workflow 成功，但其自身明确要求真实主机 G1–G3、迁移/恢复、G4 对比 UX 和 Stable 资格；这些尚未完成。旧 Board/Planning 投影和未使用代码的最终物理删除、无作用域偏好迁移仍受现场数据核验约束，T27 不关闭。
+  进度：TUI #450–#457 已按依赖顺序合并到 main（最新 SHA `af0f6669be2462a42ea56ff1d9af81f17d826b62`）；八个 PR 的 head CI 均成功，main push 的七个适用 workflow 也成功，release workflow 尚 pending；无未解决 review thread。#458 仍为 Draft（Head `0bb06f4a0ced36f231c8eb156fc4c2d538c06b54`），七个 hosted workflow 成功，但其自身明确要求真实主机 G1–G3、迁移/恢复、G4 对比 UX 和 Stable 资格；这些尚未完成。TUI main 尚无 native ruleset（issue #459）。旧 Board/Planning 投影和未使用代码的最终物理删除、无作用域偏好迁移仍受现场数据核验约束，T27 不关闭。
 - [ ] T28 | codex、ADK | R13 | V14 | T01：测当前 default 与团队 profile 常驻上下文、安装成本、实际命中；最小化默认配置与长尾按需加载；只从 exact ADK source 导入，排除系统/凭据/用户会话。验证 source→build→plan→apply→doctor→rollback 与不同 host。
 - [ ] T29 | codex | R13 | V14 | T28：复用现有 Feishu Engineering Agent SDD，仅补真实远程需求/缺陷交付、项目身份、独立授权/计费、可恢复 UNKNOWN 和受控发布；缺企业 API 走明确用户提供上下文，不造新 Gateway/卡片体系。已有实现不得重写。
 - [ ] T30 | engineering-platform、digital-worker（边界） | R15 | V16 | T26/T29：核实实际主机服务/依赖、未完成事项、历史证据、备份恢复与方法吸收映射；不重新产品化；实际停用/归档/删除只有确认无活跃依赖且责任人授权时实施，禁止删除未知数据。
