@@ -205,6 +205,10 @@ function verifyExternalReviewBenchmarks(root = path.resolve(__dirname, '..')) {
       f.severity === 'high' || f.severity === 'critical').length, 0)) {
     throw new Error('CloudAEye high-severity finding count mismatch');
   }
+  if (embeddedHigh !== embedded.records.reduce((sum, record) => sum + record.findings.filter(f =>
+      f.tp_fp === 'tp' && f.scope === 'introduced-by-pr' && (f.severity === 'high' || f.severity === 'critical')).length, 0)) {
+    throw new Error('Embedded high-severity finding count mismatch');
+  }
   const expectedHighGroups = new Set([...reviewHighGroups, ...cppHighGroups, ...embeddedHighGroups]);
   if (expectedHighGroups.size !== highGroups.size) throw new Error('High-risk grouping projection mismatch');
 
