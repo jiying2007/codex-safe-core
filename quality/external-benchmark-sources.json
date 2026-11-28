@@ -88,13 +88,52 @@
         "Reference comments combine original review discussions and model-generated feedback followed by expert annotation.",
         "Negative sample comments are not equivalent to independently adjudicated clean PRs.",
         "Do not import a positive label without exact file/line mapping and human-adjudicated defect provenance.",
-        "Original third-party project licenses must be checked per source snapshot."
+        "Original third-party project licenses must be checked per source snapshot.",
+        "A pinned inspection of all 155 negative-reference rows found top-level comment arrays and no explicit top-level file/path field; they are review-reference records, not clean-negative code changes.",
+        "The positive-reference asset is pinned at its upstream blob SHA but could not be acquired through the available GitHub content read path; it remains unimported."
       ],
       "snapshot": {
         "imported": false,
         "partition": "candidate-only",
         "holdout": false,
-        "note": "Source and Apache-2.0 license are registered; large positive/negative JSON snapshots were not imported or used for model evaluation."
+        "note": "Source and Apache-2.0 license are registered; large positive/negative JSON snapshots were not imported or used for model evaluation.",
+        "positiveAssetAcquisition": {
+          "attempted": true,
+          "acquired": false,
+          "blobSha": "053adcb264857b13e62d62d5d223341cbb09ec97",
+          "records": 196,
+          "note": "Pinned upstream asset could not be retrieved through the available GitHub content read path; no source comments or records were imported."
+        },
+        "negativeReferenceInspection": {
+          "inspected": true,
+          "records": 155,
+          "topLevelFields": [
+            "change_line_count",
+            "project_main_language",
+            "source_commit",
+            "target_commit",
+            "githubPrUrl",
+            "created_at",
+            "merged_at",
+            "comments",
+            "category"
+          ],
+          "languageCounts": {
+            "C++": 31,
+            "Go": 18,
+            "C#": 6,
+            "C": 16,
+            "Python": 15,
+            "JavaScript": 9,
+            "TypeScript": 26,
+            "PHP": 7,
+            "Java": 18,
+            "Rust": 9
+          },
+          "commentsArrayPresent": true,
+          "explicitTopLevelFileOrPathField": false,
+          "cleanNegativeEligible": false
+        }
       }
     },
     {
