@@ -160,7 +160,25 @@
             "aiGenerated": 1114,
             "humanDiscussion": 392
           },
-          "note": "Exact immutable Git blob was fetched and parsed. Metadata-only structural audit; no comments or source code copied. One reversed line range remains excluded from normalized import."
+          "note": "Exact immutable Git blob was fetched and parsed. Metadata-only structural audit; no comments or source code copied. One reversed line range remains excluded from normalized import.",
+          "languageCounts": {
+            "C++": 33,
+            "Go": 22,
+            "C#": 10,
+            "C": 19,
+            "Python": 21,
+            "JavaScript": 11,
+            "TypeScript": 29,
+            "PHP": 11,
+            "Java": 30,
+            "Rust": 10
+          },
+          "categoryCounts": {
+            "Performance": 117,
+            "Maintainability and Readability": 626,
+            "Code Defect": 710,
+            "Security Vulnerability": 53
+          }
         },
         "negativeReferenceInspection": {
           "inspected": true,
