@@ -236,7 +236,7 @@ function verifyExternalReviewBenchmarks(root = path.resolve(__dirname, '..')) {
     candidateGroupingUnits: groups.size,
     highRiskCandidateGroups: highGroups.size,
     positiveFindingCount: positives,
-    falsePositiveReferenceCount,
+    falsePositiveReferenceCount: falsePositiveReferences,
     cleanNegativeCases,
     holdoutCases,
     independenceVerified,
