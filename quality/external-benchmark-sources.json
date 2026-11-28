@@ -201,7 +201,21 @@
           "nestedCommentLineAnchorsPresent": true,
           "explicitTopLevelFileOrPathField": false,
           "cleanNegativeEligible": false,
-          "note": "The nested comments contain paths and line anchors; however these are negative review-reference records, not adjudicated clean PRs."
+          "note": "The nested comments contain paths and line anchors; however these are negative review-reference records, not adjudicated clean PRs.",
+          "positiveNegativePrOverlap": {
+            "positiveRows": 196,
+            "negativeRows": 155,
+            "intersectionPrs": 151,
+            "positiveOnlyPrs": 45,
+            "negativeOnlyPrs": 4,
+            "unionPrs": 200,
+            "interpretation": "Positive and negative comment-reference partitions overlap at PR level; 151 PRs appear in both. Therefore negative references are comment-level counterexamples within PRs, not clean-negative PR cases."
+          },
+          "reviewBenchOverlap": {
+            "reviewBenchManifestRecords": 219,
+            "overlappingPrs": 0,
+            "note": "No PR URL overlap was found between the 200-PR AACR v1 union and the 219-row ReviewBench manifest at the pinned revisions."
+          }
         }
       }
     },
