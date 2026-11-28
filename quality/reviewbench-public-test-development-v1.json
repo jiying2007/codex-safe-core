@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "external-review-benchmark-snapshot",
-  "snapshotComplete": false,
-  "snapshotPart": 1,
+  "snapshotComplete": true,
+  "snapshotPart": null,
   "expectedRecordCount": 25,
   "partition": "development",
   "holdout": false,
@@ -22,9 +22,9 @@
   "groupingPolicy": "One conservative group per PR. Cross-PR root-cause independence has not been independently adjudicated.",
   "rootCauseIndependenceVerified": false,
   "cleanNegativeCases": 0,
-  "positiveFindingCount": 158,
-  "falsePositiveReferenceCount": 141,
-  "highRiskCaseGroups": 10,
+  "positiveFindingCount": 308,
+  "falsePositiveReferenceCount": 213,
+  "highRiskCaseGroups": 12,
   "categoryCrosswalk": {
     "security": "security",
     "correctness": "correctness",
@@ -141,6 +141,102 @@
       "repo": "https://github.com/AY2526S2-CS2103T-W14-3/tp",
       "base": "a27b3e40d94f92f229b9301a8a9d5207d9a5b0bb",
       "head": "e0a9ce03c8c1cc839eaf409e2677b9abf2017b1f"
+    },
+    {
+      "sourcePath": "golden/vanyastaff_nebula_224-d5ba86dd.json",
+      "sourceBlobSha": "efae1cc1372d7fb22eecf1b1a95d2cb1ba2c4f82",
+      "prKey": "vanyastaff_nebula_224-d5ba86dd",
+      "repo": "https://github.com/vanyastaff/nebula",
+      "base": "c4879eb1c460e45c11ce28e3e8a305194023b64e",
+      "head": "d5ba86dd1014b79e263d93a1e324eeec0d0b306c"
+    },
+    {
+      "sourcePath": "golden/NCATSTranslator_translator-ingests_336-efb31e9c.json",
+      "sourceBlobSha": "14e386c0126f5791c111c17beadc0bc45fb4922d",
+      "prKey": "NCATSTranslator_translator-ingests_336-efb31e9c",
+      "repo": "https://github.com/NCATSTranslator/translator-ingests",
+      "base": "58d880509f9cf6d37715153b7cf261205dfa0f96",
+      "head": "efb31e9c764865f416230073c6d0b1686a0f44b7"
+    },
+    {
+      "sourcePath": "golden/mheuss_chronicle_14-04ac4c02.json",
+      "sourceBlobSha": "2c565fd620ef9f0a093f05e5cb9566234f57ab4e",
+      "prKey": "mheuss_chronicle_14-04ac4c02",
+      "repo": "https://github.com/mheuss/chronicle",
+      "base": "17e33ca1ebf643d47201a8f94b8ab3e88848cf23",
+      "head": "04ac4c02d48083676c14dd3fa70d26ca102bd50e"
+    },
+    {
+      "sourcePath": "golden/superhighfives_pika_200-b227aff0.json",
+      "sourceBlobSha": "1423be7998c8eb55e1d7650865b9793ab4e2a759",
+      "prKey": "superhighfives_pika_200-b227aff0",
+      "repo": "https://github.com/superhighfives/pika",
+      "base": "bdda75cbeeb8cd72a2cb197f93623c3e197cf49c",
+      "head": "b227aff048155b8d2a8426b4d84bcec4504e7c01"
+    },
+    {
+      "sourcePath": "golden/gagneurlab_PROTRIDER_10-b462b109.json",
+      "sourceBlobSha": "e7df130ba20f1066f6b059f1693cb6deb1d5a69e",
+      "prKey": "gagneurlab_PROTRIDER_10-b462b109",
+      "repo": "https://github.com/gagneurlab/PROTRIDER",
+      "base": "22740c695315543a1064915930f806abf5b058ce",
+      "head": "b462b109b630dd1e1a9a78088b18429d2baaae9b"
+    },
+    {
+      "sourcePath": "golden/allan-mobley-jr_gimmes_468-e1477f8b.json",
+      "sourceBlobSha": "873d35f2d135903321b77475fee08b7e8e12cf9a",
+      "prKey": "allan-mobley-jr_gimmes_468-e1477f8b",
+      "repo": "https://github.com/allan-mobley-jr/gimmes",
+      "base": "08efd0bbc34fd29de2a4077f07d24f3dc02a63b6",
+      "head": "e1477f8b3f18c1de6ff87dbca9465a7b106dc193"
+    },
+    {
+      "sourcePath": "golden/superyyrrzz_ForgeMap_106-2f3977ed.json",
+      "sourceBlobSha": "210ee3e562ad7fcdba4613be2c2a2d3517ccf76f",
+      "prKey": "superyyrrzz_ForgeMap_106-2f3977ed",
+      "repo": "https://github.com/superyyrrzz/ForgeMap",
+      "base": "2ce83d91f981fc579ec53baf9bce4957fdc240fc",
+      "head": "2f3977edabcb8fdf5f947704e727d798a46fe96f"
+    },
+    {
+      "sourcePath": "golden/renedierking_LANdalf_88-bc1698f4.json",
+      "sourceBlobSha": "959997ed67281b4dd9d28d3577207c40d1bb4d40",
+      "prKey": "renedierking_LANdalf_88-bc1698f4",
+      "repo": "https://github.com/renedierking/LANdalf",
+      "base": "cc81fa3dc87a8a50654c1279b3bdb2761e94f832",
+      "head": "bc1698f4dbc3a99dee0a6dcf7629813f2027682a"
+    },
+    {
+      "sourcePath": "golden/scottlz0310_Mcp-Docker_29-e7705d26.json",
+      "sourceBlobSha": "32c89f620437df7384845942d627fef3c467144c",
+      "prKey": "scottlz0310_Mcp-Docker_29-e7705d26",
+      "repo": "https://github.com/scottlz0310/Mcp-Docker",
+      "base": "63baf3dbbc10d271710706f56150dd8425dd4b4a",
+      "head": "e7705d269ea374d49e7999bdb8bc42e9480a6b37"
+    },
+    {
+      "sourcePath": "golden/wirechat_wirechat_183-6e3156e7.json",
+      "sourceBlobSha": "1ea1ab49928651cafa7869ef928a44b0b575fc2e",
+      "prKey": "wirechat_wirechat_183-6e3156e7",
+      "repo": "https://github.com/wirechat/wirechat",
+      "base": "7f645146da1285f3817a9dfcb04be0a53ee50ecd",
+      "head": "6e3156e78da9b47cb4c6d596883b3ef0730b8cf8"
+    },
+    {
+      "sourcePath": "golden/sdsykes_fastimage_165-8fc7cd32.json",
+      "sourceBlobSha": "f2040c857a624fbab3242cee1e6a28956e3cd885",
+      "prKey": "sdsykes_fastimage_165-8fc7cd32",
+      "repo": "https://github.com/sdsykes/fastimage",
+      "base": "7a0dcf780e6d8cd7686520a3a1f57e7cd85b0b46",
+      "head": "8fc7cd32904240c2c841e70aef2ba5c3bb659ffd"
+    },
+    {
+      "sourcePath": "golden/Marvell-Consulting_statswales-frontend_626-30ba27a5.json",
+      "sourceBlobSha": "57af1377408cc99faedf19967691e958b002d4a0",
+      "prKey": "Marvell-Consulting_statswales-frontend_626-30ba27a5",
+      "repo": "https://github.com/Marvell-Consulting/statswales-frontend",
+      "base": "c1707c79a5a947cf7c6912af3ad00848c42a28e0",
+      "head": "30ba27a5f20318f12fe74f26059d8b62d62874e9"
     }
   ],
   "records": [
@@ -3577,6 +3673,2442 @@
           "end_line": 80,
           "category": "correctness",
           "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "vanyastaff_nebula_224-d5ba86dd",
+      "pr": {
+        "repo": "https://github.com/vanyastaff/nebula",
+        "pr_number": 224,
+        "base": "c4879eb1c460e45c11ce28e3e8a305194023b64e",
+        "head": "d5ba86dd1014b79e263d93a1e324eeec0d0b306c"
+      },
+      "language": "Rust",
+      "caseGroup": "reviewbench:https://github.com/vanyastaff/nebula#224",
+      "findings": [
+        {
+          "file": "crates/credential/src/layer/encryption.rs",
+          "start_line": 133,
+          "end_line": 158,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "crates/credential/src/layer/encryption.rs",
+          "start_line": 85,
+          "end_line": 102,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "crates/credential/src/crypto.rs",
+          "start_line": 196,
+          "end_line": 205,
+          "category": "api",
+          "sourceCategory": "api-architecture",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "crates/credential/src/context.rs",
+          "start_line": 203,
+          "end_line": 218,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "crates/credential/src/snapshot.rs",
+          "start_line": 152,
+          "end_line": 152,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "crates/credential/src/credential.rs",
+          "start_line": 125,
+          "end_line": 125,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "crates/credential/src/description.rs",
+          "start_line": 146,
+          "end_line": 148,
+          "category": "api",
+          "sourceCategory": "api-architecture",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": ".github/workflows/ci.yml",
+          "start_line": 165,
+          "end_line": 165,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "crates/credential/src/layer/encryption.rs",
+          "start_line": 204,
+          "end_line": 218,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "crates/credential/src/crypto.rs",
+          "start_line": 234,
+          "end_line": 240,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "crates/credential/src/credentials/mod.rs",
+          "start_line": 26,
+          "end_line": 27,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "crates/webhook/src/rate_limit.rs",
+          "start_line": 63,
+          "end_line": 64,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "NCATSTranslator_translator-ingests_336-efb31e9c",
+      "pr": {
+        "repo": "https://github.com/NCATSTranslator/translator-ingests",
+        "pr_number": 336,
+        "base": "58d880509f9cf6d37715153b7cf261205dfa0f96",
+        "head": "efb31e9c764865f416230073c6d0b1686a0f44b7"
+      },
+      "language": "Jupyter Notebook",
+      "caseGroup": "reviewbench:https://github.com/NCATSTranslator/translator-ingests#336",
+      "findings": [
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 413,
+          "end_line": 413,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 167,
+          "end_line": 170,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 257,
+          "end_line": 258,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 331,
+          "end_line": 332,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 97,
+          "end_line": 104,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 138,
+          "end_line": 138,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 80,
+          "end_line": 97,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 159,
+          "end_line": 159,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 885,
+          "end_line": 893,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 411,
+          "end_line": 450,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "high",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 218,
+          "end_line": 218,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 137,
+          "end_line": 137,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 172,
+          "end_line": 172,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 204,
+          "end_line": 204,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 412,
+          "end_line": 412,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 167,
+          "end_line": 167,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 330,
+          "end_line": 330,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 998,
+          "end_line": 1000,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 145,
+          "end_line": 145,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/translator_ingest/ingests/gtopdb/gtopdb.py",
+          "start_line": 972,
+          "end_line": 974,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "mheuss_chronicle_14-04ac4c02",
+      "pr": {
+        "repo": "https://github.com/mheuss/chronicle",
+        "pr_number": 14,
+        "base": "17e33ca1ebf643d47201a8f94b8ab3e88848cf23",
+        "head": "04ac4c02d48083676c14dd3fa70d26ca102bd50e"
+      },
+      "language": "Rust",
+      "caseGroup": "reviewbench:https://github.com/mheuss/chronicle#14",
+      "findings": [
+        {
+          "file": "chronicle-daemon/src/pipeline.rs",
+          "start_line": 200,
+          "end_line": 200,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "high",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/crates/storage/src/media.rs",
+          "start_line": 296,
+          "end_line": 313,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/crates/storage/src/media.rs",
+          "start_line": 133,
+          "end_line": 139,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/src/pipeline.rs",
+          "start_line": 59,
+          "end_line": 67,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/src/main.rs",
+          "start_line": 24,
+          "end_line": 31,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/crates/storage/src/retention.rs",
+          "start_line": 78,
+          "end_line": 86,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/crates/storage/src/retention.rs",
+          "start_line": 150,
+          "end_line": 166,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/crates/storage/src/media.rs",
+          "start_line": 46,
+          "end_line": 78,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/crates/storage/src/media.rs",
+          "start_line": 107,
+          "end_line": 114,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/crates/storage/src/media.rs",
+          "start_line": 153,
+          "end_line": 161,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/crates/storage/src/media.rs",
+          "start_line": 226,
+          "end_line": 266,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/crates/storage/src/media.rs",
+          "start_line": 340,
+          "end_line": 356,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/crates/storage/src/files.rs",
+          "start_line": 1,
+          "end_line": 42,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/crates/storage/src/retention.rs",
+          "start_line": 187,
+          "end_line": 191,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/crates/storage/src/media.rs",
+          "start_line": 238,
+          "end_line": 241,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/crates/storage/src/media.rs",
+          "start_line": 55,
+          "end_line": 67,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/crates/storage/src/lib.rs",
+          "start_line": 16,
+          "end_line": 16,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "chronicle-daemon/crates/storage/src/retention.rs",
+          "start_line": 187,
+          "end_line": 190,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "superhighfives_pika_200-b227aff0",
+      "pr": {
+        "repo": "https://github.com/superhighfives/pika",
+        "pr_number": 200,
+        "base": "bdda75cbeeb8cd72a2cb197f93623c3e197cf49c",
+        "head": "b227aff048155b8d2a8426b4d84bcec4504e7c01"
+      },
+      "language": "Swift",
+      "caseGroup": "reviewbench:https://github.com/superhighfives/pika#200",
+      "findings": [
+        {
+          "file": "Pika/Services/Eyedroppers.swift",
+          "start_line": 81,
+          "end_line": 82,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Services/Eyedroppers.swift",
+          "start_line": 284,
+          "end_line": 292,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Services/Eyedroppers.swift",
+          "start_line": 284,
+          "end_line": 292,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Services/Eyedroppers.swift",
+          "start_line": 236,
+          "end_line": 244,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Services/Eyedroppers.swift",
+          "start_line": 155,
+          "end_line": 165,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/AppDelegate.swift",
+          "start_line": 132,
+          "end_line": 138,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Services/Exporter.swift",
+          "start_line": 75,
+          "end_line": 83,
+          "category": "performance",
+          "sourceCategory": "performance",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Views/NavigationMenu.swift",
+          "start_line": 44,
+          "end_line": 46,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Views/ColorHistoryDrawer.swift",
+          "start_line": 39,
+          "end_line": 45,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Views/ContentView.swift",
+          "start_line": 151,
+          "end_line": 152,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Views/ColorPreview.swift",
+          "start_line": 107,
+          "end_line": 107,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Services/Eyedroppers.swift",
+          "start_line": 90,
+          "end_line": 94,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Views/ContentView.swift",
+          "start_line": 139,
+          "end_line": 142,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Services/Exporter.swift",
+          "start_line": 1,
+          "end_line": 1,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Services/Eyedroppers.swift",
+          "start_line": 270,
+          "end_line": 274,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Views/ColorHistoryDrawer.swift",
+          "start_line": 218,
+          "end_line": 225,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Views/ColorHistoryDrawer.swift",
+          "start_line": 240,
+          "end_line": 242,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Constants/Constants.swift",
+          "start_line": 99,
+          "end_line": 104,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Views/ColorHistoryDrawer.swift",
+          "start_line": 310,
+          "end_line": 313,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "Pika/Views/NavigationMenuItems.swift",
+          "start_line": 101,
+          "end_line": 103,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "gagneurlab_PROTRIDER_10-b462b109",
+      "pr": {
+        "repo": "https://github.com/gagneurlab/PROTRIDER",
+        "pr_number": 10,
+        "base": "22740c695315543a1064915930f806abf5b058ce",
+        "head": "b462b109b630dd1e1a9a78088b18429d2baaae9b"
+      },
+      "language": "Python",
+      "caseGroup": "reviewbench:https://github.com/gagneurlab/PROTRIDER#10",
+      "findings": [
+        {
+          "file": "src/protrider/model/model_helper.py",
+          "start_line": 75,
+          "end_line": 86,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/model/model_helper.py",
+          "start_line": 148,
+          "end_line": 163,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/model/model_helper.py",
+          "start_line": 134,
+          "end_line": 135,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/pipeline.py",
+          "start_line": 539,
+          "end_line": 540,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/config.py",
+          "start_line": 79,
+          "end_line": 79,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/config.py",
+          "start_line": 49,
+          "end_line": 49,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/model/model_helper.py",
+          "start_line": 185,
+          "end_line": 186,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/stats.py",
+          "start_line": 218,
+          "end_line": 236,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/model/model_helper.py",
+          "start_line": 122,
+          "end_line": 122,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/model/model.py",
+          "start_line": 232,
+          "end_line": 271,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/datasets/protein_intensities.py",
+          "start_line": 28,
+          "end_line": 28,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/pipeline.py",
+          "start_line": 32,
+          "end_line": 37,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/pipeline.py",
+          "start_line": 62,
+          "end_line": 62,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "tests/test_model_save_load.py",
+          "start_line": 66,
+          "end_line": 66,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/datasets/protein_intensities.py",
+          "start_line": 32,
+          "end_line": 32,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/model/model_helper.py",
+          "start_line": 44,
+          "end_line": 93,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/pipeline.py",
+          "start_line": 509,
+          "end_line": 510,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "tests/test_model_save_load.py",
+          "start_line": 33,
+          "end_line": 40,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "tests/test_pipeline_cv.py",
+          "start_line": 1,
+          "end_line": 1,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/cli.py",
+          "start_line": 258,
+          "end_line": 262,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/stats.py",
+          "start_line": 34,
+          "end_line": 36,
+          "category": "api",
+          "sourceCategory": "api-architecture",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/pipeline.py",
+          "start_line": 218,
+          "end_line": 220,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/pipeline.py",
+          "start_line": 426,
+          "end_line": 428,
+          "category": "api",
+          "sourceCategory": "api-architecture",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/stats.py",
+          "start_line": 245,
+          "end_line": 249,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "exacerbated-by-pr"
+        },
+        {
+          "file": "src/protrider/model/model_helper.py",
+          "start_line": 30,
+          "end_line": 32,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "tests/test_model_save_load.py",
+          "start_line": 179,
+          "end_line": 181,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/pipeline.py",
+          "start_line": 32,
+          "end_line": 36,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "config.yaml",
+          "start_line": 67,
+          "end_line": 71,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/protrider/pipeline.py",
+          "start_line": 402,
+          "end_line": 402,
+          "category": "api",
+          "sourceCategory": "api-architecture",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "allan-mobley-jr_gimmes_468-e1477f8b",
+      "pr": {
+        "repo": "https://github.com/allan-mobley-jr/gimmes",
+        "pr_number": 468,
+        "base": "08efd0bbc34fd29de2a4077f07d24f3dc02a63b6",
+        "head": "e1477f8b3f18c1de6ff87dbca9465a7b106dc193"
+      },
+      "language": "Python",
+      "caseGroup": "reviewbench:https://github.com/allan-mobley-jr/gimmes#468",
+      "findings": [
+        {
+          "file": "src/gimmes/strategy/staleness.py",
+          "start_line": 89,
+          "end_line": 95,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/gimmes/cli.py",
+          "start_line": 312,
+          "end_line": 315,
+          "category": "api",
+          "sourceCategory": "api-architecture",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/gimmes/strategy/staleness.py",
+          "start_line": 80,
+          "end_line": 80,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/gimmes/strategy/staleness.py",
+          "start_line": 79,
+          "end_line": 79,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/gimmes/strategy/staleness.py",
+          "start_line": 72,
+          "end_line": 79,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "exacerbated-by-pr"
+        },
+        {
+          "file": "src/gimmes/strategy/staleness.py",
+          "start_line": 86,
+          "end_line": 91,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/gimmes/strategy/staleness.py",
+          "start_line": 115,
+          "end_line": 123,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "src/gimmes/config.py",
+          "start_line": 316,
+          "end_line": 320,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/gimmes/cli.py",
+          "start_line": 348,
+          "end_line": 353,
+          "category": "performance",
+          "sourceCategory": "performance",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "tests/unit/test_staleness.py",
+          "start_line": 29,
+          "end_line": 31,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "superyyrrzz_ForgeMap_106-2f3977ed",
+      "pr": {
+        "repo": "https://github.com/superyyrrzz/ForgeMap",
+        "pr_number": 106,
+        "base": "2ce83d91f981fc579ec53baf9bce4957fdc240fc",
+        "head": "2f3977edabcb8fdf5f947704e727d798a46fe96f"
+      },
+      "language": "C#",
+      "caseGroup": "reviewbench:https://github.com/superyyrrzz/ForgeMap#106",
+      "findings": [
+        {
+          "file": ".github/workflows/docs.yml",
+          "start_line": 26,
+          "end_line": 27,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 241,
+          "end_line": 244,
+          "category": "other",
+          "sourceCategory": "accessibility",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 246,
+          "end_line": 255,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 279,
+          "end_line": 286,
+          "category": "other",
+          "sourceCategory": "accessibility",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 331,
+          "end_line": 331,
+          "category": "performance",
+          "sourceCategory": "performance",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 9,
+          "end_line": 9,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 184,
+          "end_line": 193,
+          "category": "other",
+          "sourceCategory": "accessibility",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 284,
+          "end_line": 284,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 204,
+          "end_line": 204,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 130,
+          "end_line": 133,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 25,
+          "end_line": 25,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 125,
+          "end_line": 125,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 365,
+          "end_line": 368,
+          "category": "other",
+          "sourceCategory": "accessibility",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 124,
+          "end_line": 131,
+          "category": "other",
+          "sourceCategory": "accessibility",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 168,
+          "end_line": 170,
+          "category": "other",
+          "sourceCategory": "accessibility",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 30,
+          "end_line": 32,
+          "category": "other",
+          "sourceCategory": "accessibility",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 33,
+          "end_line": 36,
+          "category": "other",
+          "sourceCategory": "accessibility",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 314,
+          "end_line": 318,
+          "category": "other",
+          "sourceCategory": "accessibility",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docfx/templates/forgemap/public/main.css",
+          "start_line": 207,
+          "end_line": 214,
+          "category": "other",
+          "sourceCategory": "accessibility",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "renedierking_LANdalf_88-bc1698f4",
+      "pr": {
+        "repo": "https://github.com/renedierking/LANdalf",
+        "pr_number": 88,
+        "base": "cc81fa3dc87a8a50654c1279b3bdb2761e94f832",
+        "head": "bc1698f4dbc3a99dee0a6dcf7629813f2027682a"
+      },
+      "language": "C#",
+      "caseGroup": "reviewbench:https://github.com/renedierking/LANdalf#88",
+      "findings": [
+        {
+          "file": "src/API/Services/DeviceMonitoringService.cs",
+          "start_line": 184,
+          "end_line": 187,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/API/Dockerfile",
+          "start_line": 31,
+          "end_line": 34,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/API/Services/DeviceMonitoringService.cs",
+          "start_line": 182,
+          "end_line": 182,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/API/Services/DeviceMonitoringService.cs",
+          "start_line": 176,
+          "end_line": 180,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docker-compose.yaml",
+          "start_line": 1,
+          "end_line": 20,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/API/Services/DeviceMonitoringService.cs",
+          "start_line": 1,
+          "end_line": 4,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/API/Services/DeviceMonitoringService.cs",
+          "start_line": 174,
+          "end_line": 179,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/API/Services/DeviceMonitoringService.cs",
+          "start_line": 169,
+          "end_line": 172,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "high",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/API/Services/DeviceMonitoringService.cs",
+          "start_line": 175,
+          "end_line": 177,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/API/Services/DeviceMonitoringService.cs",
+          "start_line": 176,
+          "end_line": 178,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "scottlz0310_Mcp-Docker_29-e7705d26",
+      "pr": {
+        "repo": "https://github.com/scottlz0310/Mcp-Docker",
+        "pr_number": 29,
+        "base": "63baf3dbbc10d271710706f56150dd8425dd4b4a",
+        "head": "e7705d269ea374d49e7999bdb8bc42e9480a6b37"
+      },
+      "language": "Go",
+      "caseGroup": "reviewbench:https://github.com/scottlz0310/Mcp-Docker#29",
+      "findings": [
+        {
+          "file": "services/copilot-review-mcp/internal/auth/session.go",
+          "start_line": 111,
+          "end_line": 115,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 173,
+          "end_line": 213,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 238,
+          "end_line": 238,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/session.go",
+          "start_line": 57,
+          "end_line": 66,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/session.go",
+          "start_line": 44,
+          "end_line": 53,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 106,
+          "end_line": 109,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 75,
+          "end_line": 75,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/Dockerfile",
+          "start_line": 13,
+          "end_line": 13,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/session.go",
+          "start_line": 154,
+          "end_line": 172,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 28,
+          "end_line": 28,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 321,
+          "end_line": 321,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/cmd/server/main.go",
+          "start_line": 13,
+          "end_line": 13,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 167,
+          "end_line": 173,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 129,
+          "end_line": 134,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 191,
+          "end_line": 200,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 417,
+          "end_line": 422,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/session.go",
+          "start_line": 128,
+          "end_line": 134,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/session.go",
+          "start_line": 183,
+          "end_line": 188,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/middleware/auth.go",
+          "start_line": 51,
+          "end_line": 61,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docker-compose.yml",
+          "start_line": 47,
+          "end_line": 50,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/cmd/server/main.go",
+          "start_line": 59,
+          "end_line": 62,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 170,
+          "end_line": 170,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 193,
+          "end_line": 198,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/session.go",
+          "start_line": 99,
+          "end_line": 123,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 90,
+          "end_line": 94,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/session.go",
+          "start_line": 77,
+          "end_line": 96,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 46,
+          "end_line": 56,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 216,
+          "end_line": 251,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/cmd/server/main.go",
+          "start_line": 22,
+          "end_line": 29,
+          "category": "api",
+          "sourceCategory": "api-architecture",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 90,
+          "end_line": 94,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 74,
+          "end_line": 79,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docker-compose.yml",
+          "start_line": 58,
+          "end_line": 60,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/session.go",
+          "start_line": 91,
+          "end_line": 95,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/internal/auth/handler.go",
+          "start_line": 126,
+          "end_line": 132,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "services/copilot-review-mcp/cmd/server/main.go",
+          "start_line": 87,
+          "end_line": 89,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "docker-compose.yml",
+          "start_line": 58,
+          "end_line": 60,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "wirechat_wirechat_183-6e3156e7",
+      "pr": {
+        "repo": "https://github.com/wirechat/wirechat",
+        "pr_number": 183,
+        "base": "7f645146da1285f3817a9dfcb04be0a53ee50ecd",
+        "head": "6e3156e78da9b47cb4c6d596883b3ef0730b8cf8"
+      },
+      "language": "PHP",
+      "caseGroup": "reviewbench:https://github.com/wirechat/wirechat#183",
+      "findings": [
+        {
+          "file": "resources/views/livewire/chat/partials/body.blade.php",
+          "start_line": 86,
+          "end_line": 105,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/Livewire/Chat/Chat.php",
+          "start_line": 647,
+          "end_line": 658,
+          "category": "performance",
+          "sourceCategory": "performance",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "resources/views/livewire/chats/chats.blade.php",
+          "start_line": 84,
+          "end_line": 84,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "resources/views/livewire/chat/partials/body.blade.php",
+          "start_line": 227,
+          "end_line": 234,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/Livewire/Chat/Chat.php",
+          "start_line": 1031,
+          "end_line": 1031,
+          "category": "performance",
+          "sourceCategory": "performance",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/Livewire/Chat/Chat.php",
+          "start_line": 107,
+          "end_line": 111,
+          "category": "api",
+          "sourceCategory": "api-architecture",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "resources/views/livewire/chats/partials/list.blade.php",
+          "start_line": 50,
+          "end_line": 50,
+          "category": "performance",
+          "sourceCategory": "performance",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "resources/views/livewire/chats/partials/list.blade.php",
+          "start_line": 95,
+          "end_line": 107,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "resources/views/livewire/widgets/wire-chat.blade.php",
+          "start_line": 138,
+          "end_line": 145,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "resources/views/livewire/chat/partials/body.blade.php",
+          "start_line": 242,
+          "end_line": 242,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "src/Livewire/Chat/Chat.php",
+          "start_line": 1083,
+          "end_line": 1083,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "tests/Feature/ChatTest.php",
+          "start_line": 513,
+          "end_line": 513,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "resources/views/livewire/chats/partials/list.blade.php",
+          "start_line": 37,
+          "end_line": 39,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "resources/views/livewire/chats/chats.blade.php",
+          "start_line": 36,
+          "end_line": 39,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/Livewire/Chat/Chat.php",
+          "start_line": 654,
+          "end_line": 656,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "tests/Feature/ChatTest.php",
+          "start_line": 513,
+          "end_line": 513,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "resources/views/livewire/chat/partials/body.blade.php",
+          "start_line": 219,
+          "end_line": 221,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "resources/views/livewire/chat/partials/body.blade.php",
+          "start_line": 65,
+          "end_line": 73,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "tests/Feature/ChatsTest.php",
+          "start_line": 778,
+          "end_line": 779,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "sdsykes_fastimage_165-8fc7cd32",
+      "pr": {
+        "repo": "https://github.com/sdsykes/fastimage",
+        "pr_number": 165,
+        "base": "7a0dcf780e6d8cd7686520a3a1f57e7cd85b0b46",
+        "head": "8fc7cd32904240c2c841e70aef2ba5c3bb659ffd"
+      },
+      "language": "Ruby",
+      "caseGroup": "reviewbench:https://github.com/sdsykes/fastimage#165",
+      "findings": [
+        {
+          "file": "lib/fastimage/fastimage.rb",
+          "start_line": 257,
+          "end_line": 268,
+          "category": "performance",
+          "sourceCategory": "performance",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/jpeg.rb",
+          "start_line": 35,
+          "end_line": 44,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/exif.rb",
+          "start_line": 88,
+          "end_line": 96,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/exif.rb",
+          "start_line": 76,
+          "end_line": 84,
+          "category": "performance",
+          "sourceCategory": "performance",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/bmp.rb",
+          "start_line": 18,
+          "end_line": 26,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/png.rb",
+          "start_line": 14,
+          "end_line": 22,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/jpeg.rb",
+          "start_line": 45,
+          "end_line": 62,
+          "category": "api",
+          "sourceCategory": "api-architecture",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage.rb",
+          "start_line": 476,
+          "end_line": 484,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/jpeg.rb",
+          "start_line": 51,
+          "end_line": 52,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/png.rb",
+          "start_line": 17,
+          "end_line": 20,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/jpeg.rb",
+          "start_line": 34,
+          "end_line": 34,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/jpeg.rb",
+          "start_line": 40,
+          "end_line": 40,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage.rb",
+          "start_line": 454,
+          "end_line": 454,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/jpeg.rb",
+          "start_line": 28,
+          "end_line": 28,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/tiff.rb",
+          "start_line": 25,
+          "end_line": 25,
+          "category": "maintainability",
+          "sourceCategory": "maintainability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage.rb",
+          "start_line": 255,
+          "end_line": 265,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/exif.rb",
+          "start_line": 152,
+          "end_line": 170,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/jpeg.rb",
+          "start_line": 35,
+          "end_line": 36,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "test/test.rb",
+          "start_line": 124,
+          "end_line": 134,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/exif.rb",
+          "start_line": 102,
+          "end_line": 103,
+          "category": "correctness",
+          "sourceCategory": "correctness",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "test/test.rb",
+          "start_line": 562,
+          "end_line": 567,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/jpeg.rb",
+          "start_line": 75,
+          "end_line": 77,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "lib/fastimage/fastimage.rb",
+          "start_line": 436,
+          "end_line": 505,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "pre-existing"
+        },
+        {
+          "file": "lib/fastimage/fastimage.rb",
+          "start_line": 198,
+          "end_line": 198,
+          "category": "api",
+          "sourceCategory": "api-architecture",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/exif.rb",
+          "start_line": 19,
+          "end_line": 19,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "lib/fastimage/fastimage_parsing/jpeg.rb",
+          "start_line": 51,
+          "end_line": 51,
+          "category": "robustness",
+          "sourceCategory": "reliability",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "test/test.rb",
+          "start_line": 125,
+          "end_line": 129,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "README.md",
+          "start_line": 79,
+          "end_line": 82,
+          "category": "other",
+          "sourceCategory": "documentation",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        }
+      ]
+    },
+    {
+      "pr_key": "Marvell-Consulting_statswales-frontend_626-30ba27a5",
+      "pr": {
+        "repo": "https://github.com/Marvell-Consulting/statswales-frontend",
+        "pr_number": 626,
+        "base": "c1707c79a5a947cf7c6912af3ad00848c42a28e0",
+        "head": "30ba27a5f20318f12fe74f26059d8b62d62874e9"
+      },
+      "language": "TypeScript",
+      "caseGroup": "reviewbench:https://github.com/Marvell-Consulting/statswales-frontend#626",
+      "findings": [
+        {
+          "file": "tests-e2e/consumer/dataset-download.spec.ts",
+          "start_line": 184,
+          "end_line": 201,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/consumer/services/consumer-api.ts",
+          "start_line": 224,
+          "end_line": 229,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "exacerbated-by-pr"
+        },
+        {
+          "file": "src/consumer/services/consumer-api.ts",
+          "start_line": 237,
+          "end_line": 242,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "exacerbated-by-pr"
+        },
+        {
+          "file": "src/publisher/services/publisher-api.ts",
+          "start_line": 924,
+          "end_line": 933,
+          "category": "security",
+          "sourceCategory": "security",
+          "severity": "medium",
+          "tp_fp": "tp",
+          "scope": "exacerbated-by-pr"
+        },
+        {
+          "file": "tests-e2e/consumer/dataset-download.spec.ts",
+          "start_line": 203,
+          "end_line": 205,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "fp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/publisher/services/publisher-api.ts",
+          "start_line": 932,
+          "end_line": 932,
+          "category": "test",
+          "sourceCategory": "testing",
+          "severity": "low",
+          "tp_fp": "tp",
+          "scope": "introduced-by-pr"
+        },
+        {
+          "file": "src/consumer/services/consumer-api.ts",
+          "start_line": 241,
+          "end_line": 241,
+          "category": "test",
+          "sourceCategory": "testing",
           "severity": "low",
           "tp_fp": "tp",
           "scope": "introduced-by-pr"
