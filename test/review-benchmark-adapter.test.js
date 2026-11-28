@@ -172,7 +172,7 @@ test('external benchmark source ledger rejects revision, asset and PR identity d
  shapeLedger.sources.find(x=>x.id==='alibaba-aacr-bench-2026')
    .snapshot.negativeReferenceInspection.explicitTopLevelFileOrPathField=true;
  fs.writeFileSync(shapeLedgerPath,JSON.stringify(shapeLedger));
- assert.throws(()=>verifyExternalReviewBenchmarks(shapeRoot),/AACR negative file\/path mapping/);
+ assert.throws(()=>verifyExternalReviewBenchmarks(shapeRoot),/AACR negative top-level file\/path mapping/);
  
  const acquiredRoot=fixture();
  const acquiredLedgerPath=path.join(acquiredRoot,'quality/external-benchmark-sources.json');
