@@ -32,7 +32,7 @@
 ## G2 — 专业代码审查能力（P1）
 
 - [ ] T12 | Review、Service | R05/R06 | V10 | T01/G1：核实外部 benchmark 许可和下载快照，建立独立标注、根因 group、repo/语言/严重度分层、正负例、保留 holdout；收集至少两类真实嵌入式项目缺陷来源，未授权私有内容只在允许的本地环境。冻结 evaluator、dataset digest 和去重规则；不复制所有 benchmark。
-  进度：新增 ReviewBench 25 PR/25 仓库、CloudAEye C/C++ 16 PR/13 仓库及既有嵌入式 2 PR/2 仓库的许可绑定、去源码/评论快照；共 43 PR、40 仓库、33 个候选分组单元、18 个高危候选组。根因独立性尚未复核，干净负例 0、盲测 holdout 0，T12 仍未完成。
+  进度：Core PR #133 已合并到 main，merge SHA `aefdab4caf3a48c3f9b87a7074f16fafac76def7`；同一精确 Head CI run `46107717681` 全部必需任务成功（两项影响范围 canary skipped）。已保存 ReviewBench 25 PR/25 仓库、CloudAEye C/C++ 16 PR/13 仓库及既有嵌入式 2 PR/2 仓库的许可绑定、去源码/评论快照；共 43 PR、40 仓库、33 个候选分组单元、18 个高危候选组。根因独立性尚未复核，干净负例 0、盲测 holdout 0、fresh model execution 0；T12 仍未完成。
 - [ ] T13 | Review、Service、Core | R04/R05 | V09/V10 | T09/T12：确定性分析接入实际可用的 compiler/lint/SARIF 等输出；工具白名单、时间/输出上限、未受信 PR 脚本不运行；按嵌入式语言/风险选择规则，工具缺失与不适用分别标记。
 - [ ] T14 | Review、Service、Core | R04/R05 | V09/V10 | T13：证据按调用、声明、资源/错误路径、配置、测试关联进行有界检索；记录已规划/读取/推理/缺口；支持 deleted/cross-file 根因及精确主锚点，禁止虚构 changed-line。
 - [ ] T15 | Review、Service | R04/R05 | V09/V10 | T14：比较高危低置信候选的待核实语义、证据反例及独立发现；可选 fresh blind，不将 replay 算 fresh；用真实误报、漏报、缺口样本确认风险阈值。
@@ -65,7 +65,7 @@
 - [ ] T25 | TUI | R12 | V13 | T01：真实安装版本原生 agents/review/resume/search/queue/doctor 对照，冻结 Lite 五项高频使用故事、跨主机/source/account/parent/fork 能力与时延；未验证来源标 partial。优先复用官方能力。
 - [ ] T26 | TUI | R12 | V13 | T25：先完成五能力的真实行为，精确目标、子线程待处理、不可达和分页异常；native resume 或准确定位，不使用 --last 猜测、不接管个人会话；业务 link 仅引用原平台。
 - [ ] T27 | TUI | R12/R14 | V13 | T26：按调用关系删除旧 Board/WorkCard、Composer/Queue、重复 Git 写、嵌入终端等不再消费路径及相关配置/help/test；不是直接删除关键回归门禁；保留历史 release 和用户必要数据的离线保全，不维护第二套 runtime。
-  进度：TUI #450–#458 仍为连续 Draft 重构链；已核验部分 head CI 成功，但 PR 明确要求现场替换/退役验收，未取得证据前不合并、不删除历史数据。
+  进度：TUI #450–#457 已按依赖顺序合并到 main（最新 SHA `af0f6669be2462a42ea56ff1d9af81f17d826b62`）；七个 PR 的对应 CI 全部成功，无未解决 review thread。#458 仍为 Draft（Head `0bb06f4a0ced36f231c8eb156fc4c2d538c06b54`），七个 hosted workflow 成功，但其自身明确要求真实主机 G1–G3、迁移/恢复、G4 对比 UX 和 Stable 资格；这些尚未完成。旧 Board/Planning 投影和未使用代码的最终物理删除、无作用域偏好迁移仍受现场数据核验约束，T27 不关闭。
 - [ ] T28 | codex、ADK | R13 | V14 | T01：测当前 default 与团队 profile 常驻上下文、安装成本、实际命中；最小化默认配置与长尾按需加载；只从 exact ADK source 导入，排除系统/凭据/用户会话。验证 source→build→plan→apply→doctor→rollback 与不同 host。
 - [ ] T29 | codex | R13 | V14 | T28：复用现有 Feishu Engineering Agent SDD，仅补真实远程需求/缺陷交付、项目身份、独立授权/计费、可恢复 UNKNOWN 和受控发布；缺企业 API 走明确用户提供上下文，不造新 Gateway/卡片体系。已有实现不得重写。
 - [ ] T30 | engineering-platform、digital-worker（边界） | R15 | V16 | T26/T29：核实实际主机服务/依赖、未完成事项、历史证据、备份恢复与方法吸收映射；不重新产品化；实际停用/归档/删除只有确认无活跃依赖且责任人授权时实施，禁止删除未知数据。
@@ -75,7 +75,7 @@
 ## G6 — 真实生产联合验收与完成归档
 
 - [ ] T31 | Service | R08 | V06/V15 | T06/T20：用实际获授权的两个 GitLab 信任域、多个仓库，执行命名 ingress、重启/断网/乱序/429/状态发布中断、独立预算及恢复；统一入口只读展示；保留真实实例结果（公开记录脱敏）。
-  进度：Service #172 CI 中 gitlab-system、fault-injection 与 Main qualification 均跳过；两个真实 GitLab 信任域的生产故障注入和恢复仍未验证。
+  进度：Service #172 CI 中 gitlab-system、fault-injection 与 Main qualification 均跳过；两个真实 GitLab 信任域的生产故障注入和恢复仍未验证。代码发行/CI 不能替代 `192.168.1.22` 管理主机的 SQLite 备份、迁移、独立身份密钥、双 GitLab 回调与回滚现场验收。
 - [ ] T32 | Safe 族 | R01–R11/R14/R16 | V03/V08/V09/V12/V15 | T20/T24/T31：本地 staged→Review→Commit→用户实际提交→Change→MR/CI→Service→Diagnose/Debug 的适用真实工作流验证；覆盖 Windows/Linux/Remote SSH、固件 BIN、源码及嵌入式故障。按产品现有发布渠道核对真实产物、签名和 installed smoke，现场不可用不报通过。
 - [ ] T33 | TUI/codex | R12/R13/R16 | V13/V14/V15 | T27/T29：在真实跨主机、业务事项多仓联调中验证会话定位、原生续接、资产升级/回滚、飞书控制与实际证据回写；只在真实授权范围内执行。
 - [ ] T34 | 全系列 | R01–R16 | V01–V16 | T31–T33/T30：独立只读收敛审查，按需求逐条验收，记录 exact main/产物/CI/模型/现场证据、剩余风险/未验证；无不明/失败的必选项才声明全系列完成，非必选项明确由责任人接受。结束后提交完成/归档记录，停止重复巡检和计划重写。
