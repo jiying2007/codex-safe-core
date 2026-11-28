@@ -101,7 +101,8 @@ test('external benchmark snapshots are provenance-bound and cannot qualify model
    positiveValidAnchors:1505,positiveInvalidAnchors:1,positiveAiComments:1114,positiveHumanComments:392,
    negativeReferences:155,negativeComments:639,negativeCommentArrays:true,
    negativeNestedPaths:true,negativeNestedLineAnchors:true,
-   explicitNegativeFilePathMapping:false,cleanNegativeEligible:false
+   explicitNegativeFilePathMapping:false,cleanNegativeEligible:false,
+   positiveNegativePrOverlap:151,uniqueAacrPrs:200,reviewBenchOverlap:0
  });
  assert.equal(result.uniquePullRequests,43);
  assert.equal(result.distinctRepositories,40);
@@ -188,4 +189,12 @@ test('external benchmark source ledger rejects revision, asset and PR identity d
    .snapshot.positiveAssetAcquisition.invalidAnchors=0;
  fs.writeFileSync(anchorLedgerPath,JSON.stringify(anchorLedger));
  assert.throws(()=>verifyExternalReviewBenchmarks(anchorRoot),/AACR positive invalid anchor count/);
+
+ const overlapRoot=fixture();
+ const overlapPath=path.join(overlapRoot,'quality/external-benchmark-sources.json');
+ const overlapLedger=JSON.parse(fs.readFileSync(overlapPath,'utf8'));
+ overlapLedger.sources.find(x=>x.id==='alibaba-aacr-bench-2026')
+   .snapshot.negativeReferenceInspection.positiveNegativePrOverlap.intersectionPrs=150;
+ fs.writeFileSync(overlapPath,JSON.stringify(overlapLedger));
+ assert.throws(()=>verifyExternalReviewBenchmarks(overlapRoot),/AACR positive\/negative PR overlap/);
 });
