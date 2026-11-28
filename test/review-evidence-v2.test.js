@@ -209,3 +209,32 @@ test('structural hints are scoped to exact delivered hunk coordinates and conten
  assert.equal(oldSide.risk.length,0);
  assert.equal(oldSide.complete,false);
 });
+
+test('canonical multi-file chunks accept only terminal separator framing, not malformed hunk data',()=>{
+ const {buildReviewEvidenceChunks}=require('../context-builder');
+ const file=(name,body)=>'diff --git a/'+name+' b/'+name+'\n--- a/'+name+'\n+++ b/'+name+'\n'+body+'\n';
+ const a=file('src/irq.c','@@ -1 +1 @@\n-old();\n+mutex_lock(&lock);');
+ const b=file('src/other.c','@@ -1 +1 @@\n-old();\n+new_call();');
+ const raw=a+b;
+ const risk=buildReviewRiskEvidence({diff:raw});
+ assert.equal(risk.complete,true);
+ const planned=buildReviewEvidenceChunks({diff:raw,maxBytes:4096,maxChunks:2});
+ assert.equal(planned.chunks.length,1);
+ assert.match(planned.chunks[0].text,/\n\ndiff --git/);
+ const selected=selectChunkStructuralEvidence({diff:planned.chunks[0].text,risk});
+ assert.equal(selected.complete,true);
+ assert.equal(selected.risk.length,1);
+ assert.equal(selected.risk[0].path,'src/irq.c');
+ const proof=verifyFindingEvidence({diff:planned.chunks[0].text,findings:[{file:'src/irq.c',side:'new',line:1},{file:'src/other.c',side:'new',line:1}]});
+ assert.equal(proof.complete,true);
+ assert.equal(proof.verifiedAnchorCount,2);
+ for(const malformed of [
+   file('src/irq.c','@@ -1,2 +1,2 @@\n-old();\n+mutex_lock(&lock);\n\n')+b,
+   file('src/irq.c','@@ -1 +1 @@\n-old();\n+mutex_lock(&lock);\n\n@@ -5 +5 @@\n-old2\n+new2')+b,
+   a+'\n+unexpected\n'+b
+ ]){
+   const invalid=selectChunkStructuralEvidence({diff:malformed,risk});
+   assert.equal(invalid.complete,false);
+   assert.equal(invalid.risk.length,0);
+ }
+});

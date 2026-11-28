@@ -41,7 +41,13 @@ function parseChangedLines(diff,{maxDiffBytes=MAX_DIFF}={}){
    let oldLine=0,newLine=0,remainingOld=0,remainingNew=0;
    let inHunk=false,hasHunk=false,oldEnd=-1,newEnd=-1,bodyLine=false;
    const rows=block.text.split(/\r?\n/);
-   for(let i=0;i<rows.length;i++){
+   // The canonical chunk builder joins already LF-terminated Git file
+   // sections with a separator. Blank rows at the very end of a section
+   // are framing, not hunk data; real empty source lines have a prefix.
+   // Do not strip interior blanks or waive the final old/new counts.
+   let rowEnd=rows.length;
+   while(rowEnd>0&&rows[rowEnd-1]==='')rowEnd--;
+   for(let i=0;i<rowEnd;i++){
      const value=rows[i];
      const h=/^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@(?:.*)$/.exec(value);
      if(h){
@@ -60,7 +66,6 @@ function parseChangedLines(diff,{maxDiffBytes=MAX_DIFF}={}){
      }
      if(value.startsWith('@@')){reasons.add('invalid_hunk_header');inHunk=false;continue;}
      if(!inHunk)continue;
-     if(value===''&&i===rows.length-1)continue; // one terminal LF is not a hunk row
      if(value.startsWith('+')){
        lines.push({path:block.path,side:'new',line:newLine,text:value.slice(1)});
        newLine++;remainingNew--;bodyLine=true;
