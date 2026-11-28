@@ -97,8 +97,11 @@ test('external benchmark snapshots are provenance-bound and cannot qualify model
  assert.equal(result.cloudae.highRiskRootCauseGroups,5);
  assert.equal(result.embedded.prs,2);
  assert.deepEqual(result.aacr,{
-   positiveReferences:196,negativeReferences:155,positiveAssetAcquired:false,
-   negativeCommentArrays:true,explicitNegativeFilePathMapping:false,cleanNegativeEligible:false
+   positiveReferences:196,positiveComments:1506,positiveAssetAcquired:true,
+   positiveValidAnchors:1505,positiveInvalidAnchors:1,positiveAiComments:1114,positiveHumanComments:392,
+   negativeReferences:155,negativeComments:639,negativeCommentArrays:true,
+   negativeNestedPaths:true,negativeNestedLineAnchors:true,
+   explicitNegativeFilePathMapping:false,cleanNegativeEligible:false
  });
  assert.equal(result.uniquePullRequests,43);
  assert.equal(result.distinctRepositories,40);
@@ -169,4 +172,20 @@ test('external benchmark source ledger rejects revision, asset and PR identity d
    .snapshot.negativeReferenceInspection.explicitTopLevelFileOrPathField=true;
  fs.writeFileSync(shapeLedgerPath,JSON.stringify(shapeLedger));
  assert.throws(()=>verifyExternalReviewBenchmarks(shapeRoot),/AACR negative file\/path mapping/);
+ 
+ const acquiredRoot=fixture();
+ const acquiredLedgerPath=path.join(acquiredRoot,'quality/external-benchmark-sources.json');
+ const acquiredLedger=JSON.parse(fs.readFileSync(acquiredLedgerPath,'utf8'));
+ acquiredLedger.sources.find(x=>x.id==='alibaba-aacr-bench-2026')
+   .snapshot.positiveAssetAcquisition.acquired=false;
+ fs.writeFileSync(acquiredLedgerPath,JSON.stringify(acquiredLedger));
+ assert.throws(()=>verifyExternalReviewBenchmarks(acquiredRoot),/AACR positive blob acquisition/);
+
+ const anchorRoot=fixture();
+ const anchorLedgerPath=path.join(anchorRoot,'quality/external-benchmark-sources.json');
+ const anchorLedger=JSON.parse(fs.readFileSync(anchorLedgerPath,'utf8'));
+ anchorLedger.sources.find(x=>x.id==='alibaba-aacr-bench-2026')
+   .snapshot.positiveAssetAcquisition.invalidAnchors=0;
+ fs.writeFileSync(anchorLedgerPath,JSON.stringify(anchorLedger));
+ assert.throws(()=>verifyExternalReviewBenchmarks(anchorRoot),/AACR positive invalid anchor count/);
 });
